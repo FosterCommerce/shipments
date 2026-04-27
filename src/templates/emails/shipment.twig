@@ -1,0 +1,52 @@
+{# Starter shipment notification email.
+
+	Copy into your site’s template path (e.g. `shipments/email.twig`) and point
+	the email’s HTML Template Path at it.
+
+	Available variables:
+		shipment:       fostercommerce\shipments\elements\Shipment
+		order:          craft\commerce\elements\Order
+		axis:           fostercommerce\shipments\enums\StatusAxis|null
+		fromCode:       fostercommerce\shipments\enums\FulfillmentStatus|ShippingStatus|null
+		toCode:         fostercommerce\shipments\enums\FulfillmentStatus|ShippingStatus|null
+		statusHistory:  fostercommerce\shipments\records\ShipmentStatusHistory|null
+		user:           craft\elements\User|null (author of the status change)
+		message:        string|null (optional note saved with the transition)
+#}
+<!doctype html>
+<html lang="{{ currentSite.language ?? 'en' }}">
+<head>
+	<meta charset="utf-8">
+	<title>{{ 'Shipment {reference}'|t('shipments', { reference: shipment.reference }) }}</title>
+</head>
+<body>
+	<h1>{{ 'Shipment {reference}'|t('shipments', { reference: shipment.reference }) }}</h1>
+
+	<p>
+		{{ 'Order'|t('shipments') }}:
+		<strong>{{ order.reference ?: order.number }}</strong>
+	</p>
+
+	{% if axis and toCode %}
+		<p>
+			{{ axis.label() }}:
+			<strong>{{ toCode.label() }}</strong>
+		</p>
+	{% endif %}
+
+	{% if shipment.trackingNumber %}
+		<p>
+			{{ 'Tracking number'|t('shipments') }}:
+			{% if shipment.trackingUrl %}
+				<a href="{{ shipment.trackingUrl }}">{{ shipment.trackingNumber }}</a>
+			{% else %}
+				{{ shipment.trackingNumber }}
+			{% endif %}
+		</p>
+	{% endif %}
+
+	{% if message %}
+		<blockquote>{{ message }}</blockquote>
+	{% endif %}
+</body>
+</html>

@@ -1,0 +1,147 @@
+{% extends "shipments/_layouts/settings" %}
+{% import "_includes/forms" as forms %}
+
+{% set selectedItem = 'emails' %}
+{% set fullPageForm = true %}
+{% set crumbs = [
+	{ label: 'Settings'|t('app'), url: url('settings') },
+	{ label: 'Plugins'|t('app'), url: url('settings/plugins') },
+	{ label: 'Shipments'|t('shipments'), url: url('shipments/settings/general') },
+	{ label: 'Emails'|t('shipments'), url: url('shipments/settings/emails') },
+] %}
+
+{% block content %}
+	{{ actionInput('shipments/emails/save') }}
+	{{ redirectInput('shipments/settings/emails') }}
+	{% if email.id %}<input type="hidden" name="id" value="{{ email.id }}">{% endif %}
+
+	{{ forms.textField({
+		label: 'Name'|t('shipments'),
+		required: true,
+		id: 'name',
+		name: 'name',
+		value: email.name,
+		errors: email.getErrors('name'),
+	}) }}
+
+	{{ forms.textField({
+		label: 'Subject'|t('shipments'),
+		required: true,
+		id: 'subject',
+		name: 'subject',
+		instructions: 'Twig rendered with shipment, order, newStatus, message.'|t('shipments'),
+		value: email.subject,
+		errors: email.getErrors('subject'),
+	}) }}
+
+	{{ forms.selectField({
+		label: 'Recipient Type'|t('shipments'),
+		id: 'recipientType',
+		name: 'recipientType',
+		value: email.recipientType,
+		options: recipientTypes|map((displayName, handle) => ({ label: displayName, value: handle }))|values,
+	}) }}
+
+	{{ forms.autosuggestField({
+		label: 'To'|t('shipments'),
+		instructions: 'Required when Recipient Type is Custom. Supports environment variables and Twig.'|t('shipments'),
+		id: 'to',
+		name: 'to',
+		value: email.getTo(false),
+		suggestEnvVars: true,
+		errors: email.getErrors('to'),
+	}) }}
+
+	{{ forms.autosuggestField({
+		label: 'BCC'|t('shipments'),
+		id: 'bcc',
+		name: 'bcc',
+		value: email.getBcc(false),
+		suggestEnvVars: true,
+	}) }}
+
+	{{ forms.autosuggestField({
+		label: 'CC'|t('shipments'),
+		id: 'cc',
+		name: 'cc',
+		value: email.getCc(false),
+		suggestEnvVars: true,
+	}) }}
+
+	{{ forms.textField({
+		label: 'Reply-To'|t('shipments'),
+		id: 'replyTo',
+		name: 'replyTo',
+		value: email.replyTo,
+	}) }}
+
+	{{ forms.lightswitchField({
+		label: 'Enabled'|t('shipments'),
+		id: 'enabled',
+		name: 'enabled',
+		on: email.enabled,
+	}) }}
+
+	{{ forms.autosuggestField({
+		label: 'HTML Template Path'|t('shipments'),
+		required: true,
+		id: 'templatePath',
+		name: 'templatePath',
+		class: 'code',
+		value: email.templatePath,
+		errors: email.getErrors('templatePath'),
+		suggestions: craft.cp.getTemplateSuggestions(),
+	}) }}
+
+	{{ forms.autosuggestField({
+		label: 'Plain Text Template Path'|t('shipments'),
+		id: 'plainTextTemplatePath',
+		name: 'plainTextTemplatePath',
+		class: 'code',
+		value: email.plainTextTemplatePath,
+		suggestions: craft.cp.getTemplateSuggestions(),
+	}) }}
+
+	{{ forms.textField({
+		label: 'Language'|t('shipments'),
+		required: true,
+		id: 'language',
+		name: 'language',
+		instructions: 'Set to `orderLanguage` to render in the order’s language, or a specific site language code.'|t('shipments'),
+		value: email.language,
+		errors: email.getErrors('language'),
+	}) }}
+
+	<hr>
+
+	<h2>{{ 'Transition triggers'|t('shipments') }}</h2>
+	<p class="light">{{ 'Pick which status transitions should queue this email. Triggers fire when a shipment lands on the selected code, regardless of where it came from (CP edit, REST API, integration webhook).'|t('shipments') }}</p>
+
+	{% if email.id %}
+		{% set fulfillmentOptions = [] %}
+		{% for code, label in fulfillmentStatusOptions %}
+			{% set fulfillmentOptions = fulfillmentOptions|merge([{ label: label, value: code }]) %}
+		{% endfor %}
+
+		{% set shippingOptions = [] %}
+		{% for code, label in shippingStatusOptions %}
+			{% set shippingOptions = shippingOptions|merge([{ label: label, value: code }]) %}
+		{% endfor %}
+
+		{{ forms.checkboxGroupField({
+			label: 'Fulfillment status triggers'|t('shipments'),
+			name: 'fulfillmentBindings',
+			values: fulfillmentBindings,
+			options: fulfillmentOptions,
+		}) }}
+
+		{{ forms.checkboxGroupField({
+			label: 'Shipping status triggers'|t('shipments'),
+			name: 'shippingBindings',
+			values: shippingBindings,
+			options: shippingOptions,
+		}) }}
+	{% else %}
+		<p class="light"><em>{{ 'Save the email first; transition triggers can be set once it has an id.'|t('shipments') }}</em></p>
+	{% endif %}
+{% endblock %}

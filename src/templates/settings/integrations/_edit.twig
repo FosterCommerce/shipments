@@ -1,0 +1,111 @@
+{% extends "shipments/_layouts/settings" %}
+{% import "_includes/forms" as forms %}
+
+{#
+	Integration edit page. Sidebar carries the Provider selector + Enabled switch; those
+	drive what appears in the main tabs. Main content is split into:
+	 - "Integration" tab: name, handle, URL template (domain-agnostic fields the row always has).
+	 - "Provider" tab: the selected provider's own settings form; the template renders every
+	   provider's panel up front and JS toggles visibility based on the Provider select.
+
+	@var integration \fostercommerce\shipments\models\Integration
+	@var providerOptions list of provider option rows; each row has label (string) and value (string)
+	@var providerSettings map keyed by provider class name, value is the rendered settings HTML (string)
+#}
+
+{% set selectedItem = 'integrations' %}
+{% set fullPageForm = true %}
+{% set selectedTab = 'integration' %}
+{% set crumbs = [
+	{ label: 'Settings'|t('app'), url: url('settings') },
+	{ label: 'Plugins'|t('app'), url: url('settings/plugins') },
+	{ label: 'Shipments'|t('shipments'), url: url('shipments/settings/general') },
+	{ label: 'Integrations'|t('shipments'), url: url('shipments/settings/integrations') },
+] %}
+
+{% set tabs = {
+	integration: { label: 'Integration'|t('shipments'), url: '#integration' },
+	'provider-settings': { label: 'Provider'|t('shipments'), url: '#provider-settings' },
+} %}
+
+{% block content %}
+	{{ actionInput('shipments/integrations/save') }}
+	{{ redirectInput('shipments/settings/integrations') }}
+	{% if integration.id %}<input type="hidden" name="id" value="{{ integration.id }}">{% endif %}
+
+	{# Integration tab #}
+	<div id="integration">
+		{{ forms.textField({
+			label: 'Name'|t('shipments'),
+			instructions: 'What this integration will be called in the control panel.'|t('shipments'),
+			required: true,
+			id: 'name',
+			name: 'name',
+			value: integration.name,
+			errors: integration.getErrors('name'),
+			autofocus: true,
+		}) }}
+
+		{{ forms.textField({
+			label: 'Handle'|t('shipments'),
+			instructions: 'Stable identifier used by providers (e.g. `shipstation`).'|t('shipments'),
+			required: true,
+			id: 'handle',
+			name: 'handle',
+			class: 'code',
+			value: integration.handle,
+			errors: integration.getErrors('handle'),
+		}) }}
+
+		{{ forms.textField({
+			label: 'URL template'|t('shipments'),
+			instructions: 'Optional. Link template for deep-linking into the remote system. Use `{externalId}` as a placeholder; e.g. `https://ship.shipstation.com/shipments/{externalId}`.'|t('shipments'),
+			id: 'urlTemplate',
+			name: 'urlTemplate',
+			class: 'ltr',
+			value: integration.urlTemplate,
+			errors: integration.getErrors('urlTemplate'),
+		}) }}
+	</div>
+
+	{# Provider tab. Rendered only when at least one provider is registered. JS hides the
+	   tab link when the sidebar Provider select is blank and shows it again when one is picked.
+	   Pane id is `provider-settings` (not `provider`) to avoid colliding with the sidebar
+	   Provider select's id. #}
+	<div id="provider-settings" class="hidden">
+		{% if providerOptions|length %}
+			{% for option in providerOptions %}
+				<div class="shipments-provider-panel{% if integration.provider != option.value %} hidden{% endif %}" data-provider="{{ option.value }}">
+					{{ providerSettings[option.value]|raw }}
+				</div>
+			{% endfor %}
+		{% endif %}
+	</div>
+{% endblock %}
+
+{# Sidebar: Provider + Enabled #}
+{% block details %}
+	<div class="meta">
+		{% set providerSelectOptions = [{ label: 'None'|t('shipments'), value: '' }]|merge(providerOptions) %}
+		{{ forms.selectField({
+			label: 'Provider'|t('shipments'),
+			required: providerOptions|length > 0,
+			id: 'provider',
+			name: 'provider',
+			value: integration.provider,
+			options: providerSelectOptions,
+			errors: integration.getErrors('provider'),
+		}) }}
+
+		{{ forms.lightswitchField({
+			label: 'Enabled'|t('shipments'),
+			id: 'enabled',
+			name: 'enabled',
+			on: integration.enabled,
+		}) }}
+	</div>
+{% endblock %}
+
+{% if not integration.handle %}
+	{% js %}new Craft.HandleGenerator('#name', '#handle');{% endjs %}
+{% endif %}

@@ -1,0 +1,44 @@
+{% extends "shipments/_layouts/settings" %}
+
+{% set selectedItem = 'emails' %}
+{% set title = 'Shipment Emails'|t('shipments') %}
+{% set crumbs = [
+	{ label: 'Settings'|t('app'), url: url('settings') },
+	{ label: 'Plugins'|t('app'), url: url('settings/plugins') },
+	{ label: 'Shipments'|t('shipments'), url: url('shipments/settings/general') },
+] %}
+
+{% block actionButton %}
+	<a href="{{ url('shipments/settings/emails/new') }}" class="btn submit add icon">{{ 'New email'|t('shipments') }}</a>
+{% endblock %}
+
+{% block content %}
+	{% if emails|length %}
+		<table class="data fullwidth collapsible">
+			<thead>
+				<tr>
+					<th>{{ 'Name'|t('shipments') }}</th>
+					<th>{{ 'Subject'|t('shipments') }}</th>
+					<th>{{ 'Recipient'|t('shipments') }}</th>
+					<th>{{ 'Enabled'|t('shipments') }}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for email in emails %}
+					<tr data-id="{{ email.id }}">
+						<td><a href="{{ email.cpEditUrl }}">{{ email.name }}</a></td>
+						<td>{{ email.subject }}</td>
+						<td>{{ (email.recipientType == 'customer' ? 'Customer' : 'Custom')|t('shipments') }}</td>
+						<td>
+							{% if email.enabled %}
+								<span data-icon="check" title="{{ 'Enabled'|t('shipments') }}"></span>
+							{% endif %}
+						</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	{% else %}
+		<p>{{ 'No emails yet.'|t('shipments') }} <a href="{{ url('shipments/settings/emails/new') }}">{{ 'Create one'|t('shipments') }}</a>.</p>
+	{% endif %}
+{% endblock %}

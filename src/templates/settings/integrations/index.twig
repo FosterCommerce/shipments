@@ -1,0 +1,44 @@
+{% extends "shipments/_layouts/settings" %}
+
+{% set selectedItem = 'integrations' %}
+{% set title = 'Integrations'|t('shipments') %}
+{% set crumbs = [
+	{ label: 'Settings'|t('app'), url: url('settings') },
+	{ label: 'Plugins'|t('app'), url: url('settings/plugins') },
+	{ label: 'Shipments'|t('shipments'), url: url('shipments/settings/general') },
+] %}
+
+{% block actionButton %}
+	<a href="{{ url('shipments/settings/integrations/new') }}" class="btn submit add icon">{{ 'New integration'|t('shipments') }}</a>
+{% endblock %}
+
+{% block content %}
+	{% if integrations|length %}
+		<table class="data fullwidth collapsible">
+			<thead>
+				<tr>
+					<th>{{ 'Name'|t('shipments') }}</th>
+					<th>{{ 'Handle'|t('shipments') }}</th>
+					<th>{{ 'URL template'|t('shipments') }}</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for integration in integrations %}
+					<tr data-id="{{ integration.id }}">
+						<td>{{ integration.name }}</td>
+						<td><code>{{ integration.handle }}</code></td>
+						<td>
+							{% if integration.urlTemplate %}<code class="light">{{ integration.urlTemplate }}</code>{% endif %}
+						</td>
+						<td class="thin">
+							<a href="{{ integration.cpEditUrl }}" class="go" title="{{ 'Edit'|t('shipments') }}"></a>
+						</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	{% else %}
+		<p>{{ 'No integrations yet.'|t('shipments') }} <a href="{{ url('shipments/settings/integrations/new') }}">{{ 'Create one'|t('shipments') }}</a>.</p>
+	{% endif %}
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "shipments/_layouts/settings" %}
+{% import "_includes/forms" as forms %}
+
+{#
+	Per-integration status mapping editor. One editable table per axis.
+
+	@var integration        fostercommerce\shipments\models\Integration
+	@var maps               list<array<string, mixed>>
+	@var fulfillmentOptions array<string, string>
+	@var shippingOptions    array<string, string>
+	@var directionOptions   array<string, string>
+#}
+
+{% set selectedItem = 'integrations' %}
+{% set fullPageForm = true %}
+
+{% set crumbs = [
+	{ label: 'Shipments'|t('shipments'), url: url('shipments/shipments') },
+	{ label: 'Settings'|t('shipments'), url: url('shipments/settings/general') },
+	{ label: 'Integrations'|t('shipments'), url: url('shipments/settings/integrations') },
+	{ label: integration.name, url: integration.cpEditUrl },
+] %}
+
+{% set fulfillmentRows = [] %}
+{% set shippingRows = [] %}
+{% for row in maps %}
+	{% set entry = {
+		externalCode: row.externalCode,
+		externalLabel: row.externalLabel,
+		direction: row.direction,
+		internalCode: row.internalCode,
+	} %}
+	{% if row.axis == 'fulfillment' %}
+		{% set fulfillmentRows = fulfillmentRows|merge([entry]) %}
+	{% elseif row.axis == 'shipping' %}
+		{% set shippingRows = shippingRows|merge([entry]) %}
+	{% endif %}
+{% endfor %}
+
+{% set commonCols = {
+	externalCode: {
+		heading: 'External code'|t('shipments'),
+		type: 'singleline',
+		code: true,
+	},
+	externalLabel: {
+		heading: 'External label'|t('shipments'),
+		type: 'singleline',
+	},
+	direction: {
+		heading: 'Direction'|t('shipments'),
+		type: 'select',
+		options: directionOptions|map((label, value) => ({ label: label, value: value }))|values,
+	},
+} %}
+
+{% block content %}
+	{{ actionInput('shipments/integrations/status-maps') }}
+	{{ redirectInput('shipments/settings/integrations/' ~ integration.id ~ '/status-maps') }}
+
+	<p class="light">{{ 'Map this integration’s status codes to the plugin’s fixed fulfillment and shipping vocabularies. Inbound rows translate the integration’s codes to ours; outbound rows go the other way.'|t('shipments') }}</p>
+
+	{{ forms.editableTableField({
+		label: 'Fulfillment mappings'|t('shipments'),
+		id: 'fulfillmentMaps',
+		name: 'fulfillmentMaps',
+		cols: commonCols|merge({
+			internalCode: {
+				heading: 'Maps to (fulfillment)'|t('shipments'),
+				type: 'select',
+				options: fulfillmentOptions|map((label, value) => ({ label: label, value: value }))|values,
+			},
+		}),
+		rows: fulfillmentRows,
+		addRowLabel: 'Add fulfillment mapping'|t('shipments'),
+	}) }}
+
+	{{ forms.editableTableField({
+		label: 'Shipping mappings'|t('shipments'),
+		id: 'shippingMaps',
+		name: 'shippingMaps',
+		cols: commonCols|merge({
+			internalCode: {
+				heading: 'Maps to (shipping)'|t('shipments'),
+				type: 'select',
+				options: shippingOptions|map((label, value) => ({ label: label, value: value }))|values,
+			},
+		}),
+		rows: shippingRows,
+		addRowLabel: 'Add shipping mapping'|t('shipments'),
+	}) }}
+{% endblock %}

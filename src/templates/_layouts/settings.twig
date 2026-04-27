@@ -1,0 +1,31 @@
+{% extends "_layouts/cp" %}
+
+{# Shared layout for the plugin's settings-area pages. Each settings page extends this
+   and sets `selectedItem` to one of 'general' / 'emails' / 'integrations' / 'shipment-fields'
+   so the sidebar highlights the current section. Mirrors the pattern in
+   `vendor/craftcms/commerce/src/templates/_layouts/settings.twig`. #}
+
+{% set selectedSubnavItem = 'settings' %}
+
+{% set settingsNavItems = {
+	'general': { title: 'General'|t('shipments'), url: 'shipments/settings/general' },
+	'emails': { title: 'Emails'|t('shipments'), url: 'shipments/settings/emails' },
+	'integrations': { title: 'Integrations'|t('shipments'), url: 'shipments/settings/integrations' },
+	'shipment-fields': { title: 'Shipment fields'|t('shipments'), url: 'shipments/settings/shipment-fields' },
+} %}
+
+{% if selectedItem is not defined %}
+	{% set selectedItem = 'general' %}
+{% endif %}
+
+{% block sidebar %}
+	<nav>
+		<ul>
+			{% for handle, item in settingsNavItems %}
+				<li>
+					<a href="{{ url(item.url) }}"{% if handle == selectedItem %} class="sel"{% endif %}>{{ item.title }}</a>
+				</li>
+			{% endfor %}
+		</ul>
+	</nav>
+{% endblock %}

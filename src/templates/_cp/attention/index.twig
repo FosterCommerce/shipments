@@ -1,0 +1,98 @@
+{% extends "_layouts/cp" %}
+
+{% set selectedSubnavItem = 'attention' %}
+{% set title = 'Attention needed'|t('shipments') %}
+
+{% set crumbs = [
+	{ label: 'Shipments'|t('shipments'), url: url('shipments/shipments') },
+] %}
+
+{% block content %}
+	<h2>{{ 'Under-allocated orders'|t('shipments') }}</h2>
+
+	{% if orders|length == 0 %}
+		<div class="pane shipments-attention-empty">
+			{% if trackedOrderCount == 0 %}
+				<p class="light">{{ 'No completed orders tracked yet. Orders appear here automatically after the plugin creates or edits shipments on them. To bring an older order in, open it and flip the **Order requires shipping** switch on.'|t('shipments')|md(inlineOnly=true) }}</p>
+			{% else %}
+				<p class="light">{{ 'No orders currently need attention.'|t('shipments') }}</p>
+			{% endif %}
+		</div>
+	{% else %}
+		<p class="light">{{ '{n, plural, =1{1 order needs attention} other{# orders need attention}}.'|t('shipments', { n: orders|length }) }}</p>
+
+		<table class="data fullwidth shipments-attention-table">
+			<thead>
+				<tr>
+					<th>{{ 'Order'|t('shipments') }}</th>
+					<th>{{ 'Date'|t('shipments') }}</th>
+					<th>{{ 'Customer'|t('shipments') }}</th>
+					<th>{{ 'Missing'|t('shipments') }}</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for row in orders %}
+					{% set order = row.order %}
+					<tr>
+						<td>
+							<a href="{{ order.cpEditUrl }}"><strong>{{ order.reference ?: ('#' ~ order.number) }}</strong></a>
+						</td>
+						<td>{% if order.dateOrdered %}{{ order.dateOrdered|datetime('short') }}{% else %}<span class="light">-</span>{% endif %}</td>
+						<td>
+							{% set customer = order.getCustomer() %}
+							{% if customer %}
+								<a href="{{ customer.cpEditUrl }}">{{ customer.name ?? customer.email ?? customer.username }}</a>
+							{% else %}
+								<span class="light">-</span>
+							{% endif %}
+						</td>
+						<td>
+							{{ '{n, plural, =1{1 line item} other{# line items}}'|t('shipments', { n: row.missing|length }) }}
+						</td>
+						<td class="thin">
+							<a class="btn small" href="{{ order.cpEditUrl ~ '#orderShipmentsTab' }}">{{ 'Fix'|t('shipments') }}</a>
+						</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	{% endif %}
+
+	<h2 class="shipments-attention-section-heading">{{ 'Unmapped integration statuses'|t('shipments') }}</h2>
+
+	{% if unmapped|length == 0 %}
+		<div class="pane shipments-attention-empty">
+			<p class="light">{{ 'No unmapped status codes have been seen.'|t('shipments') }}</p>
+		</div>
+	{% else %}
+		<p class="light">{{ 'External codes below arrived from integrations but have no mapping in the plugin’s vocabulary. Add a mapping on each integration to resolve.'|t('shipments') }}</p>
+
+		<table class="data fullwidth shipments-attention-table">
+			<thead>
+				<tr>
+					<th>{{ 'Integration'|t('shipments') }}</th>
+					<th>{{ 'Type'|t('shipments') }}</th>
+					<th>{{ 'External code'|t('shipments') }}</th>
+					<th class="thin">{{ 'Occurrences'|t('shipments') }}</th>
+					<th>{{ 'Last seen'|t('shipments') }}</th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for row in unmapped %}
+					<tr>
+						<td><strong>{{ row.integration.name }}</strong></td>
+						<td>{{ row.axis.label() }}</td>
+						<td><code>{{ row.externalCode }}</code></td>
+						<td class="thin">{{ row.occurrenceCount }}</td>
+						<td>{% if row.dateLastSeen %}{{ row.dateLastSeen|date('short') }}{% else %}<span class="light">-</span>{% endif %}</td>
+						<td class="thin">
+							<a class="btn small" href="{{ url('shipments/settings/integrations/' ~ row.integration.id ~ '/status-maps') }}">{{ 'Map'|t('shipments') }}</a>
+						</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	{% endif %}
+{% endblock %}

@@ -1,0 +1,479 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{#
+	Shipment edit page: full-page CP form with permanent tabs. Two status axes
+	(fulfillment, shipping) are editable inline. Registers `ShipmentsCpAsset`
+	from the controller.
+
+	@var fulfillmentStatusOptions array<string, string>
+	@var shippingStatusOptions array<string, string>
+#}
+
+{% set fullPageForm = true %}
+
+{% set crumbs = [
+	{ label: 'Shipments'|t('shipments'), url: url('shipments/shipments') },
+	{ label: order.reference ?: order.number, url: order.cpEditUrl },
+] %}
+
+{% set fieldLayout = shipment.getFieldLayout() %}
+{% set fieldLayoutForm = fieldLayout ? fieldLayout.createForm(shipment) : null %}
+{% set customFieldTabs = [] %}
+{% if fieldLayoutForm %}
+	{% for layoutTab in fieldLayoutForm.tabs %}
+		{% if layoutTab.getContent() is not empty %}
+			{% set customFieldTabs = customFieldTabs|merge([layoutTab]) %}
+		{% endif %}
+	{% endfor %}
+{% endif %}
+
+{% set tabs = {
+	shipmentDetails: { label: 'Details'|t('shipments'), url: '#shipment-details' },
+	lineItems: { label: 'Line items'|t('shipments'), url: '#line-items' },
+	integrationReferences: { label: 'Integration references'|t('shipments'), url: '#integration-references' },
+	statusHistory: { label: 'Status history'|t('shipments'), url: '#status-history' },
+} %}
+{% for layoutTab in customFieldTabs %}
+	{% set tabs = tabs|merge({
+		(layoutTab.getId()): { label: layoutTab.getName(), url: '#' ~ layoutTab.getId() },
+	}) %}
+{% endfor %}
+{% set selectedTab = selectedTab ?? 'shipmentDetails' %}
+
+{% set fulfillmentSelectOptions = [] %}
+{% for code, label in fulfillmentStatusOptions %}
+	{% set fulfillmentSelectOptions = fulfillmentSelectOptions|merge([{ label: label, value: code }]) %}
+{% endfor %}
+
+{% set shippingSelectOptions = [{ label: '(none)'|t('shipments'), value: '' }] %}
+{% for code, label in shippingStatusOptions %}
+	{% set shippingSelectOptions = shippingSelectOptions|merge([{ label: label, value: code }]) %}
+{% endfor %}
+
+{% block actionButton %}
+	<div class="btngroup submit">
+		<button type="submit" class="btn submit">{{ 'Save'|t('shipments') }}</button>
+		<button type="button" class="btn submit menubtn" title="{{ 'Actions'|t('shipments') }}"></button>
+		<div class="menu">
+			<ul>
+				<li>
+					<a class="formsubmit error"
+						data-action="shipments/shipments/delete"
+						data-redirect="{{ order.cpEditUrl|hash }}"
+						data-confirm="{{ 'Delete this shipment? Its line items will go back to the unallocated pool.'|t('shipments') }}">
+						{{ 'Delete'|t('shipments') }}
+					</a>
+				</li>
+			</ul>
+		</div>
+	</div>
+{% endblock %}
+
+{% block details %}
+	<div class="meta">
+		{{ forms.lightswitchField({
+			label: 'Enabled'|t('shipments'),
+			instructions: 'Disabling returns this shipment’s line items to the order’s unallocated pool.'|t('shipments'),
+			id: 'enabled',
+			name: 'enabled',
+			on: shipment.enabled,
+		}) }}
+	</div>
+
+	<div class="meta read-only">
+		<div class="data">
+			<h5 class="heading">{{ 'Reference'|t('shipments') }}</h5>
+			<div class="value"><code>{{ shipment.reference }}</code></div>
+		</div>
+		<div class="data">
+			<h5 class="heading">{{ 'Order'|t('shipments') }}</h5>
+			<div class="value">
+				<a href="{{ order.cpEditUrl }}">{{ order.reference ?: ('#' ~ order.number) }}</a>
+			</div>
+		</div>
+		{% set orderShippingMethodName = order.shippingMethodName ?? order.getShippingMethod().getName() ?? null %}
+		{% if orderShippingMethodName %}
+			<div class="data">
+				<h5 class="heading">{{ 'Shipping method'|t('shipments') }}</h5>
+				<div class="value">{{ orderShippingMethodName }}</div>
+			</div>
+		{% endif %}
+		{% if shipment.dateShipped %}
+			<div class="data">
+				<h5 class="heading">{{ 'Shipped'|t('shipments') }}</h5>
+				<div class="value">{{ shipment.dateShipped|datetime('short') }}</div>
+			</div>
+		{% endif %}
+		{% if shipment.dateDelivered %}
+			<div class="data">
+				<h5 class="heading">{{ 'Delivered'|t('shipments') }}</h5>
+				<div class="value">{{ shipment.dateDelivered|datetime('short') }}</div>
+			</div>
+		{% endif %}
+		{% if shipment.dateCreated %}
+			<div class="data">
+				<h5 class="heading">{{ 'Created'|t('shipments') }}</h5>
+				<div class="value">{{ shipment.dateCreated|datetime('short') }}</div>
+			</div>
+		{% endif %}
+		{% if shipment.dateUpdated %}
+			<div class="data">
+				<h5 class="heading">{{ 'Updated'|t('shipments') }}</h5>
+				<div class="value">{{ shipment.dateUpdated|datetime('short') }}</div>
+			</div>
+		{% endif %}
+	</div>
+
+	{% set pushableIntegrations = [] %}
+	{% for integration in integrations %}
+		{% if integration.enabled and integration.id %}
+			{% set pushableIntegrations = pushableIntegrations|merge([integration]) %}
+		{% endif %}
+	{% endfor %}
+
+	{% if pushableIntegrations|length and currentUser.can(constant('fostercommerce\\shipments\\Plugin::PERMISSION_PUSH')) %}
+		<div class="meta">
+			<h5 class="heading">{{ 'Integrations'|t('shipments') }}</h5>
+			{% for integration in pushableIntegrations %}
+				<form method="post" accept-charset="UTF-8" class="shipments-push-form">
+					{{ csrfInput() }}
+					{{ actionInput('shipments/shipments/push') }}
+					{{ redirectInput(shipment.cpEditUrl) }}
+					<input type="hidden" name="id" value="{{ shipment.id }}">
+					<input type="hidden" name="integrationId" value="{{ integration.id }}">
+					<button type="submit" class="btn fullwidth">
+						{{ 'Push to {name}'|t('shipments', { name: integration.name }) }}
+					</button>
+				</form>
+			{% endfor %}
+			{% if shipment.dateLastPushAttempt %}
+				<p class="light shipments-push-meta">
+					{{ 'Last attempt'|t('shipments') }}:
+					{{ shipment.dateLastPushAttempt|datetime('short') }}
+					{% if shipment.lastPushAttemptError %}
+						<br><code class="error">{{ shipment.lastPushAttemptError }}</code>
+					{% endif %}
+				</p>
+			{% endif %}
+		</div>
+	{% endif %}
+{% endblock %}
+
+{% block content %}
+	{{ actionInput('shipments/shipments/save') }}
+	{{ redirectInput(shipment.cpEditUrl) }}
+	<input type="hidden" name="id" value="{{ shipment.id }}">
+
+	{# Details tab #}
+	<div id="shipment-details">
+		<h2>{{ 'Fulfillment'|t('shipments') }}</h2>
+
+		{{ forms.selectField({
+			label: 'Fulfillment status'|t('shipments'),
+			instructions: 'Merchant / 3PL lifecycle. Transitions fire the status-changed event and queue attached emails.'|t('shipments'),
+			id: 'fulfillmentStatus',
+			name: 'fulfillmentStatus',
+			value: shipment.fulfillmentStatus,
+			options: fulfillmentSelectOptions,
+		}) }}
+
+		{{ forms.textareaField({
+			label: 'Status change note'|t('shipments'),
+			instructions: 'Optional note recorded with this fulfillment status change. Skipped silently if the status didn’t change.'|t('shipments'),
+			id: 'fulfillmentStatusMessage',
+			name: 'fulfillmentStatusMessage',
+			class: 'fullwidth',
+			rows: 2,
+		}) }}
+
+		{{ forms.dateTimeField({
+			label: 'Target ship date'|t('shipments'),
+			instructions: 'Date the merchant plans to ship by. Informational only; nothing transitions automatically when this date passes.'|t('shipments'),
+			id: 'dateScheduledShip',
+			name: 'dateScheduledShip',
+			value: shipment.dateScheduledShip,
+		}) }}
+
+		{{ forms.textareaField({
+			label: 'Note'|t('shipments'),
+			instructions: 'Persistent fulfillment note. Editable any time.'|t('shipments'),
+			id: 'fulfillmentNotes',
+			name: 'fulfillmentNotes',
+			class: 'fullwidth',
+			rows: 3,
+			value: shipment.fulfillmentNotes,
+		}) }}
+
+		<hr>
+
+		<h2>{{ 'Shipping'|t('shipments') }}</h2>
+
+		{{ forms.selectField({
+			label: 'Shipping status'|t('shipments'),
+			instructions: 'Carrier lifecycle. Normally set by carrier webhooks; editable here for manual overrides.'|t('shipments'),
+			id: 'shippingStatus',
+			name: 'shippingStatus',
+			value: shipment.shippingStatus,
+			options: shippingSelectOptions,
+		}) }}
+
+		{{ forms.textareaField({
+			label: 'Status change note'|t('shipments'),
+			instructions: 'Optional note recorded with this shipping status change. Skipped silently if the status didn’t change.'|t('shipments'),
+			id: 'shippingStatusMessage',
+			name: 'shippingStatusMessage',
+			class: 'fullwidth',
+			rows: 2,
+		}) }}
+
+		<div class="flex shipments-field-row">
+			<div class="flex-grow">
+				{{ forms.textField({
+					label: 'Carrier'|t('shipments'),
+					id: 'carrier',
+					name: 'carrier',
+					class: 'fullwidth',
+					value: shipment.carrier,
+				}) }}
+			</div>
+			<div class="flex-grow">
+				{{ forms.textField({
+					label: 'Service'|t('shipments'),
+					id: 'service',
+					name: 'service',
+					class: 'fullwidth',
+					value: shipment.service,
+				}) }}
+			</div>
+		</div>
+
+		<div class="flex shipments-field-row">
+			<div class="flex-grow">
+				{{ forms.textField({
+					label: 'Tracking number'|t('shipments'),
+					id: 'trackingNumber',
+					name: 'trackingNumber',
+					class: 'fullwidth',
+					value: shipment.trackingNumber,
+				}) }}
+			</div>
+			<div class="flex-grow">
+				{{ forms.textField({
+					label: 'Tracking URL'|t('shipments'),
+					id: 'trackingUrl',
+					name: 'trackingUrl',
+					class: 'fullwidth ltr',
+					value: shipment.trackingUrl,
+				}) }}
+			</div>
+		</div>
+
+		{{ forms.textareaField({
+			label: 'Note'|t('shipments'),
+			instructions: 'Persistent shipping note. Editable any time.'|t('shipments'),
+			id: 'shippingNotes',
+			name: 'shippingNotes',
+			class: 'fullwidth',
+			rows: 3,
+			value: shipment.shippingNotes,
+		}) }}
+	</div>
+
+	{# Line items tab #}
+	<div id="line-items" class="hidden">
+		{% if shipment.lineItems|length %}
+			<table class="data fullwidth">
+				<thead>
+					<tr>
+						<th>{{ 'Line item'|t('shipments') }}</th>
+						<th class="thin">{{ 'Qty'|t('shipments') }}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for shipmentLineItem in shipment.lineItems %}
+						{% set orderLineItem = null %}
+						{% for candidate in order.getLineItems() %}
+							{% if candidate.id == shipmentLineItem.lineItemId %}
+								{% set orderLineItem = candidate %}
+							{% endif %}
+						{% endfor %}
+						<tr>
+							<td>
+								{% if orderLineItem %}
+									<strong>{{ orderLineItem.description ?? orderLineItem.snapshot.title ?? orderLineItem.sku ?? orderLineItem.id }}</strong>
+									{% if orderLineItem.sku %}
+										<br><code class="light">{{ orderLineItem.sku }}</code>
+									{% endif %}
+									<br><span class="light shipments-line-item-id-hint">{{ 'Line item ID'|t('shipments') }}: <code>{{ shipmentLineItem.lineItemId }}</code></span>
+								{% else %}
+									<code>#{{ shipmentLineItem.lineItemId }}</code>
+									<br><span class="light shipments-line-item-id-hint">{{ 'No longer on order'|t('shipments') }}</span>
+								{% endif %}
+							</td>
+							<td><strong>{{ shipmentLineItem.qty }}</strong></td>
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+			<p class="light shipments-membership-note">{{ 'Line item membership is set when the shipment is created. Edit the order to change allocations.'|t('shipments') }}</p>
+		{% else %}
+			<p class="light">{{ 'This shipment has no line items.'|t('shipments') }}</p>
+		{% endif %}
+	</div>
+
+	{# Integration references tab #}
+	<div id="integration-references" class="hidden">
+		{% if integrations|length %}
+			<p class="light">{{ 'Link this shipment to records in the integrations you’ve configured. URLs fall back to each integration’s template when blank.'|t('shipments') }}</p>
+
+			{% set sourceOptions = [] %}
+			{% for source in integrations %}
+				{% set sourceOptions = sourceOptions|merge([{ label: source.name, value: source.id }]) %}
+			{% endfor %}
+
+			<div id="shipments-integration-references">
+				{% for reference in shipment.integrationReferences %}
+					<div class="shipments-integration-reference">
+						<input type="hidden" name="integrationReferences[{{ loop.index0 }}][id]" value="{{ reference.id }}">
+						{{ forms.selectField({
+							label: 'Integration'|t('shipments'),
+							name: 'integrationReferences[' ~ loop.index0 ~ '][integrationId]',
+							value: reference.integrationId,
+							options: sourceOptions,
+						}) }}
+						{{ forms.textField({
+							label: 'Reference ID'|t('shipments'),
+							name: 'integrationReferences[' ~ loop.index0 ~ '][externalId]',
+							class: 'ltr',
+							value: reference.externalId,
+						}) }}
+						{{ forms.textField({
+							label: 'URL override'|t('shipments'),
+							instructions: 'Optional. Leave blank to use the integration’s URL template.'|t('shipments'),
+							name: 'integrationReferences[' ~ loop.index0 ~ '][url]',
+							class: 'ltr',
+							value: reference.url,
+						}) }}
+						<button type="button" class="btn shipments-remove-reference">{{ 'Remove reference'|t('shipments') }}</button>
+					</div>
+				{% endfor %}
+			</div>
+
+			<div class="shipments-buttons-row">
+				<button type="button" class="btn add icon" id="shipments-add-reference">{{ 'Add reference'|t('shipments') }}</button>
+			</div>
+
+			<template id="shipments-reference-template">
+				<div class="shipments-integration-reference">
+					<input type="hidden" name="integrationReferences[__INDEX__][id]" value="">
+					{{ forms.selectField({
+						label: 'Integration'|t('shipments'),
+						name: 'integrationReferences[__INDEX__][integrationId]',
+						options: sourceOptions,
+					}) }}
+					{{ forms.textField({
+						label: 'Reference ID'|t('shipments'),
+						name: 'integrationReferences[__INDEX__][externalId]',
+						class: 'ltr',
+					}) }}
+					{{ forms.textField({
+						label: 'URL override'|t('shipments'),
+						instructions: 'Optional. Leave blank to use the integration’s URL template.'|t('shipments'),
+						name: 'integrationReferences[__INDEX__][url]',
+						class: 'ltr',
+					}) }}
+					<button type="button" class="btn shipments-remove-reference">{{ 'Remove reference'|t('shipments') }}</button>
+				</div>
+			</template>
+		{% else %}
+			<p class="light">
+				{{ 'No integrations are configured.'|t('shipments') }}
+				<a href="{{ url('shipments/settings/integrations') }}">{{ 'Configure one'|t('shipments') }}</a>.
+			</p>
+		{% endif %}
+	</div>
+
+	{# Status history tab #}
+	<div id="status-history" class="hidden">
+		{% if statusHistory|length %}
+			<div class="btngroup shipments-history-filter" id="shipments-history-filter">
+				<button type="button" class="btn active" data-history-filter="all">{{ 'All'|t('shipments') }}</button>
+				<button type="button" class="btn" data-history-filter="fulfillment">{{ 'Fulfillment'|t('shipments') }}</button>
+				<button type="button" class="btn" data-history-filter="shipping">{{ 'Shipping'|t('shipments') }}</button>
+			</div>
+
+			<table class="data fullwidth" id="shipments-history-table">
+				<thead>
+					<tr>
+						<th>{{ 'Type'|t('shipments') }}</th>
+						<th>{{ 'From'|t('shipments') }}</th>
+						<th>{{ 'To'|t('shipments') }}</th>
+						<th>{{ 'Updated by'|t('shipments') }}</th>
+						<th>{{ 'Source'|t('shipments') }}</th>
+						<th>{{ 'Date'|t('shipments') }}</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for entry in statusHistory %}
+						<tr data-history-type="{{ entry.axis.value }}">
+							<td>
+								<strong>{{ entry.axis.label() }}</strong>
+								{% if entry.message %}
+									<div class="light shipments-history-message">{{ entry.message }}</div>
+								{% endif %}
+							</td>
+							<td>
+								{% if entry.fromCode %}
+									{{ entry.fromCode.label() }}
+								{% else %}
+									<span class="light">-</span>
+								{% endif %}
+							</td>
+							<td>
+								{% if entry.toCode %}
+									<strong>{{ entry.toCode.label() }}</strong>
+								{% else %}
+									<span class="light">-</span>
+								{% endif %}
+							</td>
+							<td>
+								{% if entry.user %}
+									<a href="{{ entry.user.cpEditUrl }}">{{ entry.user.name ?? entry.user.username }}</a>
+								{% else %}
+									<span class="light">{{ 'system'|t('shipments') }}</span>
+								{% endif %}
+							</td>
+							<td>
+								{% if entry.sourceIntegration %}
+									<a href="{{ entry.sourceIntegration.cpEditUrl }}">{{ entry.sourceIntegration.name }}</a>
+									{% if entry.sourceExternalCode %}
+										<br><code class="light">{{ entry.sourceExternalCode }}</code>
+									{% endif %}
+								{% else %}
+									<span class="light">{{ 'CP'|t('shipments') }}</span>
+								{% endif %}
+							</td>
+							<td>
+								{% if entry.date %}
+									{{ entry.date|datetime('short') }}
+								{% else %}
+									<span class="light">-</span>
+								{% endif %}
+							</td>
+						</tr>
+					{% endfor %}
+				</tbody>
+			</table>
+		{% else %}
+			<p class="light">{{ 'No status changes recorded yet.'|t('shipments') }}</p>
+		{% endif %}
+	</div>
+
+	{# Custom field tabs #}
+	{% for layoutTab in customFieldTabs %}
+		<div id="{{ layoutTab.getId() }}" class="hidden">
+			{{ layoutTab.getContent()|raw }}
+		</div>
+	{% endfor %}
+{% endblock %}
