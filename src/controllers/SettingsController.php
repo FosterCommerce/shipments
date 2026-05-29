@@ -53,7 +53,7 @@ class SettingsController extends Controller
 		// per-source config isn't wiped from the model during the error re-render.
 		$plugin->getSettings()->setAttributes($settings, true);
 		if (! $plugin->getSettings()->validate()) {
-			Craft::$app->getSession()->setError(Craft::t(Plugin::HANDLE, 'Couldn’t save settings.'));
+			Craft::$app->getSession()->setError(Craft::t(Plugin::HANDLE, 'error.couldNotSaveSettings'));
 			return $this->renderSettings();
 		}
 
@@ -69,7 +69,7 @@ class SettingsController extends Controller
 		}
 
 		if (! Craft::$app->getPlugins()->savePluginSettings($plugin, $settings)) {
-			Craft::$app->getSession()->setError(Craft::t(Plugin::HANDLE, 'Couldn’t save settings.'));
+			Craft::$app->getSession()->setError(Craft::t(Plugin::HANDLE, 'error.couldNotSaveSettings'));
 			return $this->renderSettings();
 		}
 
@@ -82,7 +82,7 @@ class SettingsController extends Controller
 			if ($sweepResult['ordersAffected'] > 0) {
 				Craft::$app->getSession()->setNotice(Craft::t(
 					Plugin::HANDLE,
-					'Settings saved. {orders} order(s) were untracked and {shipments} shipment(s) were trashed because their status is now in the ignore list.',
+					'settings.savedWithSweep',
 					[
 						'orders' => $sweepResult['ordersAffected'],
 						'shipments' => $sweepResult['shipmentsTrashed'],
@@ -92,7 +92,7 @@ class SettingsController extends Controller
 			}
 		}
 
-		Craft::$app->getSession()->setNotice(Craft::t(Plugin::HANDLE, 'Settings saved.'));
+		Craft::$app->getSession()->setNotice(Craft::t(Plugin::HANDLE, 'settings.saved'));
 		return $this->redirectToPostedUrl();
 	}
 
@@ -139,7 +139,7 @@ class SettingsController extends Controller
 			$availableRules[] = [
 				'handle' => $rule->getHandle(),
 				'name' => $isCustom
-					? Craft::t(Plugin::HANDLE, '[Custom] {name}', [
+					? Craft::t(Plugin::HANDLE, 'emails.recipientType.customWithName', [
 						'name' => $name,
 					])
 					: $name,

@@ -2,12 +2,12 @@
 {% import "_includes/forms" as forms %}
 
 {% set selectedItem = 'general' %}
-{% set title = 'General'|t('shipments') %}
+{% set title = 'settings.nav.general'|t('shipments') %}
 {% set docTitle = title %}
 {% set crumbs = [
 	{ label: 'Settings'|t('app'), url: url('settings') },
 	{ label: 'Plugins'|t('app'), url: url('settings/plugins') },
-	{ label: 'Shipments'|t('shipments'), url: url('shipments/settings/general') },
+	{ label: 'nav.shipments'|t('shipments'), url: url('shipments/settings/general') },
 ] %}
 
 {% block content %}
@@ -18,18 +18,18 @@
 
 		<div>
 			<p>
-				{{ 'Adds first-class shipments to Craft Commerce. Every completed order produces at least one shipment; configure the grouping source below to split an order into multiple shipments when needed. Shipments have their own statuses, emails, and API for integrating with fulfillment systems.'|t('shipments') }}
+				{{ 'settings.general.intro'|t('shipments') }}
 			</p>
 		</div>
 
 		<hr>
 
-		<h2>{{ 'Automatic shipment creation'|t('shipments') }}</h2>
-		<p>{{ 'How shipments get created when a customer completes an order.'|t('shipments') }}</p>
+		<h2>{{ 'settings.general.autoCreationHeading'|t('shipments') }}</h2>
+		<p>{{ 'settings.general.autoCreationHelp'|t('shipments') }}</p>
 
 		{{ forms.lightswitchField({
-			label: 'Create shipments automatically on order completion'|t('shipments'),
-			instructions: 'When enabled, completing an order runs the grouping engine and creates shipments. Turn this off if your store creates shipments manually on the order edit page.'|t('shipments'),
+			label: 'settings.general.autoCreationToggle'|t('shipments'),
+			instructions: 'settings.general.autoCreationToggleHelp'|t('shipments'),
 			id: 'shipments_auto_create_on_complete',
 			name: 'settings[autoCreateOnComplete]',
 			on: settings.autoCreateOnComplete,
@@ -38,22 +38,22 @@
 		}) }}
 
 		<div class="shipments-auto-create-config{% if not settings.autoCreateOnComplete %} hidden{% endif %}">
-			<h3>{{ 'Shipment grouping'|t('shipments') }}</h3>
+			<h3>{{ 'settings.general.groupingHeading'|t('shipments') }}</h3>
 			<p>
-				{{ 'Pick the signal that decides when an auto-built order should split into multiple shipments. For each bucket the signal produces (each inventory state, each line item status), you then say whether those items ship together in one shipment or get one shipment per line item.'|t('shipments') }}
+				{{ 'settings.general.groupingHelp'|t('shipments') }}
 			</p>
 			<p>
-				{{ 'The default is “One shipment group per order”. Every order produces a single shipment. Change the grouping source below if your store needs finer control.'|t('shipments') }}
+				{{ 'settings.general.singleGroupDefaultHelp'|t('shipments') }}
 			</p>
 
-			{% set groupingSourceOptions = [{ label: 'One shipment group per order'|t('shipments'), value: 'none' }] %}
+			{% set groupingSourceOptions = [{ label: 'settings.general.singleGroupOption'|t('shipments'), value: 'none' }] %}
 			{% for rule in availableRules %}
 				{% set groupingSourceOptions = groupingSourceOptions|merge([{ label: rule.name, value: rule.handle }]) %}
 			{% endfor %}
 
 			{{ forms.selectField({
-				label: 'Grouping source'|t('shipments'),
-				instructions: 'Where the grouping decision comes from.'|t('shipments'),
+				label: 'settings.general.groupingSourceLabel'|t('shipments'),
+				instructions: 'settings.general.groupingSourceHelp'|t('shipments'),
 				id: 'shipments_grouping_source',
 				name: 'settings[groupingSource]',
 				value: settings.groupingSource,
@@ -65,51 +65,51 @@
 
 			<div class="shipments-source-inventory-status{% if settings.groupingSource != 'inventory-status' %} hidden{% endif %}">
 				<p class="light">
-					{{ 'A purchasable is **in-stock** when Craft Commerce reports available stock for it (`Purchasable::hasStock()` is `true`); this includes purchasables that aren’t inventory-tracked. It’s **backordered** when inventory tracking is on and no stock is available. On the Commerce inventory screen this is effectively the **Available** column.'|t('shipments')|md }}
+					{{ 'settings.grouping.inventoryStateExplanation'|t('shipments')|md }}
 				</p>
 
 				{{ forms.selectField({
-					label: 'In-stock items'|t('shipments'),
-					instructions: 'Applies to line items whose purchasable has available stock or isn’t inventory-tracked.'|t('shipments'),
+					label: 'settings.grouping.inStockBucketLabel'|t('shipments'),
+					instructions: 'settings.grouping.inStockBucketHelp'|t('shipments'),
 					id: 'shipments_inventory_in_stock',
 					name: 'settings[inventoryGroupingModes][inStock]',
 					value: settings.inventoryGroupingModes.inStock ?? 'together',
 					options: [
-						{ label: 'Ship together (one shipment)'|t('shipments'), value: 'together' },
-						{ label: 'One shipment per line item'|t('shipments'), value: 'per-item' },
+						{ label: 'settings.grouping.modeTogether'|t('shipments'), value: 'together' },
+						{ label: 'settings.grouping.modePerLineItem'|t('shipments'), value: 'per-item' },
 					],
 				}) }}
 
 				{{ forms.selectField({
-					label: 'Backordered items'|t('shipments'),
-					instructions: 'Applies to line items whose purchasable is inventory-tracked and has no available stock.'|t('shipments'),
+					label: 'settings.grouping.backorderedBucketLabel'|t('shipments'),
+					instructions: 'settings.grouping.backorderedBucketHelp'|t('shipments'),
 					id: 'shipments_inventory_backorder',
 					name: 'settings[inventoryGroupingModes][backorder]',
 					value: settings.inventoryGroupingModes.backorder ?? 'together',
 					options: [
-						{ label: 'Ship together (one shipment)'|t('shipments'), value: 'together' },
-						{ label: 'One shipment per line item'|t('shipments'), value: 'per-item' },
+						{ label: 'settings.grouping.modeTogether'|t('shipments'), value: 'together' },
+						{ label: 'settings.grouping.modePerLineItem'|t('shipments'), value: 'per-item' },
 					],
 				}) }}
 
 				{{ forms.selectField({
-					label: 'Quantity split mode'|t('shipments'),
-					instructions: 'Controls what happens to a line item whose stock partially covers the ordered quantity. “Split” lets the line item appear in both the in-stock and backorder buckets with partial qtys; “atomic” moves the whole line item into the backorder bucket if any portion is backordered.'|t('shipments'),
+					label: 'settings.grouping.quantitySplitModeLabel'|t('shipments'),
+					instructions: 'settings.grouping.quantitySplitHelp'|t('shipments'),
 					id: 'shipments_qty_split_mode',
 					name: 'settings[qtySplitMode]',
 					value: settings.qtySplitMode,
 					errors: settings.getErrors('qtySplitMode'),
 					options: [
-						{ label: 'Split (partial quantities allowed)'|t('shipments'), value: 'split' },
-						{ label: 'Atomic (line item stays whole)'|t('shipments'), value: 'atomic' },
+						{ label: 'settings.grouping.quantitySplitSplit'|t('shipments'), value: 'split' },
+						{ label: 'settings.grouping.quantitySplitAtomic'|t('shipments'), value: 'atomic' },
 					],
 				}) }}
 			</div>
 
 			<div class="shipments-source-line-item-status{% if settings.groupingSource != 'line-item-status' %} hidden{% endif %}">
-				<h4>{{ 'Shipment groups'|t('shipments') }}</h4>
+				<h4>{{ 'settings.grouping.groupsHeading'|t('shipments') }}</h4>
 				<p>
-					{{ 'Define the shipment groups your store needs. Each group becomes its own shipment (or, in per-item mode, one shipment per matched line item). Line items whose status isn’t assigned to any group fall through to the fallback shipment. A status can only belong to one group.'|t('shipments') }}
+					{{ 'settings.grouping.lineItemStatusGroupsIntro'|t('shipments') }}
 				</p>
 
 				{% if lineItemStatuses|length %}
@@ -126,15 +126,15 @@
 						<div class="pane shipments-rule-group-pane{% if isBlankSlot %} shipments-new-rule-pane hidden{% endif %}">
 							<h5 class="shipments-rule-group-heading">
 								{% if isBlankSlot %}
-									{{ 'Add a new rule'|t('shipments') }}
+									{{ 'settings.grouping.addRule'|t('shipments') }}
 								{% else %}
-									{{ 'Rule {number}'|t('shipments', { number: loop.index }) }}
+									{{ 'settings.grouping.ruleHeading'|t('shipments', { number: loop.index }) }}
 								{% endif %}
 							</h5>
 
 							{{ forms.checkboxSelectField({
-								label: 'Line item statuses in this group'|t('shipments'),
-								instructions: 'Pick the Commerce line item statuses whose items belong to this group.'|t('shipments'),
+								label: 'settings.grouping.lineItemStatusesInGroup'|t('shipments'),
+								instructions: 'settings.grouping.lineItemStatusesInGroupHelp'|t('shipments'),
 								id: 'shipments_line_item_status_group_' ~ groupIndex ~ '_handles',
 								name: 'settings[lineItemStatusGroups][' ~ groupIndex ~ '][statusHandles]',
 								values: group.statusHandles ?? [],
@@ -142,34 +142,34 @@
 							}) }}
 
 							{{ forms.selectField({
-								label: 'Grouping mode'|t('shipments'),
+								label: 'settings.grouping.groupingModeLabel'|t('shipments'),
 								id: 'shipments_line_item_status_group_' ~ groupIndex ~ '_mode',
 								name: 'settings[lineItemStatusGroups][' ~ groupIndex ~ '][mode]',
 								value: group.mode ?? 'together',
 								options: [
-									{ label: 'Ship together (one combined shipment)'|t('shipments'), value: 'together' },
-									{ label: 'One shipment per line item'|t('shipments'), value: 'per-item' },
+									{ label: 'settings.grouping.modeTogetherCombined'|t('shipments'), value: 'together' },
+									{ label: 'settings.grouping.modePerLineItem'|t('shipments'), value: 'per-item' },
 								],
 							}) }}
 
 							{% if isBlankSlot %}
-								<p class="light shipments-rule-group-hint">{{ 'Pick one or more statuses and save to create a rule.'|t('shipments') }}</p>
+								<p class="light shipments-rule-group-hint">{{ 'settings.grouping.pickStatusesHelp'|t('shipments') }}</p>
 							{% endif %}
 						</div>
 					{% endfor %}
 
 					<p class="shipments-add-rule-row">
-						<button type="button" class="btn add icon" id="shipments-add-rule">{{ 'Add a new rule'|t('shipments') }}</button>
+						<button type="button" class="btn add icon" id="shipments-add-rule">{{ 'settings.grouping.addRule'|t('shipments') }}</button>
 					</p>
 				{% else %}
-					<p class="light">{{ 'No line item statuses are defined in Commerce. Configure at least one under Commerce -> Settings -> Line Item Statuses.'|t('shipments') }}</p>
+					<p class="light">{{ 'settings.grouping.noLineItemStatuses'|t('shipments') }}</p>
 				{% endif %}
 			</div>
 
 			<div class="shipments-source-shipping-category{% if settings.groupingSource != 'shipping-category' %} hidden{% endif %}">
-				<h4>{{ 'Shipment groups'|t('shipments') }}</h4>
+				<h4>{{ 'settings.grouping.groupsHeading'|t('shipments') }}</h4>
 				<p>
-					{{ 'Define the shipment groups your store needs, keyed by Commerce shipping category. Each group becomes its own shipment (or, in per-item mode, one shipment per matched line item). Line items whose shipping category isn’t assigned to any group fall through to the fallback shipment. A category can only belong to one group.'|t('shipments') }}
+					{{ 'settings.grouping.shippingCategoryGroupsIntro'|t('shipments') }}
 				</p>
 
 				{% if shippingCategoryOptions|length %}
@@ -186,15 +186,15 @@
 						<div class="pane shipments-rule-group-pane{% if isBlankSlot %} shipments-new-category-rule-pane hidden{% endif %}">
 							<h5 class="shipments-rule-group-heading">
 								{% if isBlankSlot %}
-									{{ 'Add a new rule'|t('shipments') }}
+									{{ 'settings.grouping.addRule'|t('shipments') }}
 								{% else %}
-									{{ 'Rule {number}'|t('shipments', { number: loop.index }) }}
+									{{ 'settings.grouping.ruleHeading'|t('shipments', { number: loop.index }) }}
 								{% endif %}
 							</h5>
 
 							{{ forms.checkboxSelectField({
-								label: 'Shipping categories in this group'|t('shipments'),
-								instructions: 'Pick the Commerce shipping categories whose items belong to this group.'|t('shipments'),
+								label: 'settings.grouping.shippingCategoriesInGroup'|t('shipments'),
+								instructions: 'settings.grouping.shippingCategoriesInGroupHelp'|t('shipments'),
 								id: 'shipments_shipping_category_group_' ~ groupIndex ~ '_handles',
 								name: 'settings[shippingCategoryGroups][' ~ groupIndex ~ '][categoryHandles]',
 								values: group.categoryHandles ?? [],
@@ -202,39 +202,39 @@
 							}) }}
 
 							{{ forms.selectField({
-								label: 'Grouping mode'|t('shipments'),
+								label: 'settings.grouping.groupingModeLabel'|t('shipments'),
 								id: 'shipments_shipping_category_group_' ~ groupIndex ~ '_mode',
 								name: 'settings[shippingCategoryGroups][' ~ groupIndex ~ '][mode]',
 								value: group.mode ?? 'together',
 								options: [
-									{ label: 'Ship together (one combined shipment)'|t('shipments'), value: 'together' },
-									{ label: 'One shipment per line item'|t('shipments'), value: 'per-item' },
+									{ label: 'settings.grouping.modeTogetherCombined'|t('shipments'), value: 'together' },
+									{ label: 'settings.grouping.modePerLineItem'|t('shipments'), value: 'per-item' },
 								],
 							}) }}
 
 							{% if isBlankSlot %}
-								<p class="light shipments-rule-group-hint">{{ 'Pick one or more categories and save to create a rule.'|t('shipments') }}</p>
+								<p class="light shipments-rule-group-hint">{{ 'settings.grouping.pickCategoriesHelp'|t('shipments') }}</p>
 							{% endif %}
 						</div>
 					{% endfor %}
 
 					<p class="shipments-add-rule-row">
-						<button type="button" class="btn add icon" id="shipments-add-category-rule">{{ 'Add a new rule'|t('shipments') }}</button>
+						<button type="button" class="btn add icon" id="shipments-add-category-rule">{{ 'settings.grouping.addRule'|t('shipments') }}</button>
 					</p>
 				{% else %}
-					<p class="light">{{ 'No shipping categories are defined in Commerce. Configure at least one under Commerce -> Settings -> Shipping Categories.'|t('shipments') }}</p>
+					<p class="light">{{ 'settings.grouping.noShippingCategories'|t('shipments') }}</p>
 				{% endif %}
 			</div>
 		</div>
 
 		<hr>
 
-		<h2>{{ 'Manual shipment validation'|t('shipments') }}</h2>
-		<p>{{ 'Rules that apply whenever a shipment is saved from the control panel (and whenever shipments are rebuilt).'|t('shipments') }}</p>
+		<h2>{{ 'settings.validation.heading'|t('shipments') }}</h2>
+		<p>{{ 'settings.validation.intro'|t('shipments') }}</p>
 
 		{{ forms.lightswitchField({
-			label: 'Enforce full coverage'|t('shipments'),
-			instructions: 'When enabled, manual shipment saves are rejected unless every non-ignored line item quantity on the order is accounted for across all shipments.'|t('shipments'),
+			label: 'settings.validation.enforceFullCoverage'|t('shipments'),
+			instructions: 'settings.validation.enforceFullCoverageHelp'|t('shipments'),
 			id: 'shipments_enforce_coverage',
 			name: 'settings[enforceCoverage]',
 			on: settings.enforceCoverage,
@@ -242,8 +242,8 @@
 		}) }}
 
 		{{ forms.checkboxSelectField({
-			label: 'Line item statuses to ignore'|t('shipments'),
-			instructions: 'Line items with any of these statuses (e.g. refunded, cancelled) are skipped entirely: they won’t appear in any shipment and they won’t count toward the coverage check.'|t('shipments'),
+			label: 'settings.validation.lineItemStatusesToIgnore'|t('shipments'),
+			instructions: 'settings.validation.lineItemStatusesToIgnoreHelp'|t('shipments'),
 			id: 'shipments_line_item_statuses_to_ignore',
 			name: 'settings[lineItemStatusesToIgnore]',
 			values: settings.lineItemStatusesToIgnore,
@@ -253,12 +253,12 @@
 
 		<hr>
 
-		<h2>{{ 'Order statuses to ignore'|t('shipments') }}</h2>
-		<p>{{ 'Orders in these Commerce statuses are automatically marked as not requiring shipping. Any existing shipments on them will be moved to the trash, and new shipments can’t be staged as long as the order sits in one of these statuses. Adding a handle here runs a one-time sweep over orders currently in that status on save.'|t('shipments') }}</p>
+		<h2>{{ 'settings.tracking.orderStatusesToIgnore'|t('shipments') }}</h2>
+		<p>{{ 'settings.tracking.orderStatusesToIgnoreHelp'|t('shipments') }}</p>
 
 		{% if orderStatusOptions|length %}
 			{{ forms.checkboxSelectField({
-				label: 'Order statuses to ignore'|t('shipments'),
+				label: 'settings.tracking.orderStatusesToIgnore'|t('shipments'),
 				id: 'shipments_order_statuses_to_ignore',
 				name: 'settings[orderStatusesToIgnore]',
 				values: settings.orderStatusesToIgnore,
@@ -266,7 +266,7 @@
 				errors: settings.getErrors('orderStatusesToIgnore'),
 			}) }}
 		{% else %}
-			<p class="light">{{ 'No Commerce order statuses are defined. Configure at least one under Commerce -> Settings -> Order Statuses.'|t('shipments') }}</p>
+			<p class="light">{{ 'settings.tracking.noOrderStatuses'|t('shipments') }}</p>
 		{% endif %}
 
 		<hr>

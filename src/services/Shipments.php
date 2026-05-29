@@ -21,10 +21,12 @@ use fostercommerce\shipments\enums\FulfillmentStatus;
 use fostercommerce\shipments\enums\ShippingStatus;
 use fostercommerce\shipments\enums\StatusAxis;
 use fostercommerce\shipments\errors\AllocationMismatchException;
+use fostercommerce\shipments\errors\AllocationOverflowException;
 use fostercommerce\shipments\errors\DuplicateShipmentReferenceException;
 use fostercommerce\shipments\errors\InvalidTransitionException;
 use fostercommerce\shipments\errors\OrderNotCompletedException;
 use fostercommerce\shipments\events\CreateShipmentsEvent;
+use fostercommerce\shipments\events\ShipmentLineItemsChangedEvent;
 use fostercommerce\shipments\events\ShipmentStatusChangedEvent;
 use fostercommerce\shipments\models\Integration;
 use fostercommerce\shipments\models\ShipmentExportQuery;
@@ -52,6 +54,8 @@ class Shipments extends Component
 	public const EVENT_AFTER_CREATE_SHIPMENTS = 'afterCreateShipments';
 
 	public const EVENT_SHIPMENT_STATUS_CHANGED = 'shipmentStatusChanged';
+
+	public const EVENT_SHIPMENT_LINE_ITEMS_CHANGED = 'shipmentLineItemsChanged';
 
 	/**
 	 * Seconds to wait when acquiring the per-shipment transition lock.
@@ -443,7 +447,7 @@ class Shipments extends Component
 		$mutex = Craft::$app->getMutex();
 		$lockName = 'shipments:order:' . $order->id . ':staging';
 		if (! $mutex->acquire($lockName, self::STAGING_LOCK_TIMEOUT)) {
-			throw new Exception(Craft::t(Plugin::HANDLE, 'Couldn’t save shipments for order {orderId} right now because another save is in progress. Please try again.', [
+			throw new Exception(Craft::t(Plugin::HANDLE, 'error.shipmentSaveInProgress', [
 				'orderId' => $order->id,
 			]));
 		}
@@ -539,7 +543,7 @@ class Shipments extends Component
 
 		if (! Craft::$app->getElements()->saveElement($shipment)) {
 			$errors = $shipment->getFirstErrors();
-			throw new Exception(Craft::t(Plugin::HANDLE, 'Couldn’t save shipment: {errors}', [
+			throw new Exception(Craft::t(Plugin::HANDLE, 'error.couldNotSaveShipment', [
 				'errors' => implode(', ', $errors),
 			]));
 		}
@@ -554,6 +558,141 @@ class Shipments extends Component
 		$updated = $this->findById($shipment->id, includeTrashed: true);
 		if (! $updated instanceof Shipment) {
 			throw new Exception('Lost track of shipment after save.');
+		}
+
+		return $updated;
+	}
+
+	/**
+	 * Replace an existing shipment's line-item allocation in place. This is what the CP
+	 * line-items editor uses to split or rebalance a shipment: lowering a quantity returns those
+	 * units to the order's unallocated pool (where the order's Shipments tab can create a new
+	 * shipment for them), raising one consumes available pool. A quantity of 0 (i.e. a line item
+	 * omitted from `$lineItemQtys`) drops the line item.
+	 *
+	 * Gates on {@see ShipmentLineItems::overflowForProposedAllocation} so the order can never be
+	 * over-allocated, then fires {@see EVENT_SHIPMENT_LINE_ITEMS_CHANGED} so providers can push
+	 * the revised shipment downstream as an update. It intentionally does not assert full
+	 * coverage: a split leaves the order transiently under-allocated until the replacement
+	 * shipment is created, and the order's under-allocation notice already surfaces that.
+	 *
+	 * @param array<int, int> $lineItemQtys lineItemId => qty
+	 * @throws AllocationOverflowException
+	 * @throws Throwable
+	 */
+	public function saveLineItems(Shipment $shipment, array $lineItemQtys, ?User $user = null): Shipment
+	{
+		if ($shipment->id === null) {
+			throw new InvalidArgumentException('Cannot save line items for an unsaved shipment.');
+		}
+
+		$shipmentId = $shipment->id;
+
+		$order = $this->loadOrder($shipment->orderId);
+		if (! $order instanceof Order || $order->id === null) {
+			throw new Exception("Order {$shipment->orderId} for shipment {$shipmentId} not found.");
+		}
+
+		$desired = [];
+		foreach ($lineItemQtys as $lineItemId => $qty) {
+			$lineItemId = (int) $lineItemId;
+			$qty = (int) $qty;
+			if ($qty <= 0) {
+				continue;
+			}
+
+			$desired[$lineItemId] = ($desired[$lineItemId] ?? 0) + $qty;
+		}
+
+		/** @var Plugin $plugin */
+		$plugin = Plugin::getInstance();
+
+		// Share the per-order allocation lock with createFromStagingPost: an edit and a staging
+		// create both move the same order's pool, so a per-shipment lock would let them pass
+		// their overflow checks concurrently and over-allocate the order.
+		$mutex = Craft::$app->getMutex();
+		$lockName = 'shipments:order:' . $order->id . ':staging';
+		if (! $mutex->acquire($lockName, self::STAGING_LOCK_TIMEOUT)) {
+			throw new Exception(Craft::t(Plugin::HANDLE, 'error.shipmentUpdateInProgress', [
+				'shipmentId' => $shipmentId,
+			]));
+		}
+
+		try {
+			$overflow = $plugin->shipmentLineItems->overflowForProposedAllocation($shipmentId, $order, $desired);
+			if ($overflow !== []) {
+				throw new AllocationOverflowException($shipmentId, $order->id, $overflow);
+			}
+
+			$previousQtys = [];
+			foreach ($plugin->shipmentLineItems->findForShipmentId($shipmentId) as $existingLineItem) {
+				$previousQtys[(int) $existingLineItem->lineItemId] = (int) $existingLineItem->qty;
+			}
+
+			$transaction = Craft::$app->getDb()->beginTransaction();
+
+			try {
+				$existingRecords = ShipmentLineItemRecord::findAll([
+					'shipmentId' => $shipmentId,
+				]);
+				$existingByLineItemId = [];
+				foreach ($existingRecords as $existingRecord) {
+					$existingByLineItemId[(int) $existingRecord->lineItemId] = $existingRecord;
+				}
+
+				foreach ($desired as $lineItemId => $qty) {
+					$record = $existingByLineItemId[$lineItemId] ?? null;
+					if (! $record instanceof ShipmentLineItemRecord) {
+						$record = new ShipmentLineItemRecord();
+						$record->shipmentId = $shipmentId;
+						$record->lineItemId = $lineItemId;
+					}
+
+					$record->qty = $qty;
+					if (! $record->save()) {
+						$errors = $record->getFirstErrors();
+						throw new Exception(Craft::t(Plugin::HANDLE, 'error.couldNotSaveShipmentLineItem', [
+							'errors' => implode(', ', $errors),
+						]));
+					}
+				}
+
+				foreach ($existingByLineItemId as $lineItemId => $existingRecord) {
+					if (! array_key_exists($lineItemId, $desired)) {
+						$existingRecord->delete();
+					}
+				}
+
+				// Refresh the element's cached line items (the same DB connection sees the
+				// uncommitted writes) so listeners reading `$event->shipment->getLineItems()`
+				// observe the new allocation.
+				$shipment->setLineItems($plugin->shipmentLineItems->findForShipmentId($shipmentId));
+
+				$event = new ShipmentLineItemsChangedEvent();
+				$event->shipment = $shipment;
+				$event->order = $order;
+				$event->previousQtys = $previousQtys;
+				$event->newQtys = $desired;
+				$event->user = $user;
+				$this->trigger(self::EVENT_SHIPMENT_LINE_ITEMS_CHANGED, $event);
+
+				// Line items are written directly (not through the element's save cycle), so the
+				// tracked-order allocation projection that `Shipment::afterSave` normally refreshes
+				// has to be recomputed here, inside the transaction, so it commits atomically.
+				$plugin->getTrackedOrders()->recomputeUnderAllocation($order);
+
+				$transaction->commit();
+			} catch (Throwable $throwable) {
+				$transaction->rollBack();
+				throw $throwable;
+			}
+		} finally {
+			$mutex->release($lockName);
+		}
+
+		$updated = $this->findById($shipmentId, includeTrashed: true);
+		if (! $updated instanceof Shipment) {
+			throw new Exception('Lost track of shipment after saving line items.');
 		}
 
 		return $updated;
@@ -715,7 +854,7 @@ class Shipments extends Component
 		$mutex = Craft::$app->getMutex();
 		$lockName = 'shipments:shipment:' . $shipment->id . ':transition';
 		if (! $mutex->acquire($lockName, self::TRANSITION_LOCK_TIMEOUT)) {
-			throw new Exception(Craft::t(Plugin::HANDLE, 'Couldn’t update shipment {shipmentId} right now because another update is in progress. Please try again.', [
+			throw new Exception(Craft::t(Plugin::HANDLE, 'error.shipmentUpdateInProgress', [
 				'shipmentId' => $shipment->id,
 			]));
 		}
@@ -740,7 +879,7 @@ class Shipments extends Component
 					$shipmentId,
 					$axis,
 					$to,
-					Craft::t(Plugin::HANDLE, 'Expected {axis} = {expected} but found {actual}.', [
+					Craft::t(Plugin::HANDLE, 'error.expectedAxisMismatch', [
 						'axis' => $axis->value,
 						'expected' => $expectedFromCode->value,
 						'actual' => $fromCode?->value ?? 'null',
@@ -762,7 +901,7 @@ class Shipments extends Component
 
 				if (! Craft::$app->getElements()->saveElement($shipment)) {
 					$errors = $shipment->getFirstErrors();
-					throw new Exception(Craft::t(Plugin::HANDLE, 'Couldn’t apply transition: {errors}', [
+					throw new Exception(Craft::t(Plugin::HANDLE, 'error.couldNotApplyTransition', [
 						'errors' => implode(', ', $errors),
 					]));
 				}
@@ -778,7 +917,7 @@ class Shipments extends Component
 				$history->sourceExternalCode = $externalCode;
 				if (! $history->save()) {
 					$errors = $history->getFirstErrors();
-					throw new Exception(Craft::t(Plugin::HANDLE, 'Couldn’t save shipment status history: {errors}', [
+					throw new Exception(Craft::t(Plugin::HANDLE, 'error.couldNotSaveShipmentStatusHistory', [
 						'errors' => implode(', ', $errors),
 					]));
 				}
@@ -850,7 +989,7 @@ class Shipments extends Component
 				$creationHistory->userId = $currentUser?->id;
 				if (! $creationHistory->save()) {
 					$errors = $creationHistory->getFirstErrors();
-					throw new Exception(Craft::t(Plugin::HANDLE, 'Couldn’t save shipment creation history: {errors}', [
+					throw new Exception(Craft::t(Plugin::HANDLE, 'error.couldNotSaveShipmentCreationHistory', [
 						'errors' => implode(', ', $errors),
 					]));
 				}
@@ -866,7 +1005,7 @@ class Shipments extends Component
 					$lineItemRecord->qty = $qty;
 					if (! $lineItemRecord->save()) {
 						$errors = $lineItemRecord->getFirstErrors();
-						throw new Exception(Craft::t(Plugin::HANDLE, 'Couldn’t save shipment line item: {errors}', [
+						throw new Exception(Craft::t(Plugin::HANDLE, 'error.couldNotSaveShipmentLineItem', [
 							'errors' => implode(', ', $errors),
 						]));
 					}
@@ -911,7 +1050,7 @@ class Shipments extends Component
 			try {
 				if (! Craft::$app->getElements()->saveElement($shipment)) {
 					$errors = $shipment->getFirstErrors();
-					throw new Exception(Craft::t(Plugin::HANDLE, 'Couldn’t save shipment: {errors}', [
+					throw new Exception(Craft::t(Plugin::HANDLE, 'error.couldNotSaveShipment', [
 						'errors' => implode(', ', $errors),
 					]));
 				}

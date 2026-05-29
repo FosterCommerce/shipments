@@ -36,7 +36,9 @@ class CarrierEvents extends Component
 		$codeRaw = $payload['code'] ?? '';
 		$code = is_string($codeRaw) ? $codeRaw : '';
 		if ($code === '') {
-			throw new InvalidArgumentException(Craft::t(Plugin::HANDLE, '`code` is required.'));
+			// REST guard: this surfaces in the carrier-event JSON response, not the CP, so it is
+			// not translated (matches ApiController's hardcoded-English messages).
+			throw new InvalidArgumentException('`code` is required.');
 		}
 
 		$dateOccurredRaw = $payload['dateOccurred'] ?? null;
@@ -44,7 +46,7 @@ class CarrierEvents extends Component
 			? DateTimeHelper::toDateTime($dateOccurredRaw)
 			: false;
 		if (! $dateOccurred instanceof DateTime) {
-			throw new InvalidArgumentException(Craft::t(Plugin::HANDLE, '`dateOccurred` must be a valid timestamp.'));
+			throw new InvalidArgumentException('`dateOccurred` must be a valid timestamp.');
 		}
 
 		$externalCode = isset($payload['externalCode']) && is_string($payload['externalCode']) && $payload['externalCode'] !== ''

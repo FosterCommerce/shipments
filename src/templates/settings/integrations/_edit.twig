@@ -19,13 +19,13 @@
 {% set crumbs = [
 	{ label: 'Settings'|t('app'), url: url('settings') },
 	{ label: 'Plugins'|t('app'), url: url('settings/plugins') },
-	{ label: 'Shipments'|t('shipments'), url: url('shipments/settings/general') },
-	{ label: 'Integrations'|t('shipments'), url: url('shipments/settings/integrations') },
+	{ label: 'nav.shipments'|t('shipments'), url: url('shipments/settings/general') },
+	{ label: 'nav.integrations'|t('shipments'), url: url('shipments/settings/integrations') },
 ] %}
 
 {% set tabs = {
-	integration: { label: 'Integration'|t('shipments'), url: '#integration' },
-	'provider-settings': { label: 'Provider'|t('shipments'), url: '#provider-settings' },
+	integration: { label: 'settings.integrations.integration'|t('shipments'), url: '#integration' },
+	'provider-settings': { label: 'settings.integrations.provider'|t('shipments'), url: '#provider-settings' },
 } %}
 
 {% block content %}
@@ -36,8 +36,8 @@
 	{# Integration tab #}
 	<div id="integration">
 		{{ forms.textField({
-			label: 'Name'|t('shipments'),
-			instructions: 'What this integration will be called in the control panel.'|t('shipments'),
+			label: 'shipmentEdit.name'|t('shipments'),
+			instructions: 'settings.integrations.nameHelp'|t('shipments'),
 			required: true,
 			id: 'name',
 			name: 'name',
@@ -47,8 +47,8 @@
 		}) }}
 
 		{{ forms.textField({
-			label: 'Handle'|t('shipments'),
-			instructions: 'Stable identifier used by providers (e.g. `shipstation`).'|t('shipments'),
+			label: 'settings.integrations.handle'|t('shipments'),
+			instructions: 'settings.integrations.handleHelp'|t('shipments'),
 			required: true,
 			id: 'handle',
 			name: 'handle',
@@ -58,8 +58,8 @@
 		}) }}
 
 		{{ forms.textField({
-			label: 'URL template'|t('shipments'),
-			instructions: 'Optional. Link template for deep-linking into the remote system. Use `{externalId}` as a placeholder; e.g. `https://ship.shipstation.com/shipments/{externalId}`.'|t('shipments'),
+			label: 'settings.integrations.urlTemplate'|t('shipments'),
+			instructions: 'settings.integrations.urlTemplateHelp'|t('shipments'),
 			id: 'urlTemplate',
 			name: 'urlTemplate',
 			class: 'ltr',
@@ -86,9 +86,9 @@
 {# Sidebar: Provider + Enabled #}
 {% block details %}
 	<div class="meta">
-		{% set providerSelectOptions = [{ label: 'None'|t('shipments'), value: '' }]|merge(providerOptions) %}
+		{% set providerSelectOptions = [{ label: 'settings.integrations.providerNone'|t('shipments'), value: '' }]|merge(providerOptions) %}
 		{{ forms.selectField({
-			label: 'Provider'|t('shipments'),
+			label: 'settings.integrations.provider'|t('shipments'),
 			required: providerOptions|length > 0,
 			id: 'provider',
 			name: 'provider',
@@ -98,7 +98,7 @@
 		}) }}
 
 		{{ forms.lightswitchField({
-			label: 'Enabled'|t('shipments'),
+			label: 'shipmentEdit.enabled'|t('shipments'),
 			id: 'enabled',
 			name: 'enabled',
 			on: integration.enabled,

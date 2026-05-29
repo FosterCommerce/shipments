@@ -24,14 +24,14 @@ class InventoryStatusRule implements ShipmentRuleInterface
 
 	public function getName(): string
 	{
-		return Craft::t(Plugin::HANDLE, 'Craft Commerce inventory state');
+		return Craft::t(Plugin::HANDLE, 'rules.inventory.name');
 	}
 
 	public function getDescription(): string
 	{
 		return Craft::t(
 			Plugin::HANDLE,
-			'Groups items into shipments by Craft Commerce inventory state. For each bucket (in-stock and backordered) you pick whether its items ship together in one shipment or get one shipment per line item. A partially-stocked line item is handled by the Quantity split mode below.',
+			'rules.inventory.description',
 		);
 	}
 

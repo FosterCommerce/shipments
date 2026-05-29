@@ -229,6 +229,57 @@ class ShipmentLineItems extends Component
 	}
 
 	/**
+	 * Would replacing the shipment's current allocation with the proposed quantities push any
+	 * line item over its ordered quantity? Returns the mismatches keyed by line item id
+	 * (`lineItemId => amount-by-which-we-would-overflow`) when yes, empty when no. Unlike
+	 * {@see overflowIfCounted}, which checks the persisted rows, this checks a *proposed*
+	 * allocation, so it gates an in-place line-item edit before it is written. The shipment's
+	 * own current allocation is excluded from the "already allocated" totals so that keeping or
+	 * lowering a quantity never reads as overflow.
+	 *
+	 * @param array<int, int> $proposedQtys lineItemId => qty
+	 * @return array<int, int>
+	 */
+	public function overflowForProposedAllocation(int $shipmentId, Order $order, array $proposedQtys): array
+	{
+		if ($order->id === null) {
+			return [];
+		}
+
+		$orderedQtys = [];
+		foreach ($order->getLineItems() as $orderLineItem) {
+			if ($orderLineItem->id === null) {
+				continue;
+			}
+
+			$orderedQtys[(int) $orderLineItem->id] = (int) $orderLineItem->qty;
+		}
+
+		$otherAllocations = $this->allocatedQtysFor($order->id);
+		foreach ($this->findForShipmentId($shipmentId) as $currentLineItem) {
+			$lineItemId = (int) $currentLineItem->lineItemId;
+			$otherAllocations[$lineItemId] = ($otherAllocations[$lineItemId] ?? 0) - (int) $currentLineItem->qty;
+		}
+
+		$overflow = [];
+		foreach ($proposedQtys as $lineItemId => $qty) {
+			$lineItemId = (int) $lineItemId;
+			$qty = (int) $qty;
+			if ($qty <= 0) {
+				continue;
+			}
+
+			$candidateTotal = max(0, $otherAllocations[$lineItemId] ?? 0) + $qty;
+			$ordered = $orderedQtys[$lineItemId] ?? 0;
+			if ($candidateTotal > $ordered) {
+				$overflow[$lineItemId] = $candidateTotal - $ordered;
+			}
+		}
+
+		return $overflow;
+	}
+
+	/**
 	 * @return list<ShipmentLineItem>
 	 */
 	public function findForShipmentId(int $shipmentId): array

@@ -80,7 +80,7 @@ class PushShipmentJob extends BaseJob
 
 	protected function defaultDescription(): ?string
 	{
-		return Craft::t(Plugin::HANDLE, 'Pushing shipment {id} to integration', [
+		return Craft::t(Plugin::HANDLE, 'queue.pushingShipment', [
 			'id' => (string) ($this->shipmentId ?? '?'),
 		]);
 	}

@@ -52,18 +52,18 @@
 		data-shipment-count="{{ shipments|length }}"
 	>
 		{{ forms.lightswitchField({
-			label: 'Order requires shipping'|t('shipments'),
+			label: 'orderTab.requiresShippingLabel'|t('shipments'),
 			instructions: switchIsLocked
-				? 'This order’s status is in the plugin’s ignored list; the switch is locked off. Remove the status from plugin settings, or change the order’s status, to re-enable shipping for this order.'|t('shipments')
+				? 'orderTab.statusIgnoredSwitchLocked'|t('shipments')
 				: (switchIsOn
-					? 'Turn off if this order doesn’t need shipping; its shipments will be moved to the trash.'|t('shipments')
-					: 'Turn on if this order needs shipping.'|t('shipments')),
+					? 'orderTab.requiresShippingOffHelp'|t('shipments')
+					: 'orderTab.requiresShippingOnHelp'|t('shipments')),
 			id: 'shipments-requires-shipping-lightswitch',
 			name: 'requiresShipping',
 			on: switchIsOn,
 			disabled: switchIsLocked,
-			onLabel: 'Yes'|t('shipments'),
-			offLabel: 'No'|t('shipments'),
+			onLabel: 'common.yes'|t('shipments'),
+			offLabel: 'common.no'|t('shipments'),
 			toggle: '.shipments-show-when-on',
 			reverseToggle: '.shipments-show-when-off',
 		}) }}
@@ -71,7 +71,7 @@
 
 	{% if showNoShippableNotice %}
 		<div class="pane shipments-no-shippable-notice shipments-show-when-on{% if not switchIsOn %} hidden{% endif %}">
-			<p>{{ 'The plugin couldn’t find any shippable line items on this order. Flip the switch off if that’s correct.'|t('shipments') }}</p>
+			<p>{{ 'error.noShippableLineItems'|t('shipments') }}</p>
 		</div>
 	{% endif %}
 
@@ -83,14 +83,14 @@
 		<div class="pane shipments-under-allocation-notice shipments-show-when-on{% if not switchIsOn %} hidden{% endif %}">
 			<h2>
 				<span class="shipments-under-allocation-icon" data-icon="alert" aria-hidden="true"></span>
-				{{ 'This order is not fully allocated'|t('shipments') }}
+				{{ 'orderTab.notFullyAllocated'|t('shipments') }}
 			</h2>
-			<p>{{ 'One or more line items still have unallocated quantity. Use the staging form below to assign the remaining units to shipments.'|t('shipments') }}</p>
+			<p>{{ 'orderTab.unallocatedQuantityNotice'|t('shipments') }}</p>
 			<ul>
 				{% for row in unallocated %}
 					<li>
 						<strong>{{ row.lineItem.description ?? row.lineItem.snapshot.title ?? row.lineItem.sku ?? row.lineItem.id }}</strong>:
-						{{ row.remainingQty }} {{ 'unallocated'|t('shipments') }}
+						{{ row.remainingQty }} {{ 'orderTab.unallocated'|t('shipments') }}
 						{% if row.lineItem.sku %}
 							<code class="light">{{ row.lineItem.sku }}</code>
 						{% endif %}
@@ -103,16 +103,16 @@
 	{# Restore trashed shipments #}
 	{% if trashedShipmentsCount > 0 and switchIsOn %}
 		<div class="pane shipments-restore-pane shipments-show-when-on{% if not switchIsOn %} hidden{% endif %}" data-shipments-restore-pane data-order-id="{{ order.id }}">
-			<p>{{ '{count} trashed shipment(s) on this order. Restoring brings them back and counts their line items against allocation again.'|t('shipments', { count: trashedShipmentsCount }) }}</p>
+			<p>{{ 'orderTab.trashedShipmentsNotice'|t('shipments', { count: trashedShipmentsCount }) }}</p>
 			<div class="buttons">
-				<button type="button" class="btn" id="shipments-restore-button">{{ 'Restore {count} shipment(s)'|t('shipments', { count: trashedShipmentsCount }) }}</button>
+				<button type="button" class="btn" id="shipments-restore-button">{{ 'orderTab.restoreShipments'|t('shipments', { count: trashedShipmentsCount }) }}</button>
 			</div>
 		</div>
 	{% endif %}
 
 	{# Existing shipments #}
 	{% if shipments|length %}
-		<h2>{{ 'Shipments'|t('shipments') }} ({{ shipments|length }})</h2>
+		<h2>{{ 'nav.shipments'|t('shipments') }} ({{ shipments|length }})</h2>
 
 		{% for shipment in shipments %}
 			{% set fulfillmentEnum = shipment.fulfillmentStatusEnum %}
@@ -127,8 +127,8 @@
 						{% endif %}
 					</h3>
 					<div>
-						<a href="{{ shipment.cpEditUrl }}" class="btn">{{ 'Edit details'|t('shipments') }}</a>
-						<button type="button" class="btn shipments-remove-shipment" data-shipment-id="{{ shipment.id }}" data-reference="{{ shipment.reference }}">{{ 'Delete'|t('shipments') }}</button>
+						<a href="{{ shipment.cpEditUrl }}" class="btn">{{ 'shipmentEdit.editDetails'|t('shipments') }}</a>
+						<button type="button" class="btn shipments-remove-shipment" data-shipment-id="{{ shipment.id }}" data-reference="{{ shipment.reference }}">{{ 'common.delete'|t('shipments') }}</button>
 					</div>
 				</div>
 
@@ -136,8 +136,8 @@
 					<table class="data fullwidth shipments-card-line-items">
 						<thead>
 							<tr>
-								<th>{{ 'Line item'|t('shipments') }}</th>
-								<th class="thin">{{ 'Qty'|t('shipments') }}</th>
+								<th>{{ 'shipmentEdit.lineItems.lineItem'|t('shipments') }}</th>
+								<th class="thin">{{ 'shipmentEdit.lineItems.qty'|t('shipments') }}</th>
 							</tr>
 						</thead>
 						<tbody>
@@ -158,7 +158,7 @@
 												<div class="shipments-line-item-status">{{ lineItemStatus.labelHtml|raw }}</div>
 											{% endif %}
 										{% else %}
-											<code>{{ 'Line item #{id}'|t('shipments', { id: shipmentLineItem.lineItemId }) }}</code>
+											<code>{{ 'shipmentEdit.lineItems.lineItemNumber'|t('shipments', { id: shipmentLineItem.lineItemId }) }}</code>
 										{% endif %}
 									</td>
 									<td><strong>{{ shipmentLineItem.qty }}</strong></td>
@@ -167,12 +167,12 @@
 						</tbody>
 					</table>
 				{% else %}
-					<p class="light shipments-card-meta">{{ 'No line items.'|t('shipments') }}</p>
+					<p class="light shipments-card-meta">{{ 'shipmentEdit.lineItems.none'|t('shipments') }}</p>
 				{% endif %}
 
 				{% if shipment.trackingNumber %}
 					<p class="light shipments-card-meta">
-						{{ 'Tracking'|t('shipments') }}:
+						{{ 'shipmentEdit.tracking.heading'|t('shipments') }}:
 						{% if shipment.trackingUrl %}
 							<a href="{{ shipment.trackingUrl }}" target="_blank" rel="noreferrer">{{ shipment.trackingNumber }}</a>
 						{% else %}
@@ -187,7 +187,7 @@
 							{% set referenceSource = reference.getSource() %}
 							{% set referenceUrl = reference.getResolvedUrl() %}
 							<span class="shipments-reference-pill">
-								{{ referenceSource ? referenceSource.name : ('Integration #{id}'|t('shipments', { id: reference.integrationId })) }}:
+								{{ referenceSource ? referenceSource.name : ('settings.integrations.integrationNumber'|t('shipments', { id: reference.integrationId })) }}:
 								{% if referenceUrl %}
 									<a href="{{ referenceUrl }}" target="_blank" rel="noreferrer"><code>{{ reference.externalId }}</code></a>
 								{% else %}
@@ -209,7 +209,7 @@
 			<hr>
 		{% endif %}
 		<div class="pane shipments-switch-off-notice shipments-show-when-off{% if switchIsOn %} hidden{% endif %}">
-			<p>{{ 'You marked this order as not needing shipping.'|t('shipments') }}</p>
+			<p>{{ 'orderTab.markedNotNeedingShipping'|t('shipments') }}</p>
 		</div>
 	{% endif %}
 
@@ -219,7 +219,7 @@
 			<hr>
 		{% endif %}
 		<div class="pane shipments-order-incomplete-notice shipments-show-when-on{% if not switchIsOn %} hidden{% endif %}">
-			<p>{{ 'Shipments can only be created once the order is completed.'|t('shipments') }}</p>
+			<p>{{ 'error.shipmentsCompletedOnlyOnce'|t('shipments') }}</p>
 		</div>
 	{% elseif unallocated|length %}
 		{% if shipments|length %}
@@ -230,15 +230,15 @@
 		   leaving the contents loose in the DOM. The save button posts via `Craft.sendActionRequest`. #}
 		<div id="shipments-create-form" class="shipments-create-form shipments-show-when-on{% if not switchIsOn %} hidden{% endif %}" data-order-id="{{ order.id }}">
 			<h2>
-				{{ 'Create shipments'|t('shipments') }}
-				<span class="shipments-pending-pill">{{ 'Pending, not saved yet'|t('shipments') }}</span>
+				{{ 'orderTab.createShipments'|t('shipments') }}
+				<span class="shipments-pending-pill">{{ 'orderTab.staging.pendingNotSaved'|t('shipments') }}</span>
 			</h2>
 			<div class="shipments-pending-notice">
 				<p>
 					{% if suggestedGroups|default([])|length %}
-						{{ 'These shipments have been staged automatically from your shipment rules but have not been saved yet. Review the grouping below and click “Save shipment(s)” to create them.'|t('shipments') }}
+						{{ 'orderTab.staging.autoStagedNotice'|t('shipments') }}
 					{% else %}
-						{{ 'Stage each new shipment as a group below. Nothing is saved until you click “Save shipment(s)”. Row totals across groups must equal the remaining qty before you can save.'|t('shipments') }}
+						{{ 'orderTab.staging.introNothingSaved'|t('shipments') }}
 					{% endif %}
 				</p>
 			</div>
@@ -247,19 +247,19 @@
 				{% for stagingGroup in stagingGroups %}
 					{% set groupIndex = loop.index0 %}
 					{% set groupLetter = groupLetters[groupIndex] ?? (groupIndex + 1) %}
-					{% set groupLabel = 'Shipment {letter}'|t('shipments', { letter: groupLetter }) %}
+					{% set groupLabel = 'orderTab.staging.shipmentLetter'|t('shipments', { letter: groupLetter }) %}
 					<div class="pane shipments-staging-group" data-group-index="{{ groupIndex }}">
 						<div class="shipments-staging-group-header">
 							<h3 class="shipments-staging-group-label">{{ groupLabel }}</h3>
-							<button type="button" class="btn shipments-remove-group{% if stagingGroups|length < 2 %} hidden{% endif %}">{{ 'Remove group'|t('shipments') }}</button>
+							<button type="button" class="btn shipments-remove-group{% if stagingGroups|length < 2 %} hidden{% endif %}">{{ 'orderTab.staging.removeGroup'|t('shipments') }}</button>
 						</div>
 
 						<table class="data fullwidth">
 							<thead>
 								<tr>
-									<th>{{ 'Line item'|t('shipments') }}</th>
-									<th class="thin">{{ 'Remaining'|t('shipments') }}</th>
-									<th class="thin">{{ 'Qty in group'|t('shipments') }}</th>
+									<th>{{ 'shipmentEdit.lineItems.lineItem'|t('shipments') }}</th>
+									<th class="thin">{{ 'orderTab.staging.remaining'|t('shipments') }}</th>
+									<th class="thin">{{ 'orderTab.staging.qtyInGroup'|t('shipments') }}</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -291,17 +291,17 @@
 			</div>
 
 			<div class="shipments-buttons-row">
-				<button type="button" class="btn add icon" id="shipments-add-group">{{ 'Add another shipment group'|t('shipments') }}</button>
+				<button type="button" class="btn add icon" id="shipments-add-group">{{ 'settings.grouping.addGroup'|t('shipments') }}</button>
 			</div>
 
 			<div id="shipments-staging-status" class="shipments-staging-status is-invalid">
-				<span class="shipments-staging-status-invalid">{{ 'Staging totals don’t match remaining quantity yet.'|t('shipments') }}</span>
-				<span class="shipments-staging-status-valid">{{ 'Staging totals match remaining quantity.'|t('shipments') }}</span>
+				<span class="shipments-staging-status-invalid">{{ 'orderTab.staging.totalsMismatch'|t('shipments') }}</span>
+				<span class="shipments-staging-status-valid">{{ 'orderTab.staging.totalsMatch'|t('shipments') }}</span>
 			</div>
 
 			<div class="buttons shipments-buttons-row">
-				<button type="button" class="btn submit" id="shipments-save-button" disabled>{{ 'Save shipment(s)'|t('shipments') }}</button>
-				<span class="shipments-pending-footer light">{{ 'Pending, not saved yet'|t('shipments') }}</span>
+				<button type="button" class="btn submit" id="shipments-save-button" disabled>{{ 'orderTab.staging.saveShipments'|t('shipments') }}</button>
+				<span class="shipments-pending-footer light">{{ 'orderTab.staging.pendingNotSaved'|t('shipments') }}</span>
 			</div>
 		</div>
 	{% endif %}

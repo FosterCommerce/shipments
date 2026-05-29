@@ -127,10 +127,10 @@ class Integrations extends Component
 		$type = $config['type'] ?? null;
 		if (! is_string($type) || ! is_subclass_of($type, ProviderInterface::class)) {
 			$config['errorMessage'] = is_string($type)
-				? Craft::t(Plugin::HANDLE, 'No integration provider registered for type “{type}”.', [
+				? Craft::t(Plugin::HANDLE, 'error.noProviderForType', [
 					'type' => $type,
 				])
-				: Craft::t(Plugin::HANDLE, 'Integration config is missing a provider type.');
+				: Craft::t(Plugin::HANDLE, 'error.integrationMissingProviderType');
 			$config['expectedType'] = is_string($type) ? $type : '';
 			unset($config['type']);
 			return new MissingProvider($config);

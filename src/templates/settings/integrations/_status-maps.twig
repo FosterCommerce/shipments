@@ -15,9 +15,9 @@
 {% set fullPageForm = true %}
 
 {% set crumbs = [
-	{ label: 'Shipments'|t('shipments'), url: url('shipments/shipments') },
-	{ label: 'Settings'|t('shipments'), url: url('shipments/settings/general') },
-	{ label: 'Integrations'|t('shipments'), url: url('shipments/settings/integrations') },
+	{ label: 'nav.shipments'|t('shipments'), url: url('shipments/shipments') },
+	{ label: 'nav.settings'|t('shipments'), url: url('shipments/settings/general') },
+	{ label: 'nav.integrations'|t('shipments'), url: url('shipments/settings/integrations') },
 	{ label: integration.name, url: integration.cpEditUrl },
 ] %}
 
@@ -39,16 +39,16 @@
 
 {% set commonCols = {
 	externalCode: {
-		heading: 'External code'|t('shipments'),
+		heading: 'settings.integrations.externalCode'|t('shipments'),
 		type: 'singleline',
 		code: true,
 	},
 	externalLabel: {
-		heading: 'External label'|t('shipments'),
+		heading: 'settings.integrations.externalLabel'|t('shipments'),
 		type: 'singleline',
 	},
 	direction: {
-		heading: 'Direction'|t('shipments'),
+		heading: 'settings.integrations.directionLabel'|t('shipments'),
 		type: 'select',
 		options: directionOptions|map((label, value) => ({ label: label, value: value }))|values,
 	},
@@ -58,35 +58,35 @@
 	{{ actionInput('shipments/integrations/status-maps') }}
 	{{ redirectInput('shipments/settings/integrations/' ~ integration.id ~ '/status-maps') }}
 
-	<p class="light">{{ 'Map this integration’s status codes to the plugin’s fixed fulfillment and shipping vocabularies. Inbound rows translate the integration’s codes to ours; outbound rows go the other way.'|t('shipments') }}</p>
+	<p class="light">{{ 'settings.integrations.statusMapIntro'|t('shipments') }}</p>
 
 	{{ forms.editableTableField({
-		label: 'Fulfillment mappings'|t('shipments'),
+		label: 'settings.integrations.fulfillmentMappingsHeading'|t('shipments'),
 		id: 'fulfillmentMaps',
 		name: 'fulfillmentMaps',
 		cols: commonCols|merge({
 			internalCode: {
-				heading: 'Maps to (fulfillment)'|t('shipments'),
+				heading: 'settings.integrations.mapsToFulfillment'|t('shipments'),
 				type: 'select',
 				options: fulfillmentOptions|map((label, value) => ({ label: label, value: value }))|values,
 			},
 		}),
 		rows: fulfillmentRows,
-		addRowLabel: 'Add fulfillment mapping'|t('shipments'),
+		addRowLabel: 'settings.integrations.addFulfillmentMapping'|t('shipments'),
 	}) }}
 
 	{{ forms.editableTableField({
-		label: 'Shipping mappings'|t('shipments'),
+		label: 'settings.integrations.shippingMappingsHeading'|t('shipments'),
 		id: 'shippingMaps',
 		name: 'shippingMaps',
 		cols: commonCols|merge({
 			internalCode: {
-				heading: 'Maps to (shipping)'|t('shipments'),
+				heading: 'settings.integrations.mapsToShipping'|t('shipments'),
 				type: 'select',
 				options: shippingOptions|map((label, value) => ({ label: label, value: value }))|values,
 			},
 		}),
 		rows: shippingRows,
-		addRowLabel: 'Add shipping mapping'|t('shipments'),
+		addRowLabel: 'settings.integrations.addShippingMapping'|t('shipments'),
 	}) }}
 {% endblock %}

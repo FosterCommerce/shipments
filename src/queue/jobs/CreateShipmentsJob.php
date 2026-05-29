@@ -32,7 +32,7 @@ class CreateShipmentsJob extends BaseJob
 
 	protected function defaultDescription(): ?string
 	{
-		return Craft::t(Plugin::HANDLE, 'Creating shipments for order {id}', [
+		return Craft::t(Plugin::HANDLE, 'queue.creatingShipments', [
 			'id' => $this->orderId ?? 0,
 		]);
 	}

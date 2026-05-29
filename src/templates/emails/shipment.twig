@@ -17,13 +17,13 @@
 <html lang="{{ currentSite.language ?? 'en' }}">
 <head>
 	<meta charset="utf-8">
-	<title>{{ 'Shipment {reference}'|t('shipments', { reference: shipment.reference }) }}</title>
+	<title>{{ 'shipmentEdit.titleWithReference'|t('shipments', { reference: shipment.reference }) }}</title>
 </head>
 <body>
-	<h1>{{ 'Shipment {reference}'|t('shipments', { reference: shipment.reference }) }}</h1>
+	<h1>{{ 'shipmentEdit.titleWithReference'|t('shipments', { reference: shipment.reference }) }}</h1>
 
 	<p>
-		{{ 'Order'|t('shipments') }}:
+		{{ 'shipmentEdit.order'|t('shipments') }}:
 		<strong>{{ order.reference ?: order.number }}</strong>
 	</p>
 
@@ -36,7 +36,7 @@
 
 	{% if shipment.trackingNumber %}
 		<p>
-			{{ 'Tracking number'|t('shipments') }}:
+			{{ 'shipmentEdit.tracking.number'|t('shipments') }}:
 			{% if shipment.trackingUrl %}
 				<a href="{{ shipment.trackingUrl }}">{{ shipment.trackingNumber }}</a>
 			{% else %}

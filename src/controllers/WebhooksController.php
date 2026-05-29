@@ -40,14 +40,14 @@ class WebhooksController extends Controller
 
 		try {
 			$provider = $plugin->integrations->resolveEnabledProvider($integrationHandle);
-		} catch (PermanentIntegrationException $permanentException) {
-			Craft::error(sprintf('[%s] cannot accept webhooks: %s', $integrationHandle, $permanentException->getMessage()), Plugin::HANDLE);
-			$message = "{$permanentException->getMessage()} Cannot accept webhooks.";
-			if ($permanentException->getCode() === 404) {
-				throw new NotFoundHttpException($message, 0, $permanentException);
+		} catch (PermanentIntegrationException $permanentIntegrationException) {
+			Craft::error(sprintf('[%s] cannot accept webhooks: %s', $integrationHandle, $permanentIntegrationException->getMessage()), Plugin::HANDLE);
+			$message = "{$permanentIntegrationException->getMessage()} Cannot accept webhooks.";
+			if ($permanentIntegrationException->getCode() === 404) {
+				throw new NotFoundHttpException($message, 0, $permanentIntegrationException);
 			}
 
-			throw new BadRequestHttpException($message, 0, $permanentException);
+			throw new BadRequestHttpException($message, 0, $permanentIntegrationException);
 		}
 
 		if (! $provider->canReceiveUpdates()) {

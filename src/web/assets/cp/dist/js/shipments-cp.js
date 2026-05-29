@@ -25,11 +25,47 @@
 	document.addEventListener('DOMContentLoaded', function () {
 		initRemoveShipmentButtons();
 		initStagingGroups();
+		initLineItemsEditor();
 		initIntegrationReferencesRepeater();
 		initIntegrationProviderPanels();
 		initSettingsAddRuleButtons();
 		initStatusHistoryFilter();
 	});
+
+	// Line-items editor on the shipment edit page: posts the current quantities so the service
+	// can split or rebalance the shipment in place. Reloads on success so the freed pool, the
+	// order-allocation badge, and the line-item maxes all reflect the new state.
+	function initLineItemsEditor() {
+		const saveButton = document.getElementById('shipments-save-line-items');
+		const editor = document.getElementById('shipments-line-items-editor');
+		if (!saveButton || !editor) {
+			return;
+		}
+
+		saveButton.addEventListener('click', function () {
+			saveButton.disabled = true;
+
+			const lineItems = {};
+			editor.querySelectorAll('input.shipments-line-item-qty').forEach(function (qtyInput) {
+				lineItems[qtyInput.getAttribute('data-line-item-id')] = qtyInput.value;
+			});
+
+			Craft.sendActionRequest('POST', 'shipments/shipments/save-line-items', {
+				data: { id: saveButton.getAttribute('data-shipment-id'), lineItems: lineItems },
+			}).then(function (response) {
+				const responseBody = response && response.data ? response.data : {};
+				if (responseBody.message) {
+					Craft.cp.displayNotice(responseBody.message);
+				}
+				markMainFormClean();
+				window.location.reload();
+			}).catch(function (error) {
+				saveButton.disabled = false;
+				const errorBody = error && error.response && error.response.data ? error.response.data : {};
+				Craft.cp.displayError(errorBody.message || Craft.t('shipments', 'error.couldNotSaveLineItems'));
+			});
+		});
+	}
 
 	function initStatusHistoryFilter() {
 		var filterGroup = document.getElementById('shipments-history-filter');
@@ -85,7 +121,7 @@
 
 				var confirmMessage = Craft.t(
 					'shipments',
-					'Delete shipment {reference}? Its line items will go back to the unallocated pool.',
+					'shipmentEdit.deleteConfirmWithReference',
 					{ reference: shipmentReference }
 				);
 				if (!confirm(confirmMessage)) {
@@ -99,11 +135,11 @@
 					if (responseBody.success) {
 						window.location.reload();
 					} else {
-						alert(responseBody.error || Craft.t('shipments', 'Delete failed.'));
+						alert(responseBody.error || Craft.t('shipments', 'error.deleteFailed'));
 					}
 				}).catch(function (error) {
 					var errorBody = error && error.response && error.response.data ? error.response.data : {};
-					alert(errorBody.error || Craft.t('shipments', 'Delete failed.'));
+					alert(errorBody.error || Craft.t('shipments', 'error.deleteFailed'));
 				});
 			});
 		});
@@ -202,7 +238,7 @@
 			var removeButton = document.createElement('button');
 			removeButton.type = 'button';
 			removeButton.className = 'btn shipments-remove-group';
-			removeButton.textContent = Craft.t('shipments', 'Remove group');
+			removeButton.textContent = Craft.t('shipments', 'orderTab.staging.removeGroup');
 			removeButton.addEventListener('click', function () {
 				groupElement.remove();
 				renumberGroups();
@@ -254,9 +290,9 @@
 
 			var theadElement = document.createElement('thead');
 			var headRow = document.createElement('tr');
-			headRow.appendChild(createTh(Craft.t('shipments', 'Line item')));
-			headRow.appendChild(createTh(Craft.t('shipments', 'Remaining'), 'thin'));
-			headRow.appendChild(createTh(Craft.t('shipments', 'Qty in group'), 'thin'));
+			headRow.appendChild(createTh(Craft.t('shipments', 'shipmentEdit.lineItems.lineItem')));
+			headRow.appendChild(createTh(Craft.t('shipments', 'orderTab.staging.remaining'), 'thin'));
+			headRow.appendChild(createTh(Craft.t('shipments', 'orderTab.staging.qtyInGroup'), 'thin'));
 			theadElement.appendChild(headRow);
 			tableElement.appendChild(theadElement);
 
@@ -334,7 +370,7 @@
 			}).catch(function (error) {
 				saveButton.disabled = false;
 				var errorBody = error && error.response && error.response.data ? error.response.data : {};
-				Craft.cp.displayError(errorBody.message || Craft.t('shipments', 'Couldn’t save shipments.'));
+				Craft.cp.displayError(errorBody.message || Craft.t('shipments', 'error.couldNotSaveShipments'));
 			});
 		});
 
@@ -412,10 +448,10 @@
 					var confirmMessage = shipmentCount > 0
 						? Craft.t(
 							'shipments',
-							'Turning this off will trash {count} shipment(s) on this order and stop tracking it for fulfillment. Continue?',
+							'orderTab.requiresShippingOffConfirmWithCount',
 							{ count: shipmentCount }
 						)
-						: Craft.t('shipments', 'Turn off shipping for this order? It will drop off the Attention page.');
+						: Craft.t('shipments', 'orderTab.requiresShippingOffConfirm');
 
 					if (!window.confirm(confirmMessage)) {
 						revertToggle();
@@ -446,7 +482,7 @@
 				}).catch(function (error) {
 					revertToggle();
 					var errorBody = error && error.response && error.response.data ? error.response.data : {};
-					Craft.cp.displayError(errorBody.message || Craft.t('shipments', 'Couldn’t update this order.'));
+					Craft.cp.displayError(errorBody.message || Craft.t('shipments', 'error.couldNotUpdateOrder'));
 				});
 			});
 		}
@@ -473,7 +509,7 @@
 			}).catch(function (error) {
 				restoreButton.disabled = false;
 				var errorBody = error && error.response && error.response.data ? error.response.data : {};
-				Craft.cp.displayError(errorBody.message || Craft.t('shipments', 'Couldn’t restore shipments.'));
+				Craft.cp.displayError(errorBody.message || Craft.t('shipments', 'error.couldNotRestoreShipments'));
 			});
 		});
 	}

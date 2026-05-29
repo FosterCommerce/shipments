@@ -8,10 +8,10 @@
 {% set selectedSubnavItem = 'settings' %}
 
 {% set settingsNavItems = {
-	'general': { title: 'General'|t('shipments'), url: 'shipments/settings/general' },
-	'emails': { title: 'Emails'|t('shipments'), url: 'shipments/settings/emails' },
-	'integrations': { title: 'Integrations'|t('shipments'), url: 'shipments/settings/integrations' },
-	'shipment-fields': { title: 'Shipment fields'|t('shipments'), url: 'shipments/settings/shipment-fields' },
+	'general': { title: 'settings.nav.general'|t('shipments'), url: 'shipments/settings/general' },
+	'emails': { title: 'nav.emails'|t('shipments'), url: 'shipments/settings/emails' },
+	'integrations': { title: 'nav.integrations'|t('shipments'), url: 'shipments/settings/integrations' },
+	'shipment-fields': { title: 'settings.nav.shipmentFields'|t('shipments'), url: 'shipments/settings/shipment-fields' },
 } %}
 
 {% if selectedItem is not defined %}

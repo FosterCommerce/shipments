@@ -37,16 +37,16 @@ enum ShippingStatus: string
 	public function label(): string
 	{
 		return match ($this) {
-			self::Pending => Craft::t(Plugin::HANDLE, 'Pending'),
-			self::PreTransit => Craft::t(Plugin::HANDLE, 'Pre-transit'),
-			self::InTransit => Craft::t(Plugin::HANDLE, 'In transit'),
-			self::OutForDelivery => Craft::t(Plugin::HANDLE, 'Out for delivery'),
-			self::AttemptedDelivery => Craft::t(Plugin::HANDLE, 'Attempted delivery'),
-			self::AvailableForPickup => Craft::t(Plugin::HANDLE, 'Available for pickup'),
-			self::Delivered => Craft::t(Plugin::HANDLE, 'Delivered'),
-			self::Exception => Craft::t(Plugin::HANDLE, 'Exception'),
-			self::Returned => Craft::t(Plugin::HANDLE, 'Returned'),
-			self::Failure => Craft::t(Plugin::HANDLE, 'Failure'),
+			self::Pending => Craft::t(Plugin::HANDLE, 'status.shipping.pending'),
+			self::PreTransit => Craft::t(Plugin::HANDLE, 'status.shipping.preTransit'),
+			self::InTransit => Craft::t(Plugin::HANDLE, 'status.shipping.inTransit'),
+			self::OutForDelivery => Craft::t(Plugin::HANDLE, 'status.shipping.outForDelivery'),
+			self::AttemptedDelivery => Craft::t(Plugin::HANDLE, 'status.shipping.attemptedDelivery'),
+			self::AvailableForPickup => Craft::t(Plugin::HANDLE, 'status.shipping.availableForPickup'),
+			self::Delivered => Craft::t(Plugin::HANDLE, 'status.shipping.delivered'),
+			self::Exception => Craft::t(Plugin::HANDLE, 'status.shipping.exception'),
+			self::Returned => Craft::t(Plugin::HANDLE, 'status.shipping.returned'),
+			self::Failure => Craft::t(Plugin::HANDLE, 'status.shipping.failure'),
 		};
 	}
 

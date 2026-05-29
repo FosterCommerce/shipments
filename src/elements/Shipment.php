@@ -112,22 +112,22 @@ class Shipment extends Element
 
 	public static function displayName(): string
 	{
-		return Craft::t(Plugin::HANDLE, 'Shipment');
+		return Craft::t(Plugin::HANDLE, 'nav.shipment');
 	}
 
 	public static function lowerDisplayName(): string
 	{
-		return Craft::t(Plugin::HANDLE, 'shipment');
+		return Craft::t(Plugin::HANDLE, 'nav.shipmentLowercase');
 	}
 
 	public static function pluralDisplayName(): string
 	{
-		return Craft::t(Plugin::HANDLE, 'Shipments');
+		return Craft::t(Plugin::HANDLE, 'nav.shipments');
 	}
 
 	public static function pluralLowerDisplayName(): string
 	{
-		return Craft::t(Plugin::HANDLE, 'shipments');
+		return Craft::t(Plugin::HANDLE, 'nav.shipmentsLowercase');
 	}
 
 	public static function refHandle(): ?string
@@ -531,8 +531,8 @@ class Shipment extends Element
 
 		if (in_array('orderAllocation', $fields, true) || $fields === []) {
 			$serialized['orderAllocation'] = $this->isOrderUnderAllocatedCached()
-				? Craft::t(Plugin::HANDLE, 'Under-allocated')
-				: Craft::t(Plugin::HANDLE, 'Fully allocated');
+				? Craft::t(Plugin::HANDLE, 'orderTab.underAllocated')
+				: Craft::t(Plugin::HANDLE, 'orderTab.fullyAllocated');
 		}
 
 		return $serialized;
@@ -574,11 +574,11 @@ class Shipment extends Element
 		$sources = [
 			[
 				'key' => '*',
-				'label' => Craft::t(Plugin::HANDLE, 'All shipments'),
+				'label' => Craft::t(Plugin::HANDLE, 'nav.allShipments'),
 				'defaultSort' => ['dateCreated', 'desc'],
 			],
 			[
-				'heading' => Craft::t(Plugin::HANDLE, 'Fulfillment status'),
+				'heading' => Craft::t(Plugin::HANDLE, 'shipmentEdit.fulfillmentStatusLabel'),
 			],
 		];
 
@@ -594,7 +594,7 @@ class Shipment extends Element
 		}
 
 		$sources[] = [
-			'heading' => Craft::t(Plugin::HANDLE, 'Shipping status'),
+			'heading' => Craft::t(Plugin::HANDLE, 'shipmentEdit.shippingStatusLabel'),
 		];
 
 		foreach (ShippingStatus::cases() as $case) {
@@ -618,31 +618,31 @@ class Shipment extends Element
 	{
 		$attributes = [
 			'order' => [
-				'label' => Craft::t(Plugin::HANDLE, 'Order'),
+				'label' => Craft::t(Plugin::HANDLE, 'shipmentEdit.order'),
 			],
 			'fulfillmentStatus' => [
-				'label' => Craft::t(Plugin::HANDLE, 'Fulfillment'),
+				'label' => Craft::t(Plugin::HANDLE, 'shipmentEdit.fulfillmentTab'),
 			],
 			'shippingStatus' => [
-				'label' => Craft::t(Plugin::HANDLE, 'Shipping'),
+				'label' => Craft::t(Plugin::HANDLE, 'shipmentEdit.shippingTab'),
 			],
 			'carrier' => [
-				'label' => Craft::t(Plugin::HANDLE, 'Carrier'),
+				'label' => Craft::t(Plugin::HANDLE, 'shipmentEdit.tracking.carrier'),
 			],
 			'service' => [
-				'label' => Craft::t(Plugin::HANDLE, 'Service'),
+				'label' => Craft::t(Plugin::HANDLE, 'shipmentEdit.tracking.service'),
 			],
 			'trackingNumber' => [
-				'label' => Craft::t(Plugin::HANDLE, 'Tracking'),
+				'label' => Craft::t(Plugin::HANDLE, 'shipmentEdit.tracking.heading'),
 			],
 			'orderAllocation' => [
-				'label' => Craft::t(Plugin::HANDLE, 'Order allocation'),
+				'label' => Craft::t(Plugin::HANDLE, 'orderTab.allocationHeading'),
 			],
 			'dateUpdated' => [
-				'label' => Craft::t(Plugin::HANDLE, 'Date updated'),
+				'label' => Craft::t(Plugin::HANDLE, 'index.column.dateUpdated'),
 			],
 			'dateCreated' => [
-				'label' => Craft::t(Plugin::HANDLE, 'Date created'),
+				'label' => Craft::t(Plugin::HANDLE, 'index.column.dateCreated'),
 			],
 		];
 
@@ -690,37 +690,37 @@ class Shipment extends Element
 	{
 		return [
 			[
-				'label' => Craft::t(Plugin::HANDLE, 'Reference'),
+				'label' => Craft::t(Plugin::HANDLE, 'index.column.reference'),
 				'orderBy' => '[[shipments_shipments.reference]]',
 				'attribute' => 'reference',
 			],
 			[
-				'label' => Craft::t(Plugin::HANDLE, 'Fulfillment status'),
+				'label' => Craft::t(Plugin::HANDLE, 'shipmentEdit.fulfillmentStatusLabel'),
 				'orderBy' => '[[shipments_shipments.fulfillmentStatus]]',
 				'attribute' => 'fulfillmentStatus',
 			],
 			[
-				'label' => Craft::t(Plugin::HANDLE, 'Shipping status'),
+				'label' => Craft::t(Plugin::HANDLE, 'shipmentEdit.shippingStatusLabel'),
 				'orderBy' => '[[shipments_shipments.shippingStatus]]',
 				'attribute' => 'shippingStatus',
 			],
 			[
-				'label' => Craft::t(Plugin::HANDLE, 'Carrier'),
+				'label' => Craft::t(Plugin::HANDLE, 'shipmentEdit.tracking.carrier'),
 				'orderBy' => '[[shipments_shipments.carrier]]',
 				'attribute' => 'carrier',
 			],
 			[
-				'label' => Craft::t(Plugin::HANDLE, 'Order allocation'),
+				'label' => Craft::t(Plugin::HANDLE, 'orderTab.allocationHeading'),
 				'orderBy' => '[[tracked.underAllocated]]',
 				'attribute' => 'orderAllocation',
 			],
 			[
-				'label' => Craft::t(Plugin::HANDLE, 'Date updated'),
+				'label' => Craft::t(Plugin::HANDLE, 'index.column.dateUpdated'),
 				'orderBy' => '[[elements.dateUpdated]]',
 				'attribute' => 'dateUpdated',
 			],
 			[
-				'label' => Craft::t(Plugin::HANDLE, 'Date created'),
+				'label' => Craft::t(Plugin::HANDLE, 'index.column.dateCreated'),
 				'orderBy' => '[[elements.dateCreated]]',
 				'attribute' => 'dateCreated',
 			],
@@ -830,13 +830,13 @@ class Shipment extends Element
 
 		if ($this->isOrderUnderAllocatedCached()) {
 			return Cp::statusLabelHtml([
-				'label' => Craft::t(Plugin::HANDLE, 'Under-allocated'),
+				'label' => Craft::t(Plugin::HANDLE, 'orderTab.underAllocated'),
 				'color' => 'red',
 			]) ?? '';
 		}
 
 		return Cp::statusLabelHtml([
-			'label' => Craft::t(Plugin::HANDLE, 'Fully allocated'),
+			'label' => Craft::t(Plugin::HANDLE, 'orderTab.fullyAllocated'),
 			'color' => 'green',
 		]) ?? '';
 	}

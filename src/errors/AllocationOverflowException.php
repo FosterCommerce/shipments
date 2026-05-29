@@ -9,7 +9,8 @@ use fostercommerce\shipments\Plugin;
 use yii\base\UserException;
 
 /**
- * Thrown when restoring or re-enabling a shipment would push its order into over-allocation.
+ * Thrown when an allocation change (restoring or re-enabling a shipment, or editing its line
+ * items in place) would push its order past the ordered quantity for some line item.
  * UserException so Craft surfaces the message to admins in the CP.
  */
 class AllocationOverflowException extends UserException
@@ -24,7 +25,7 @@ class AllocationOverflowException extends UserException
 		string $message = '',
 	) {
 		if ($message === '') {
-			$message = Craft::t(Plugin::HANDLE, 'Shipment {shipmentId} cannot be counted against order {orderId}: would over-allocate line items {lineItemIds}.', [
+			$message = Craft::t(Plugin::HANDLE, 'error.shipmentOverAllocates', [
 				'shipmentId' => $shipmentId,
 				'orderId' => $orderId,
 				'lineItemIds' => implode(', ', array_keys($overflowByLineItemId)),

@@ -29,14 +29,14 @@ class LineItemStatusRule implements ShipmentRuleInterface
 
 	public function getName(): string
 	{
-		return Craft::t(Plugin::HANDLE, 'Line item status');
+		return Craft::t(Plugin::HANDLE, 'rules.lineItemStatus.name');
 	}
 
 	public function getDescription(): string
 	{
 		return Craft::t(
 			Plugin::HANDLE,
-			'Groups items into shipments using explicit store-defined groups. Each group declares a name, a mode (ship together or one shipment per line item), and the set of line item statuses whose items belong to it. Line items whose status isn’t assigned to any group fall through to the fallback shipment.',
+			'rules.lineItemStatus.description',
 		);
 	}
 

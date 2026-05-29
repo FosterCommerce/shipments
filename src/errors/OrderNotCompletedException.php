@@ -19,7 +19,7 @@ class OrderNotCompletedException extends Exception
 		string $message = '',
 	) {
 		if ($message === '') {
-			$message = Craft::t(Plugin::HANDLE, 'Order {orderId} is not completed; shipments can only be created for completed orders.', [
+			$message = Craft::t(Plugin::HANDLE, 'error.orderNotCompleted', [
 				'orderId' => $orderId,
 			]);
 		}

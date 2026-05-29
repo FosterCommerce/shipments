@@ -1,15 +1,15 @@
 {% extends "shipments/_layouts/settings" %}
 
 {% set selectedItem = 'integrations' %}
-{% set title = 'Integrations'|t('shipments') %}
+{% set title = 'nav.integrations'|t('shipments') %}
 {% set crumbs = [
 	{ label: 'Settings'|t('app'), url: url('settings') },
 	{ label: 'Plugins'|t('app'), url: url('settings/plugins') },
-	{ label: 'Shipments'|t('shipments'), url: url('shipments/settings/general') },
+	{ label: 'nav.shipments'|t('shipments'), url: url('shipments/settings/general') },
 ] %}
 
 {% block actionButton %}
-	<a href="{{ url('shipments/settings/integrations/new') }}" class="btn submit add icon">{{ 'New integration'|t('shipments') }}</a>
+	<a href="{{ url('shipments/settings/integrations/new') }}" class="btn submit add icon">{{ 'integrations.new'|t('shipments') }}</a>
 {% endblock %}
 
 {% block content %}
@@ -17,9 +17,9 @@
 		<table class="data fullwidth collapsible">
 			<thead>
 				<tr>
-					<th>{{ 'Name'|t('shipments') }}</th>
-					<th>{{ 'Handle'|t('shipments') }}</th>
-					<th>{{ 'URL template'|t('shipments') }}</th>
+					<th>{{ 'shipmentEdit.name'|t('shipments') }}</th>
+					<th>{{ 'settings.integrations.handle'|t('shipments') }}</th>
+					<th>{{ 'settings.integrations.urlTemplate'|t('shipments') }}</th>
 					<th></th>
 				</tr>
 			</thead>
@@ -32,13 +32,13 @@
 							{% if integration.urlTemplate %}<code class="light">{{ integration.urlTemplate }}</code>{% endif %}
 						</td>
 						<td class="thin">
-							<a href="{{ integration.cpEditUrl }}" class="go" title="{{ 'Edit'|t('shipments') }}"></a>
+							<a href="{{ integration.cpEditUrl }}" class="go" title="{{ 'common.edit'|t('shipments') }}"></a>
 						</td>
 					</tr>
 				{% endfor %}
 			</tbody>
 		</table>
 	{% else %}
-		<p>{{ 'No integrations yet.'|t('shipments') }} <a href="{{ url('shipments/settings/integrations/new') }}">{{ 'Create one'|t('shipments') }}</a>.</p>
+		<p>{{ 'integrations.emptyState.none'|t('shipments') }} <a href="{{ url('shipments/settings/integrations/new') }}">{{ 'emails.emptyState.createOne'|t('shipments') }}</a>.</p>
 	{% endif %}
 {% endblock %}

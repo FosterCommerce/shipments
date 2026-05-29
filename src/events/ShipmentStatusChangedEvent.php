@@ -14,7 +14,8 @@ use fostercommerce\shipments\records\ShipmentStatusHistory;
 use yii\base\Event;
 
 /**
- * Fired post-commit on create (fromCode = null) and on every transition.
+ * Fired inside the write transaction (pre-commit) on create (fromCode = null) and on every
+ * transition, so a listener's queue push commits atomically with the status write.
  * `axis` disambiguates whether this is a fulfillment or shipping transition.
  */
 class ShipmentStatusChangedEvent extends Event

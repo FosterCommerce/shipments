@@ -28,7 +28,7 @@ class InvalidTransitionException extends UserException
 		?\Throwable $previous = null,
 	) {
 		parent::__construct(
-			Craft::t(Plugin::HANDLE, 'Cannot transition shipment {shipmentId} {axis} status to {target}: {reason}', [
+			Craft::t(Plugin::HANDLE, 'error.transitionNotAllowed', [
 				'shipmentId' => $shipmentId,
 				'axis' => $statusAxis->value,
 				'target' => $target->value,

@@ -31,13 +31,13 @@ enum FulfillmentStatus: string
 	public function label(): string
 	{
 		return match ($this) {
-			self::Open => Craft::t(Plugin::HANDLE, 'Open'),
-			self::InProgress => Craft::t(Plugin::HANDLE, 'In progress'),
-			self::Scheduled => Craft::t(Plugin::HANDLE, 'Scheduled'),
-			self::OnHold => Craft::t(Plugin::HANDLE, 'On hold'),
-			self::Fulfilled => Craft::t(Plugin::HANDLE, 'Fulfilled'),
-			self::Cancelled => Craft::t(Plugin::HANDLE, 'Cancelled'),
-			self::Incomplete => Craft::t(Plugin::HANDLE, 'Incomplete'),
+			self::Open => Craft::t(Plugin::HANDLE, 'status.fulfillment.open'),
+			self::InProgress => Craft::t(Plugin::HANDLE, 'status.fulfillment.inProgress'),
+			self::Scheduled => Craft::t(Plugin::HANDLE, 'status.fulfillment.scheduled'),
+			self::OnHold => Craft::t(Plugin::HANDLE, 'status.fulfillment.onHold'),
+			self::Fulfilled => Craft::t(Plugin::HANDLE, 'status.fulfillment.fulfilled'),
+			self::Cancelled => Craft::t(Plugin::HANDLE, 'status.fulfillment.cancelled'),
+			self::Incomplete => Craft::t(Plugin::HANDLE, 'status.fulfillment.incomplete'),
 		};
 	}
 

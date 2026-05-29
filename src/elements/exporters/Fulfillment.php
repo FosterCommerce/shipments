@@ -24,7 +24,7 @@ class Fulfillment extends ElementExporter
 {
 	public static function displayName(): string
 	{
-		return Craft::t(Plugin::HANDLE, 'Fulfillment digest');
+		return Craft::t(Plugin::HANDLE, 'emails.fulfillmentDigest');
 	}
 
 	/**

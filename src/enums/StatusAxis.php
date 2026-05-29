@@ -20,8 +20,8 @@ enum StatusAxis: string
 	public function label(): string
 	{
 		return match ($this) {
-			self::Fulfillment => Craft::t(Plugin::HANDLE, 'Fulfillment'),
-			self::Shipping => Craft::t(Plugin::HANDLE, 'Shipping'),
+			self::Fulfillment => Craft::t(Plugin::HANDLE, 'shipmentEdit.fulfillmentTab'),
+			self::Shipping => Craft::t(Plugin::HANDLE, 'shipmentEdit.shippingTab'),
 		};
 	}
 

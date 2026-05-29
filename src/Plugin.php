@@ -249,7 +249,7 @@ class Plugin extends \craft\base\Plugin
 			return null;
 		}
 
-		$navItem['label'] = Craft::t(self::HANDLE, 'Shipments');
+		$navItem['label'] = Craft::t(self::HANDLE, 'nav.shipments');
 		// Bare handle so any subpath under /admin/shipments/* keeps the section highlighted
 		// (Craft's nav-selection uses str_starts_with on this URL).
 		$navItem['url'] = self::HANDLE;
@@ -257,13 +257,13 @@ class Plugin extends \craft\base\Plugin
 		$userService = Craft::$app->getUser();
 		if ($userService->checkPermission(self::PERMISSION_VIEW)) {
 			$navItem['subnav']['shipments'] = [
-				'label' => Craft::t(self::HANDLE, 'Shipments'),
+				'label' => Craft::t(self::HANDLE, 'nav.shipments'),
 				'url' => 'shipments/shipments',
 			];
 
 			$attentionCount = $this->shipmentLineItems->getCachedAttentionCount();
 			$navItem['subnav']['attention'] = [
-				'label' => Craft::t(self::HANDLE, 'Attention needed'),
+				'label' => Craft::t(self::HANDLE, 'orderTab.attentionNeeded'),
 				'url' => 'shipments/attention-needed',
 				'badgeCount' => $attentionCount,
 			];
@@ -271,7 +271,7 @@ class Plugin extends \craft\base\Plugin
 
 		if ($userService->checkPermission(self::PERMISSION_MANAGE_SETTINGS)) {
 			$navItem['subnav']['settings'] = [
-				'label' => Craft::t(self::HANDLE, 'Settings'),
+				'label' => Craft::t(self::HANDLE, 'nav.settings'),
 				'url' => 'shipments/settings/general',
 			];
 		}
@@ -353,33 +353,33 @@ class Plugin extends \craft\base\Plugin
 			UserPermissions::EVENT_REGISTER_PERMISSIONS,
 			static function (RegisterUserPermissionsEvent $event): void {
 				$event->permissions[] = [
-					'heading' => Craft::t(self::HANDLE, 'Shipments'),
+					'heading' => Craft::t(self::HANDLE, 'nav.shipments'),
 					'permissions' => [
 						self::PERMISSION_VIEW => [
-							'label' => Craft::t(self::HANDLE, 'View shipments'),
+							'label' => Craft::t(self::HANDLE, 'permission.viewShipments'),
 							'nested' => [
 								self::PERMISSION_EDIT => [
-									'label' => Craft::t(self::HANDLE, 'Edit shipments'),
+									'label' => Craft::t(self::HANDLE, 'permission.editShipments'),
 								],
 								self::PERMISSION_TRANSITION => [
-									'label' => Craft::t(self::HANDLE, 'Transition shipment statuses'),
+									'label' => Craft::t(self::HANDLE, 'permission.transitionStatuses'),
 								],
 								self::PERMISSION_DELETE => [
-									'label' => Craft::t(self::HANDLE, 'Delete shipments'),
+									'label' => Craft::t(self::HANDLE, 'permission.deleteShipments'),
 								],
 								self::PERMISSION_PUSH => [
-									'label' => Craft::t(self::HANDLE, 'Push shipments to integrations'),
+									'label' => Craft::t(self::HANDLE, 'permission.pushToIntegrations'),
 								],
 							],
 						],
 						self::PERMISSION_MANAGE_INTEGRATIONS => [
-							'label' => Craft::t(self::HANDLE, 'Manage integrations'),
+							'label' => Craft::t(self::HANDLE, 'permission.manageIntegrations'),
 						],
 						self::PERMISSION_MANAGE_EMAILS => [
-							'label' => Craft::t(self::HANDLE, 'Manage notification emails'),
+							'label' => Craft::t(self::HANDLE, 'permission.manageEmails'),
 						],
 						self::PERMISSION_MANAGE_SETTINGS => [
-							'label' => Craft::t(self::HANDLE, 'Manage plugin settings'),
+							'label' => Craft::t(self::HANDLE, 'permission.manageSettings'),
 						],
 					],
 				];
@@ -427,9 +427,9 @@ class Plugin extends \craft\base\Plugin
 			Gql::class,
 			Gql::EVENT_REGISTER_GQL_SCHEMA_COMPONENTS,
 			static function (RegisterGqlSchemaComponentsEvent $event): void {
-				$event->queries[Craft::t(self::HANDLE, 'Shipments')] = [
+				$event->queries[Craft::t(self::HANDLE, 'nav.shipments')] = [
 					'shipments.read' => [
-						'label' => Craft::t(self::HANDLE, 'Query shipments'),
+						'label' => Craft::t(self::HANDLE, 'gql.queryShipments'),
 					],
 				];
 			},
@@ -612,10 +612,10 @@ class Plugin extends \craft\base\Plugin
 
 		$count = count($this->shipments->findByOrderId($order->id));
 		$label = $count > 0
-			? Craft::t(self::HANDLE, '🚚 Shipments ({count})', [
+			? Craft::t(self::HANDLE, 'orderTab.tabLabelWithCount', [
 				'count' => $count,
 			])
-			: Craft::t(self::HANDLE, '🚚 Shipments');
+			: Craft::t(self::HANDLE, 'orderTab.tabLabel');
 
 		$tabs = $event->variables['tabs'];
 		if (! is_array($tabs)) {

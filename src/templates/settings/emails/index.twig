@@ -1,15 +1,15 @@
 {% extends "shipments/_layouts/settings" %}
 
 {% set selectedItem = 'emails' %}
-{% set title = 'Shipment Emails'|t('shipments') %}
+{% set title = 'nav.shipmentEmails'|t('shipments') %}
 {% set crumbs = [
 	{ label: 'Settings'|t('app'), url: url('settings') },
 	{ label: 'Plugins'|t('app'), url: url('settings/plugins') },
-	{ label: 'Shipments'|t('shipments'), url: url('shipments/settings/general') },
+	{ label: 'nav.shipments'|t('shipments'), url: url('shipments/settings/general') },
 ] %}
 
 {% block actionButton %}
-	<a href="{{ url('shipments/settings/emails/new') }}" class="btn submit add icon">{{ 'New email'|t('shipments') }}</a>
+	<a href="{{ url('shipments/settings/emails/new') }}" class="btn submit add icon">{{ 'emails.new'|t('shipments') }}</a>
 {% endblock %}
 
 {% block content %}
@@ -17,10 +17,10 @@
 		<table class="data fullwidth collapsible">
 			<thead>
 				<tr>
-					<th>{{ 'Name'|t('shipments') }}</th>
-					<th>{{ 'Subject'|t('shipments') }}</th>
-					<th>{{ 'Recipient'|t('shipments') }}</th>
-					<th>{{ 'Enabled'|t('shipments') }}</th>
+					<th>{{ 'shipmentEdit.name'|t('shipments') }}</th>
+					<th>{{ 'emails.subject'|t('shipments') }}</th>
+					<th>{{ 'emails.recipient'|t('shipments') }}</th>
+					<th>{{ 'shipmentEdit.enabled'|t('shipments') }}</th>
 				</tr>
 			</thead>
 			<tbody>
@@ -28,10 +28,10 @@
 					<tr data-id="{{ email.id }}">
 						<td><a href="{{ email.cpEditUrl }}">{{ email.name }}</a></td>
 						<td>{{ email.subject }}</td>
-						<td>{{ (email.recipientType == 'customer' ? 'Customer' : 'Custom')|t('shipments') }}</td>
+						<td>{{ (email.recipientType == 'customer' ? 'emails.recipientType.customer' : 'emails.recipientType.custom')|t('shipments') }}</td>
 						<td>
 							{% if email.enabled %}
-								<span data-icon="check" title="{{ 'Enabled'|t('shipments') }}"></span>
+								<span data-icon="check" title="{{ 'shipmentEdit.enabled'|t('shipments') }}"></span>
 							{% endif %}
 						</td>
 					</tr>
@@ -39,6 +39,6 @@
 			</tbody>
 		</table>
 	{% else %}
-		<p>{{ 'No emails yet.'|t('shipments') }} <a href="{{ url('shipments/settings/emails/new') }}">{{ 'Create one'|t('shipments') }}</a>.</p>
+		<p>{{ 'emails.emptyState.none'|t('shipments') }} <a href="{{ url('shipments/settings/emails/new') }}">{{ 'emails.emptyState.createOne'|t('shipments') }}</a>.</p>
 	{% endif %}
 {% endblock %}

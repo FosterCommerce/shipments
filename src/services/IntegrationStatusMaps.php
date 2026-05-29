@@ -163,7 +163,7 @@ class IntegrationStatusMaps extends Component
 
 		if (! $record->save()) {
 			$errors = $record->getFirstErrors();
-			throw new IntegrationStatusMapException(Craft::t(Plugin::HANDLE, 'Couldn’t save integration status map: {errors}', [
+			throw new IntegrationStatusMapException(Craft::t(Plugin::HANDLE, 'error.couldNotSaveIntegrationStatusMap', [
 				'errors' => implode(', ', $errors),
 			]));
 		}

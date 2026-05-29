@@ -57,7 +57,7 @@ class Integration extends Model implements \Stringable
 			return $this->handle;
 		}
 
-		return (string) Craft::t(Plugin::HANDLE, '(unnamed integration)');
+		return (string) Craft::t(Plugin::HANDLE, 'integrations.unnamedIntegration');
 	}
 
 	public function getCpEditUrl(): string
@@ -139,7 +139,7 @@ class Integration extends Model implements \Stringable
 				UniqueValidator::class,
 				'targetClass' => IntegrationRecord::class,
 				'targetAttribute' => ['handle'],
-				'message' => Craft::t(Plugin::HANDLE, '{attribute} “{value}” has already been taken.'),
+				'message' => Craft::t(Plugin::HANDLE, 'error.attributeAlreadyTaken'),
 			],
 			[['handle'],
 				HandleValidator::class,

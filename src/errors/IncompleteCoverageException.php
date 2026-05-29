@@ -23,7 +23,7 @@ class IncompleteCoverageException extends Exception
 		string $message = '',
 	) {
 		if ($message === '') {
-			$message = Craft::t(Plugin::HANDLE, 'Order {orderId} has line items without full shipment coverage.', [
+			$message = Craft::t(Plugin::HANDLE, 'error.orderIncompleteCoverage', [
 				'orderId' => $orderId,
 			]);
 		}

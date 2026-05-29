@@ -154,7 +154,7 @@ class Email extends Model
 			[['to'],
 				'required',
 				'when' => static fn (self $email): bool => $email->recipientType === EmailRecord::TYPE_CUSTOM,
-				'message' => Craft::t(Plugin::HANDLE, 'To: is required when Recipient Type is Custom.')],
+				'message' => Craft::t(Plugin::HANDLE, 'error.toRequiredForCustom')],
 			[[
 				'bcc',
 				'cc',

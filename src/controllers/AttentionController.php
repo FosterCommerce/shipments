@@ -109,7 +109,7 @@ class AttentionController extends Controller
 			->count();
 
 		return $this->renderTemplate(Plugin::HANDLE . '/_cp/attention/index', [
-			'title' => Craft::t(Plugin::HANDLE, 'Attention needed'),
+			'title' => Craft::t(Plugin::HANDLE, 'orderTab.attentionNeeded'),
 			'orders' => $orders,
 			'unmapped' => $unmapped,
 			'trackedOrderCount' => $trackedOrderCount,

@@ -17,6 +17,6 @@ class IntegrationException extends Exception
 {
 	public function getName(): string
 	{
-		return Craft::t(Plugin::HANDLE, 'Integration error');
+		return Craft::t(Plugin::HANDLE, 'error.integrationError');
 	}
 }

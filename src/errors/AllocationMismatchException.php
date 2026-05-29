@@ -27,6 +27,6 @@ class AllocationMismatchException extends Exception
 
 	public function getName(): string
 	{
-		return Craft::t(Plugin::HANDLE, 'Shipment allocation mismatch');
+		return Craft::t(Plugin::HANDLE, 'error.shipmentAllocationMismatch');
 	}
 }

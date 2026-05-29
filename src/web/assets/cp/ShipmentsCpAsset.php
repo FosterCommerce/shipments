@@ -39,17 +39,18 @@ class ShipmentsCpAsset extends AssetBundle
 
 		if ($view instanceof View) {
 			$view->registerTranslations(Plugin::HANDLE, [
-				'Couldn’t restore shipments.',
-				'Couldn’t save shipments.',
-				'Couldn’t update this order.',
-				'Delete shipment {reference}? Its line items will go back to the unallocated pool.',
-				'Delete failed.',
-				'Line item',
-				'Qty in group',
-				'Remaining',
-				'Remove group',
-				'Turning this off will trash {count} shipment(s) on this order and stop tracking it for fulfillment. Continue?',
-				'Turn off shipping for this order? It will drop off the Attention page.',
+				'error.couldNotRestoreShipments',
+				'error.couldNotSaveLineItems',
+				'error.couldNotSaveShipments',
+				'error.couldNotUpdateOrder',
+				'shipmentEdit.deleteConfirmWithReference',
+				'error.deleteFailed',
+				'shipmentEdit.lineItems.lineItem',
+				'orderTab.staging.qtyInGroup',
+				'orderTab.staging.remaining',
+				'orderTab.staging.removeGroup',
+				'orderTab.requiresShippingOffConfirmWithCount',
+				'orderTab.requiresShippingOffConfirm',
 			]);
 		}
 	}

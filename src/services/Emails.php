@@ -223,7 +223,7 @@ class Emails extends Component
 	public function sendForShipment(Email $email, ShipmentEmailContext $context, string &$error = ''): bool
 	{
 		if (! $email->enabled) {
-			$error = Craft::t(Plugin::HANDLE, 'Email is not enabled.');
+			$error = Craft::t(Plugin::HANDLE, 'error.emailNotEnabled');
 			return false;
 		}
 
@@ -313,7 +313,7 @@ class Emails extends Component
 
 		$templatePath = (string) $email->templatePath;
 		if ($templatePath === '' || ! $view->doesTemplateExist($templatePath)) {
-			$error = Craft::t(Plugin::HANDLE, 'Email template “{templatePath}” does not exist for email “{email}”.', [
+			$error = Craft::t(Plugin::HANDLE, 'error.emailTemplateMissing', [
 				'templatePath' => $templatePath,
 				'email' => $email->name ?? '',
 			]);
@@ -336,7 +336,7 @@ class Emails extends Component
 		}
 
 		if (! $mailer->send($newEmail)) {
-			$error = Craft::t(Plugin::HANDLE, 'Shipment email “{email}” could not be sent for shipment “{reference}”.', [
+			$error = Craft::t(Plugin::HANDLE, 'error.shipmentEmailNotSent', [
 				'email' => $email->name ?? '',
 				'reference' => $shipment->reference,
 			]);
@@ -349,7 +349,7 @@ class Emails extends Component
 
 	private function recordRenderError(Email $email, string $fieldLabel, PhpException $phpException, string &$error): bool
 	{
-		$error = Craft::t(Plugin::HANDLE, 'Failed to render {field} for email “{email}”: {message}', [
+		$error = Craft::t(Plugin::HANDLE, 'error.failedToRenderField', [
 			'field' => $fieldLabel,
 			'email' => $email->name ?? '',
 			'message' => $phpException->getMessage(),
@@ -367,7 +367,7 @@ class Emails extends Component
 		if ($email->recipientType === EmailRecord::TYPE_CUSTOMER) {
 			$customerEmail = $order->getEmail();
 			if (! is_string($customerEmail) || $customerEmail === '') {
-				$error = Craft::t(Plugin::HANDLE, 'No customer email on order “{order}”.', [
+				$error = Craft::t(Plugin::HANDLE, 'error.noCustomerEmail', [
 					'order' => $order->getShortNumber(),
 				]);
 				Craft::error($error, Plugin::HANDLE);
@@ -379,7 +379,7 @@ class Emails extends Component
 
 		$toRaw = $email->getTo();
 		if ($toRaw === null || $toRaw === '') {
-			$error = Craft::t(Plugin::HANDLE, 'Email “{email}” has no recipient configured.', [
+			$error = Craft::t(Plugin::HANDLE, 'error.emailNoRecipient', [
 				'email' => $email->name ?? '',
 			]);
 			Craft::error($error, Plugin::HANDLE);
@@ -389,7 +389,7 @@ class Emails extends Component
 		try {
 			$rendered = $view->renderString($toRaw, $renderVariables);
 		} catch (PhpException $phpException) {
-			$error = Craft::t(Plugin::HANDLE, 'Failed to render To for email “{email}”: {message}', [
+			$error = Craft::t(Plugin::HANDLE, 'error.failedToRenderTo', [
 				'email' => $email->name ?? '',
 				'message' => $phpException->getMessage(),
 			]);

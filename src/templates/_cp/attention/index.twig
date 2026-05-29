@@ -1,33 +1,33 @@
 {% extends "_layouts/cp" %}
 
 {% set selectedSubnavItem = 'attention' %}
-{% set title = 'Attention needed'|t('shipments') %}
+{% set title = 'orderTab.attentionNeeded'|t('shipments') %}
 
 {% set crumbs = [
-	{ label: 'Shipments'|t('shipments'), url: url('shipments/shipments') },
+	{ label: 'nav.shipments'|t('shipments'), url: url('shipments/shipments') },
 ] %}
 
 {% block content %}
-	<h2>{{ 'Under-allocated orders'|t('shipments') }}</h2>
+	<h2>{{ 'orderTab.underAllocatedOrders'|t('shipments') }}</h2>
 
 	{% if orders|length == 0 %}
 		<div class="pane shipments-attention-empty">
 			{% if trackedOrderCount == 0 %}
-				<p class="light">{{ 'No completed orders tracked yet. Orders appear here automatically after the plugin creates or edits shipments on them. To bring an older order in, open it and flip the **Order requires shipping** switch on.'|t('shipments')|md(inlineOnly=true) }}</p>
+				<p class="light">{{ 'orderTab.noTrackedOrders'|t('shipments')|md(inlineOnly=true) }}</p>
 			{% else %}
-				<p class="light">{{ 'No orders currently need attention.'|t('shipments') }}</p>
+				<p class="light">{{ 'orderTab.noAttentionNeeded'|t('shipments') }}</p>
 			{% endif %}
 		</div>
 	{% else %}
-		<p class="light">{{ '{n, plural, =1{1 order needs attention} other{# orders need attention}}.'|t('shipments', { n: orders|length }) }}</p>
+		<p class="light">{{ 'orderTab.ordersNeedAttentionCount'|t('shipments', { n: orders|length }) }}</p>
 
 		<table class="data fullwidth shipments-attention-table">
 			<thead>
 				<tr>
-					<th>{{ 'Order'|t('shipments') }}</th>
-					<th>{{ 'Date'|t('shipments') }}</th>
-					<th>{{ 'Customer'|t('shipments') }}</th>
-					<th>{{ 'Missing'|t('shipments') }}</th>
+					<th>{{ 'shipmentEdit.order'|t('shipments') }}</th>
+					<th>{{ 'shipmentEdit.statusHistory.date'|t('shipments') }}</th>
+					<th>{{ 'emails.recipientType.customer'|t('shipments') }}</th>
+					<th>{{ 'orderTab.missing'|t('shipments') }}</th>
 					<th></th>
 				</tr>
 			</thead>
@@ -48,10 +48,10 @@
 							{% endif %}
 						</td>
 						<td>
-							{{ '{n, plural, =1{1 line item} other{# line items}}'|t('shipments', { n: row.missing|length }) }}
+							{{ 'orderTab.lineItemCount'|t('shipments', { n: row.missing|length }) }}
 						</td>
 						<td class="thin">
-							<a class="btn small" href="{{ order.cpEditUrl ~ '#orderShipmentsTab' }}">{{ 'Fix'|t('shipments') }}</a>
+							<a class="btn small" href="{{ order.cpEditUrl ~ '#orderShipmentsTab' }}">{{ 'orderTab.fix'|t('shipments') }}</a>
 						</td>
 					</tr>
 				{% endfor %}
@@ -59,23 +59,23 @@
 		</table>
 	{% endif %}
 
-	<h2 class="shipments-attention-section-heading">{{ 'Unmapped integration statuses'|t('shipments') }}</h2>
+	<h2 class="shipments-attention-section-heading">{{ 'settings.integrations.unmappedStatusesHeading'|t('shipments') }}</h2>
 
 	{% if unmapped|length == 0 %}
 		<div class="pane shipments-attention-empty">
-			<p class="light">{{ 'No unmapped status codes have been seen.'|t('shipments') }}</p>
+			<p class="light">{{ 'settings.integrations.noUnmappedCodes'|t('shipments') }}</p>
 		</div>
 	{% else %}
-		<p class="light">{{ 'External codes below arrived from integrations but have no mapping in the plugin’s vocabulary. Add a mapping on each integration to resolve.'|t('shipments') }}</p>
+		<p class="light">{{ 'settings.integrations.unmappedCodesIntro'|t('shipments') }}</p>
 
 		<table class="data fullwidth shipments-attention-table">
 			<thead>
 				<tr>
-					<th>{{ 'Integration'|t('shipments') }}</th>
-					<th>{{ 'Type'|t('shipments') }}</th>
-					<th>{{ 'External code'|t('shipments') }}</th>
-					<th class="thin">{{ 'Occurrences'|t('shipments') }}</th>
-					<th>{{ 'Last seen'|t('shipments') }}</th>
+					<th>{{ 'settings.integrations.integration'|t('shipments') }}</th>
+					<th>{{ 'settings.integrations.type'|t('shipments') }}</th>
+					<th>{{ 'settings.integrations.externalCode'|t('shipments') }}</th>
+					<th class="thin">{{ 'settings.integrations.occurrences'|t('shipments') }}</th>
+					<th>{{ 'settings.integrations.lastSeen'|t('shipments') }}</th>
 					<th></th>
 				</tr>
 			</thead>
@@ -88,7 +88,7 @@
 						<td class="thin">{{ row.occurrenceCount }}</td>
 						<td>{% if row.dateLastSeen %}{{ row.dateLastSeen|date('short') }}{% else %}<span class="light">-</span>{% endif %}</td>
 						<td class="thin">
-							<a class="btn small" href="{{ url('shipments/settings/integrations/' ~ row.integration.id ~ '/status-maps') }}">{{ 'Map'|t('shipments') }}</a>
+							<a class="btn small" href="{{ url('shipments/settings/integrations/' ~ row.integration.id ~ '/status-maps') }}">{{ 'settings.integrations.map'|t('shipments') }}</a>
 						</td>
 					</tr>
 				{% endfor %}

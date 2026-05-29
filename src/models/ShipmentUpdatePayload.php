@@ -82,7 +82,7 @@ class ShipmentUpdatePayload extends Model
 			}
 		}
 
-		$this->addError($attribute, Craft::t(Plugin::HANDLE, '“{value}” is not a valid date.', [
+		$this->addError($attribute, Craft::t(Plugin::HANDLE, 'error.valueNotValidDate', [
 			'value' => is_scalar($value) ? (string) $value : 'value',
 		]));
 		$this->{$attribute} = null;

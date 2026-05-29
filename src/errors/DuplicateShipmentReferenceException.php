@@ -21,7 +21,7 @@ class DuplicateShipmentReferenceException extends Exception
 		?Throwable $previous = null,
 	) {
 		if ($message === '') {
-			$message = Craft::t(Plugin::HANDLE, 'A shipment with reference “{reference}” already exists.', [
+			$message = Craft::t(Plugin::HANDLE, 'error.duplicateShipmentReference', [
 				'reference' => $reference,
 			]);
 		}

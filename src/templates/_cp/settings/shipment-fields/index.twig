@@ -2,7 +2,7 @@
 {% import "_includes/forms" as forms %}
 
 {% set selectedItem = 'shipment-fields' %}
-{% set title = 'Shipment fields'|t('shipments') %}
+{% set title = 'settings.nav.shipmentFields'|t('shipments') %}
 {% set readOnly = not craft.app.config.general.allowAdminChanges %}
 {% set fullPageForm = not readOnly %}
 
@@ -13,7 +13,7 @@
 {% set crumbs = [
 	{ label: 'Settings'|t('app'), url: url('settings') },
 	{ label: 'Plugins'|t('app'), url: url('settings/plugins') },
-	{ label: 'Shipments'|t('shipments'), url: url('shipments/settings/general') },
+	{ label: 'nav.shipments'|t('shipments'), url: url('shipments/settings/general') },
 ] %}
 
 {% block content %}
@@ -21,7 +21,7 @@
 		{{ actionInput('shipments/shipment-fields/save') }}
 	{% endif %}
 
-	<p>{{ 'Add custom fields that admins can fill in on each shipment. Layout edits sync via project config.'|t('shipments') }}</p>
+	<p>{{ 'settings.fields.intro'|t('shipments') }}</p>
 
 	{{ forms.fieldLayoutDesignerField({
 		fieldLayout: fieldLayout,

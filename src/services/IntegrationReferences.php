@@ -44,7 +44,7 @@ class IntegrationReferences extends Component
 		$plugin = Plugin::getInstance();
 		$integration = $plugin->integrations->getIntegrationByHandle($integrationHandle);
 		if (! $integration instanceof Integration || $integration->id === null) {
-			throw new InvalidConfigException(Craft::t(Plugin::HANDLE, 'Unknown integration handle: {handle}', [
+			throw new InvalidConfigException(Craft::t(Plugin::HANDLE, 'error.unknownIntegrationHandle', [
 				'handle' => $integrationHandle,
 			]));
 		}
@@ -65,7 +65,7 @@ class IntegrationReferences extends Component
 
 		if (! $record->save()) {
 			$errors = $record->getFirstErrors();
-			throw new Exception(Craft::t(Plugin::HANDLE, 'Couldn’t save shipment integration reference: {errors}', [
+			throw new Exception(Craft::t(Plugin::HANDLE, 'error.couldNotSaveShipmentIntegrationReference', [
 				'errors' => implode(', ', $errors),
 			]));
 		}
@@ -201,14 +201,14 @@ class IntegrationReferences extends Component
 			}
 
 			if (! isset($knownSourceIds[$integrationId])) {
-				throw new InvalidConfigException(Craft::t(Plugin::HANDLE, 'Unknown integration id: {id}', [
+				throw new InvalidConfigException(Craft::t(Plugin::HANDLE, 'error.unknownIntegrationId', [
 					'id' => $integrationId,
 				]));
 			}
 
 			$postedId = $row['id'] ?? null;
 			if ($postedId !== null && ! isset($existingById[$postedId])) {
-				throw new Exception(Craft::t(Plugin::HANDLE, 'Integration reference {id} no longer exists. Please reload the page and retry.', [
+				throw new Exception(Craft::t(Plugin::HANDLE, 'error.integrationReferenceGone', [
 					'id' => $postedId,
 				]));
 			}
@@ -224,7 +224,7 @@ class IntegrationReferences extends Component
 
 			if (! $record->save()) {
 				$errors = $record->getFirstErrors();
-				throw new Exception(Craft::t(Plugin::HANDLE, 'Couldn’t save shipment integration reference: {errors}', [
+				throw new Exception(Craft::t(Plugin::HANDLE, 'error.couldNotSaveShipmentIntegrationReference', [
 					'errors' => implode(', ', $errors),
 				]));
 			}

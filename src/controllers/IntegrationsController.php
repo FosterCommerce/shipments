@@ -54,7 +54,7 @@ class IntegrationsController extends Controller
 			if ($id !== null) {
 				$loaded = $plugin->integrations->getIntegrationById($id);
 				if (! $loaded instanceof Integration) {
-					throw new NotFoundHttpException(Craft::t(Plugin::HANDLE, 'Integration not found.'));
+					throw new NotFoundHttpException(Craft::t(Plugin::HANDLE, 'error.integrationNotFound'));
 				}
 
 				$integration = $loaded;
@@ -90,7 +90,7 @@ class IntegrationsController extends Controller
 			'providerOptions' => $providerOptions,
 			'providerSettings' => $providerSettings,
 			'title' => $integration->id === null
-				? Craft::t(Plugin::HANDLE, 'Create a new integration')
+				? Craft::t(Plugin::HANDLE, 'integrations.createNew')
 				: (string) $integration,
 		]);
 	}
@@ -131,14 +131,14 @@ class IntegrationsController extends Controller
 		$integration->settings = is_array($postedSettings) ? $postedSettings : [];
 
 		if (! $plugin->integrations->saveIntegration($integration)) {
-			Craft::$app->getSession()->setError(Craft::t(Plugin::HANDLE, 'Couldn’t save integration.'));
+			Craft::$app->getSession()->setError(Craft::t(Plugin::HANDLE, 'error.couldNotSaveIntegration'));
 			Craft::$app->getUrlManager()->setRouteParams([
 				'integration' => $integration,
 			]);
 			return null;
 		}
 
-		Craft::$app->getSession()->setNotice(Craft::t(Plugin::HANDLE, 'Integration saved.'));
+		Craft::$app->getSession()->setNotice(Craft::t(Plugin::HANDLE, 'integrations.saved'));
 		return $this->redirectToPostedUrl($integration);
 	}
 
@@ -156,13 +156,13 @@ class IntegrationsController extends Controller
 
 		$idInput = $this->request->getRequiredBodyParam('id');
 		if (! is_numeric($idInput)) {
-			throw new BadRequestHttpException(Craft::t(Plugin::HANDLE, 'Invalid integration id.'));
+			throw new BadRequestHttpException(Craft::t(Plugin::HANDLE, 'error.invalidIntegrationId'));
 		}
 
 		if (! $plugin->integrations->deleteIntegrationById((int) $idInput)) {
 			return $this->asJson([
 				'success' => false,
-				'error' => Craft::t(Plugin::HANDLE, 'The integration could not be deleted.'),
+				'error' => Craft::t(Plugin::HANDLE, 'error.integrationNotDeleted'),
 			]);
 		}
 
@@ -186,7 +186,7 @@ class IntegrationsController extends Controller
 
 		$integration = $plugin->integrations->getIntegrationById($id);
 		if (! $integration instanceof Integration) {
-			throw new NotFoundHttpException(Craft::t(Plugin::HANDLE, 'Integration not found.'));
+			throw new NotFoundHttpException(Craft::t(Plugin::HANDLE, 'error.integrationNotFound'));
 		}
 
 		if ($this->request->getIsPost()) {
@@ -201,13 +201,13 @@ class IntegrationsController extends Controller
 				$transaction->commit();
 			} catch (Throwable $throwable) {
 				$transaction->rollBack();
-				Craft::$app->getSession()->setError(Craft::t(Plugin::HANDLE, 'Couldn’t save status mappings: {message}', [
+				Craft::$app->getSession()->setError(Craft::t(Plugin::HANDLE, 'error.couldNotSaveStatusMappings', [
 					'message' => $throwable->getMessage(),
 				]));
 				return $this->redirectToPostedUrl();
 			}
 
-			Craft::$app->getSession()->setNotice(Craft::t(Plugin::HANDLE, 'Status mappings saved.'));
+			Craft::$app->getSession()->setNotice(Craft::t(Plugin::HANDLE, 'settings.integrations.statusMappingsSaved'));
 			return $this->redirectToPostedUrl();
 		}
 
@@ -217,11 +217,11 @@ class IntegrationsController extends Controller
 			'fulfillmentOptions' => FulfillmentStatus::labelMap(),
 			'shippingOptions' => ShippingStatus::labelMap(),
 			'directionOptions' => [
-				IntegrationStatusMaps::DIRECTION_INBOUND => Craft::t(Plugin::HANDLE, 'Inbound'),
-				IntegrationStatusMaps::DIRECTION_OUTBOUND => Craft::t(Plugin::HANDLE, 'Outbound'),
-				IntegrationStatusMaps::DIRECTION_BIDIRECTIONAL => Craft::t(Plugin::HANDLE, 'Bidirectional'),
+				IntegrationStatusMaps::DIRECTION_INBOUND => Craft::t(Plugin::HANDLE, 'settings.integrations.directionInbound'),
+				IntegrationStatusMaps::DIRECTION_OUTBOUND => Craft::t(Plugin::HANDLE, 'settings.integrations.directionOutbound'),
+				IntegrationStatusMaps::DIRECTION_BIDIRECTIONAL => Craft::t(Plugin::HANDLE, 'settings.integrations.directionBidirectional'),
 			],
-			'title' => Craft::t(Plugin::HANDLE, 'Status mappings for {name}', [
+			'title' => Craft::t(Plugin::HANDLE, 'settings.integrations.statusMappingsFor', [
 				'name' => $integration->name ?? '',
 			]),
 		]);

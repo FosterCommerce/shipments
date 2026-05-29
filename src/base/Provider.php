@@ -104,7 +104,7 @@ abstract class Provider extends SavableComponent implements ProviderInterface
 	 */
 	public function cancelShipment(Shipment $shipment, Order $order): void
 	{
-		throw new IntegrationException(Craft::t(Plugin::HANDLE, 'Cancel not implemented by this provider.'));
+		throw new IntegrationException(Craft::t(Plugin::HANDLE, 'error.cancelNotImplemented'));
 	}
 
 	/**

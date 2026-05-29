@@ -40,14 +40,14 @@ class TrackedOrdersController extends Controller
 		if ($plugin->trackedOrders->isOrderStatusIgnored($order)) {
 			return $this->asFailure(Craft::t(
 				Plugin::HANDLE,
-				'This order’s status is in the plugin’s ignore list. Remove the status from Settings or change the order’s status first.',
+				'orderTab.statusIgnoredNotice',
 			));
 		}
 
 		$plugin->trackedOrders->markActive($order);
 		return $this->asSuccess(Craft::t(
 			Plugin::HANDLE,
-			'Order is now tracked for fulfillment.',
+			'orderTab.orderTracked',
 		));
 	}
 
@@ -65,7 +65,7 @@ class TrackedOrdersController extends Controller
 		if ($trashed > 0) {
 			return $this->asSuccess(Craft::t(
 				Plugin::HANDLE,
-				'Order is no longer tracked. {count} shipment(s) were trashed.',
+				'orderTab.orderUntrackedWithTrashed',
 				[
 					'count' => $trashed,
 				],
@@ -74,7 +74,7 @@ class TrackedOrdersController extends Controller
 
 		return $this->asSuccess(Craft::t(
 			Plugin::HANDLE,
-			'Order is no longer tracked.',
+			'orderTab.orderUntracked',
 		));
 	}
 
@@ -92,21 +92,21 @@ class TrackedOrdersController extends Controller
 		if ($result['skipped'] > 0 && $result['restored'] === 0) {
 			return $this->asFailure(Craft::t(
 				Plugin::HANDLE,
-				'No shipments could be restored. They may over-allocate the order’s line items.',
+				'error.noShipmentsRestored',
 			));
 		}
 
 		if ($result['skipped'] > 0) {
 			return $this->asSuccess(Craft::t(
 				Plugin::HANDLE,
-				'{restored} shipment(s) restored. {skipped} couldn’t be restored without over-allocating the order.',
+				'orderTab.shipmentsRestoredWithSkipped',
 				$result,
 			));
 		}
 
 		return $this->asSuccess(Craft::t(
 			Plugin::HANDLE,
-			'{restored} shipment(s) restored.',
+			'orderTab.shipmentsRestoredCount',
 			$result,
 		));
 	}
@@ -115,14 +115,14 @@ class TrackedOrdersController extends Controller
 	{
 		$orderIdRaw = $this->request->getRequiredBodyParam('orderId');
 		if (! is_numeric($orderIdRaw)) {
-			throw new BadRequestHttpException(Craft::t(Plugin::HANDLE, 'orderId must be a number.'));
+			throw new BadRequestHttpException(Craft::t(Plugin::HANDLE, 'error.orderIdMustBeNumber'));
 		}
 
 		/** @var Commerce $commerce */
 		$commerce = Commerce::getInstance();
 		$order = $commerce->getOrders()->getOrderById((int) $orderIdRaw);
 		if (! $order instanceof Order) {
-			throw new NotFoundHttpException(Craft::t(Plugin::HANDLE, 'Order not found.'));
+			throw new NotFoundHttpException(Craft::t(Plugin::HANDLE, 'error.orderNotFound'));
 		}
 
 		return $order;

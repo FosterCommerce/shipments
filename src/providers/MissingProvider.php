@@ -26,7 +26,7 @@ class MissingProvider extends Provider implements MissingComponentInterface
 
 	public static function displayName(): string
 	{
-		return Craft::t(Plugin::HANDLE, 'Missing integration');
+		return Craft::t(Plugin::HANDLE, 'error.missingIntegration');
 	}
 
 	public static function isSelectable(): bool
@@ -36,14 +36,14 @@ class MissingProvider extends Provider implements MissingComponentInterface
 
 	public function sendShipment(Shipment $shipment, Order $order): void
 	{
-		throw new IntegrationException(Craft::t(Plugin::HANDLE, 'The provider “{type}” is not available.', [
+		throw new IntegrationException(Craft::t(Plugin::HANDLE, 'error.providerNotAvailable', [
 			'type' => $this->expectedType,
 		]));
 	}
 
 	public function cancelShipment(Shipment $shipment, Order $order): void
 	{
-		throw new IntegrationException(Craft::t(Plugin::HANDLE, 'The provider “{type}” is not available.', [
+		throw new IntegrationException(Craft::t(Plugin::HANDLE, 'error.providerNotAvailable', [
 			'type' => $this->expectedType,
 		]));
 	}

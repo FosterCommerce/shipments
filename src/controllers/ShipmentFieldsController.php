@@ -29,7 +29,7 @@ class ShipmentFieldsController extends Controller
 		$plugin = Plugin::getInstance();
 
 		return $this->renderTemplate(Plugin::HANDLE . '/_cp/settings/shipment-fields/index', [
-			'title' => Craft::t(Plugin::HANDLE, 'Shipment Fields'),
+			'title' => Craft::t(Plugin::HANDLE, 'nav.shipmentFields'),
 			'fieldLayout' => $plugin->shipmentFieldLayouts->getFieldLayout(),
 		]);
 	}
@@ -44,7 +44,7 @@ class ShipmentFieldsController extends Controller
 		$this->requirePermission(Plugin::PERMISSION_MANAGE_SETTINGS);
 
 		if (! Craft::$app->getConfig()->getGeneral()->allowAdminChanges) {
-			throw new ForbiddenHttpException(Craft::t(Plugin::HANDLE, 'Administrative changes are disallowed in this environment.'));
+			throw new ForbiddenHttpException(Craft::t(Plugin::HANDLE, 'error.adminChangesDisallowed'));
 		}
 
 		/** @var Plugin $plugin */
@@ -54,14 +54,14 @@ class ShipmentFieldsController extends Controller
 		$layout->type = Shipment::class;
 
 		if (! $plugin->shipmentFieldLayouts->saveFieldLayout($layout)) {
-			Craft::$app->getSession()->setError(Craft::t(Plugin::HANDLE, 'Couldn’t save shipment fields.'));
+			Craft::$app->getSession()->setError(Craft::t(Plugin::HANDLE, 'error.couldNotSaveShipmentFields'));
 			Craft::$app->getUrlManager()->setRouteParams([
 				'fieldLayout' => $layout,
 			]);
 			return null;
 		}
 
-		Craft::$app->getSession()->setNotice(Craft::t(Plugin::HANDLE, 'Shipment fields saved.'));
+		Craft::$app->getSession()->setNotice(Craft::t(Plugin::HANDLE, 'settings.fields.saved'));
 		return $this->redirectToPostedUrl();
 	}
 }

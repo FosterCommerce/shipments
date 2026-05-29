@@ -33,14 +33,14 @@ class ShippingCategoryRule implements ShipmentRuleInterface
 
 	public function getName(): string
 	{
-		return Craft::t(Plugin::HANDLE, 'Shipping category');
+		return Craft::t(Plugin::HANDLE, 'rules.shippingCategory.name');
 	}
 
 	public function getDescription(): string
 	{
 		return Craft::t(
 			Plugin::HANDLE,
-			'Groups items into shipments using explicit store-defined groups. Each group declares a mode (ship together or one shipment per line item) and the set of Commerce shipping-category handles whose items belong to it. Line items whose shipping category isn’t assigned to any group fall through to the fallback shipment.',
+			'rules.shippingCategory.description',
 		);
 	}
 

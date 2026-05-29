@@ -26,14 +26,14 @@ class SingleShipmentRule implements ShipmentRuleInterface
 
 	public function getName(): string
 	{
-		return Craft::t(Plugin::HANDLE, 'Single shipment (fallback)');
+		return Craft::t(Plugin::HANDLE, 'rules.fallback.name');
 	}
 
 	public function getDescription(): string
 	{
 		return Craft::t(
 			Plugin::HANDLE,
-			'Always runs last. Collects everything no other rule claimed into one shipment. This is what guarantees every order has at least one shipment; it cannot be disabled.',
+			'rules.fallback.description',
 		);
 	}
 

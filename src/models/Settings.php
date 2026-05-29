@@ -85,20 +85,20 @@ class Settings extends Model
 	{
 		$value = $this->{$attribute};
 		if (! is_array($value)) {
-			$this->addError($attribute, Craft::t(Plugin::HANDLE, 'Inventory grouping modes must be a keyed array.'));
+			$this->addError($attribute, Craft::t(Plugin::HANDLE, 'error.inventoryGroupingModesKeyedArray'));
 			return;
 		}
 
 		$validModes = [self::GROUPING_MODE_TOGETHER, self::GROUPING_MODE_PER_ITEM];
 		$bucketLabels = [
-			self::INVENTORY_BUCKET_IN_STOCK => Craft::t(Plugin::HANDLE, 'In-stock items'),
-			self::INVENTORY_BUCKET_BACKORDER => Craft::t(Plugin::HANDLE, 'Backordered items'),
+			self::INVENTORY_BUCKET_IN_STOCK => Craft::t(Plugin::HANDLE, 'settings.grouping.inStockBucketLabel'),
+			self::INVENTORY_BUCKET_BACKORDER => Craft::t(Plugin::HANDLE, 'settings.grouping.backorderedBucketLabel'),
 		];
 
 		foreach ($bucketLabels as $bucket => $bucketLabel) {
 			$mode = $value[$bucket] ?? null;
 			if (! is_string($mode) || ! in_array($mode, $validModes, true)) {
-				$this->addError($attribute, Craft::t(Plugin::HANDLE, '{bucketLabel}: grouping mode must be one of {modes}.', [
+				$this->addError($attribute, Craft::t(Plugin::HANDLE, 'error.bucketGroupingModeInvalid', [
 					'bucketLabel' => $bucketLabel,
 					'modes' => implode(', ', $validModes),
 				]));
@@ -127,7 +127,7 @@ class Settings extends Model
 	{
 		$value = $this->{$attribute};
 		if (! is_array($value)) {
-			$this->addError($attribute, Craft::t(Plugin::HANDLE, 'Shipping-category groups must be a list of groups.'));
+			$this->addError($attribute, Craft::t(Plugin::HANDLE, 'error.shippingCategoryGroupsList'));
 			return;
 		}
 
@@ -135,12 +135,12 @@ class Settings extends Model
 		$seenHandles = [];
 
 		foreach ($value as $index => $group) {
-			$groupLabel = Craft::t(Plugin::HANDLE, 'Group {number}', [
+			$groupLabel = Craft::t(Plugin::HANDLE, 'settings.grouping.groupHeading', [
 				'number' => $index + 1,
 			]);
 
 			if (! is_array($group)) {
-				$this->addError($attribute, Craft::t(Plugin::HANDLE, '{groupLabel}: must be an array.', [
+				$this->addError($attribute, Craft::t(Plugin::HANDLE, 'error.groupMustBeArray', [
 					'groupLabel' => $groupLabel,
 				]));
 				return;
@@ -148,7 +148,7 @@ class Settings extends Model
 
 			$mode = $group['mode'] ?? '';
 			if (! is_string($mode) || ! in_array($mode, $validModes, true)) {
-				$this->addError($attribute, Craft::t(Plugin::HANDLE, '{groupLabel}: mode must be one of {modes}.', [
+				$this->addError($attribute, Craft::t(Plugin::HANDLE, 'error.groupModeInvalid', [
 					'groupLabel' => $groupLabel,
 					'modes' => implode(', ', $validModes),
 				]));
@@ -157,7 +157,7 @@ class Settings extends Model
 
 			$categoryHandles = $group['categoryHandles'] ?? [];
 			if (! is_array($categoryHandles) || $categoryHandles === []) {
-				$this->addError($attribute, Craft::t(Plugin::HANDLE, '{groupLabel}: assign at least one shipping category.', [
+				$this->addError($attribute, Craft::t(Plugin::HANDLE, 'error.groupAssignShippingCategory', [
 					'groupLabel' => $groupLabel,
 				]));
 				return;
@@ -165,14 +165,14 @@ class Settings extends Model
 
 			foreach ($categoryHandles as $handle) {
 				if (! is_string($handle) || $handle === '') {
-					$this->addError($attribute, Craft::t(Plugin::HANDLE, '{groupLabel}: category handles must be non-empty strings.', [
+					$this->addError($attribute, Craft::t(Plugin::HANDLE, 'error.groupCategoryHandlesNonEmpty', [
 						'groupLabel' => $groupLabel,
 					]));
 					return;
 				}
 
 				if (isset($seenHandles[$handle])) {
-					$this->addError($attribute, Craft::t(Plugin::HANDLE, 'Shipping category “{handle}” is assigned to both {previousGroup} and {groupLabel}. Each category may belong to only one group.', [
+					$this->addError($attribute, Craft::t(Plugin::HANDLE, 'error.shippingCategoryDuplicateGroup', [
 						'handle' => $handle,
 						'previousGroup' => $seenHandles[$handle],
 						'groupLabel' => $groupLabel,
@@ -189,7 +189,7 @@ class Settings extends Model
 	{
 		$value = $this->{$attribute};
 		if (! is_array($value)) {
-			$this->addError($attribute, Craft::t(Plugin::HANDLE, 'Line item status groups must be a list of groups.'));
+			$this->addError($attribute, Craft::t(Plugin::HANDLE, 'error.lineItemStatusGroupsList'));
 			return;
 		}
 
@@ -197,12 +197,12 @@ class Settings extends Model
 		$seenHandles = [];
 
 		foreach ($value as $index => $group) {
-			$groupLabel = Craft::t(Plugin::HANDLE, 'Group {number}', [
+			$groupLabel = Craft::t(Plugin::HANDLE, 'settings.grouping.groupHeading', [
 				'number' => $index + 1,
 			]);
 
 			if (! is_array($group)) {
-				$this->addError($attribute, Craft::t(Plugin::HANDLE, '{groupLabel}: must be an array.', [
+				$this->addError($attribute, Craft::t(Plugin::HANDLE, 'error.groupMustBeArray', [
 					'groupLabel' => $groupLabel,
 				]));
 				return;
@@ -210,7 +210,7 @@ class Settings extends Model
 
 			$mode = $group['mode'] ?? '';
 			if (! is_string($mode) || ! in_array($mode, $validModes, true)) {
-				$this->addError($attribute, Craft::t(Plugin::HANDLE, '{groupLabel}: mode must be one of {modes}.', [
+				$this->addError($attribute, Craft::t(Plugin::HANDLE, 'error.groupModeInvalid', [
 					'groupLabel' => $groupLabel,
 					'modes' => implode(', ', $validModes),
 				]));
@@ -219,7 +219,7 @@ class Settings extends Model
 
 			$statusHandles = $group['statusHandles'] ?? [];
 			if (! is_array($statusHandles) || $statusHandles === []) {
-				$this->addError($attribute, Craft::t(Plugin::HANDLE, '{groupLabel}: assign at least one line item status.', [
+				$this->addError($attribute, Craft::t(Plugin::HANDLE, 'error.groupAssignLineItemStatus', [
 					'groupLabel' => $groupLabel,
 				]));
 				return;
@@ -227,14 +227,14 @@ class Settings extends Model
 
 			foreach ($statusHandles as $handle) {
 				if (! is_string($handle) || $handle === '') {
-					$this->addError($attribute, Craft::t(Plugin::HANDLE, '{groupLabel}: status handles must be non-empty strings.', [
+					$this->addError($attribute, Craft::t(Plugin::HANDLE, 'error.groupStatusHandlesNonEmpty', [
 						'groupLabel' => $groupLabel,
 					]));
 					return;
 				}
 
 				if (isset($seenHandles[$handle])) {
-					$this->addError($attribute, Craft::t(Plugin::HANDLE, 'Status “{handle}” is assigned to both {previousGroup} and {groupLabel}. Each status may belong to only one group.', [
+					$this->addError($attribute, Craft::t(Plugin::HANDLE, 'error.statusDuplicateGroup', [
 						'handle' => $handle,
 						'previousGroup' => $seenHandles[$handle],
 						'groupLabel' => $groupLabel,

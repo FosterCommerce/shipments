@@ -50,7 +50,7 @@ class EmailsController extends Controller
 			if ($id !== null) {
 				$loaded = $plugin->emails->getEmailById($id);
 				if (! $loaded instanceof Email) {
-					throw new NotFoundHttpException(Craft::t(Plugin::HANDLE, 'Email not found.'));
+					throw new NotFoundHttpException(Craft::t(Plugin::HANDLE, 'error.emailNotFound'));
 				}
 
 				$email = $loaded;
@@ -69,15 +69,15 @@ class EmailsController extends Controller
 		return $this->renderTemplate(Plugin::HANDLE . '/settings/emails/_edit', [
 			'email' => $email,
 			'recipientTypes' => [
-				EmailRecord::TYPE_CUSTOMER => Craft::t(Plugin::HANDLE, 'Customer'),
-				EmailRecord::TYPE_CUSTOM => Craft::t(Plugin::HANDLE, 'Custom'),
+				EmailRecord::TYPE_CUSTOMER => Craft::t(Plugin::HANDLE, 'emails.recipientType.customer'),
+				EmailRecord::TYPE_CUSTOM => Craft::t(Plugin::HANDLE, 'emails.recipientType.custom'),
 			],
 			'fulfillmentStatusOptions' => FulfillmentStatus::labelMap(),
 			'shippingStatusOptions' => ShippingStatus::labelMap(),
 			'fulfillmentBindings' => $bindings[StatusAxis::Fulfillment->value] ?? [],
 			'shippingBindings' => $bindings[StatusAxis::Shipping->value] ?? [],
 			'title' => $email->id === null
-				? Craft::t(Plugin::HANDLE, 'Create a new email')
+				? Craft::t(Plugin::HANDLE, 'emails.createNew')
 				: (string) $email->name,
 		]);
 	}
@@ -117,7 +117,7 @@ class EmailsController extends Controller
 		$email->language = $this->bodyString('language') ?? $email->language;
 
 		if (! $plugin->emails->saveEmail($email)) {
-			Craft::$app->getSession()->setError(Craft::t(Plugin::HANDLE, 'Couldn’t save email.'));
+			Craft::$app->getSession()->setError(Craft::t(Plugin::HANDLE, 'error.couldNotSaveEmail'));
 			Craft::$app->getUrlManager()->setRouteParams([
 				'email' => $email,
 			]);
@@ -133,7 +133,7 @@ class EmailsController extends Controller
 			$plugin->transitionEmails->saveBindingsForEmailId($email->id, $fulfillmentCodes, $shippingCodes);
 		}
 
-		Craft::$app->getSession()->setNotice(Craft::t(Plugin::HANDLE, 'Email saved.'));
+		Craft::$app->getSession()->setNotice(Craft::t(Plugin::HANDLE, 'emails.saved'));
 		return $this->redirectToPostedUrl($email);
 	}
 
@@ -151,7 +151,7 @@ class EmailsController extends Controller
 
 		$idInput = $this->request->getRequiredBodyParam('id');
 		if (! is_numeric($idInput)) {
-			throw new BadRequestHttpException(Craft::t(Plugin::HANDLE, 'Invalid email id.'));
+			throw new BadRequestHttpException(Craft::t(Plugin::HANDLE, 'error.invalidEmailId'));
 		}
 
 		$id = (int) $idInput;
@@ -159,7 +159,7 @@ class EmailsController extends Controller
 		if (! $plugin->emails->deleteEmailById($id)) {
 			return $this->asJson([
 				'success' => false,
-				'error' => Craft::t(Plugin::HANDLE, 'The email could not be deleted.'),
+				'error' => Craft::t(Plugin::HANDLE, 'error.emailNotDeleted'),
 			]);
 		}
 

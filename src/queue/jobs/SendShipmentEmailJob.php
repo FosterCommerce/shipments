@@ -110,7 +110,7 @@ class SendShipmentEmailJob extends BaseJob
 
 	protected function defaultDescription(): ?string
 	{
-		return Craft::t(Plugin::HANDLE, 'Sending shipment email {emailId} for shipment {shipmentId}', [
+		return Craft::t(Plugin::HANDLE, 'queue.sendingEmail', [
 			'emailId' => $this->emailId,
 			'shipmentId' => $this->shipmentId,
 		]);
