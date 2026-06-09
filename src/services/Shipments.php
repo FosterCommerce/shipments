@@ -979,13 +979,17 @@ class Shipments extends Component
 		try {
 			$saved = [];
 			foreach ($plans as $plan) {
-				$shipment = $this->persistSinglePlanWithReferenceRetry($orderId);
+				$fulfillmentStatus = $plan->suggestedStatusHandle !== null
+					? FulfillmentStatus::from($plan->suggestedStatusHandle)
+					: FulfillmentStatus::Open;
+
+				$shipment = $this->persistSinglePlanWithReferenceRetry($orderId, $fulfillmentStatus);
 
 				$creationHistory = new ShipmentStatusHistory();
 				$creationHistory->shipmentId = (int) $shipment->id;
 				$creationHistory->axis = StatusAxis::Fulfillment->value;
 				$creationHistory->fromCode = null;
-				$creationHistory->toCode = FulfillmentStatus::Open->value;
+				$creationHistory->toCode = $fulfillmentStatus->value;
 				$creationHistory->userId = $currentUser?->id;
 				if (! $creationHistory->save()) {
 					$errors = $creationHistory->getFirstErrors();
@@ -1015,7 +1019,7 @@ class Shipments extends Component
 				$statusChangedEvent->shipment = $shipment;
 				$statusChangedEvent->axis = StatusAxis::Fulfillment;
 				$statusChangedEvent->fromCode = null;
-				$statusChangedEvent->toCode = FulfillmentStatus::Open;
+				$statusChangedEvent->toCode = $fulfillmentStatus;
 				$statusChangedEvent->history = $creationHistory;
 				$statusChangedEvent->user = $currentUser;
 				$this->trigger(self::EVENT_SHIPMENT_STATUS_CHANGED, $statusChangedEvent);
@@ -1038,14 +1042,14 @@ class Shipments extends Component
 	 *
 	 * @throws DuplicateShipmentReferenceException if retry also collides
 	 */
-	private function persistSinglePlanWithReferenceRetry(int $orderId): Shipment
+	private function persistSinglePlanWithReferenceRetry(int $orderId, FulfillmentStatus $fulfillmentStatus): Shipment
 	{
 		$attempts = 0;
 		while (true) {
 			$attempts++;
 			$shipment = new Shipment();
 			$shipment->orderId = $orderId;
-			$shipment->fulfillmentStatus = FulfillmentStatus::Open->value;
+			$shipment->fulfillmentStatus = $fulfillmentStatus->value;
 
 			try {
 				if (! Craft::$app->getElements()->saveElement($shipment)) {
