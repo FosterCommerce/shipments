@@ -16,7 +16,7 @@
 	// AJAX writes succeed (or before we reload), the form genuinely matches the server again,
 	// so re-snapshot the serialized value.
 	function markMainFormClean() {
-		var $mainForm = $('#main-form');
+		const $mainForm = $('#main-form');
 		if ($mainForm.length) {
 			$mainForm.data('initialSerializedValue', $mainForm.serialize());
 		}
@@ -53,7 +53,7 @@
 			Craft.sendActionRequest('POST', 'shipments/shipments/save-line-items', {
 				data: { id: saveButton.getAttribute('data-shipment-id'), lineItems: lineItems },
 			}).then(function (response) {
-				const responseBody = response && response.data ? response.data : {};
+				const responseBody = response?.data ?? {};
 				if (responseBody.message) {
 					Craft.cp.displayNotice(responseBody.message);
 				}
@@ -61,28 +61,28 @@
 				window.location.reload();
 			}).catch(function (error) {
 				saveButton.disabled = false;
-				const errorBody = error && error.response && error.response.data ? error.response.data : {};
+				const errorBody = error?.response?.data ?? {};
 				Craft.cp.displayError(errorBody.message || Craft.t('shipments', 'error.couldNotSaveLineItems'));
 			});
 		});
 	}
 
 	function initStatusHistoryFilter() {
-		var filterGroup = document.getElementById('shipments-history-filter');
-		var historyTable = document.getElementById('shipments-history-table');
+		const filterGroup = document.getElementById('shipments-history-filter');
+		const historyTable = document.getElementById('shipments-history-table');
 		if (!filterGroup || !historyTable) {
 			return;
 		}
 
-		var rows = historyTable.querySelectorAll('tbody tr[data-history-type]');
+		const rows = historyTable.querySelectorAll('tbody tr[data-history-type]');
 		filterGroup.querySelectorAll('button[data-history-filter]').forEach(function (button) {
 			button.addEventListener('click', function () {
-				var filter = button.getAttribute('data-history-filter');
+				const filter = button.getAttribute('data-history-filter');
 				filterGroup.querySelectorAll('button[data-history-filter]').forEach(function (other) {
 					other.classList.toggle('active', other === button);
 				});
 				rows.forEach(function (row) {
-					var rowType = row.getAttribute('data-history-type');
+					const rowType = row.getAttribute('data-history-type');
 					row.classList.toggle('hidden', filter !== 'all' && rowType !== filter);
 				});
 			});
@@ -90,13 +90,13 @@
 	}
 
 	function initSettingsAddRuleButtons() {
-		var pairs = [
+		const pairs = [
 			['shipments-add-rule', '.shipments-new-rule-pane'],
 			['shipments-add-category-rule', '.shipments-new-category-rule-pane'],
 		];
 		pairs.forEach(function (pair) {
-			var button = document.getElementById(pair[0]);
-			var pane = document.querySelector(pair[1]);
+			const button = document.getElementById(pair[0]);
+			const pane = document.querySelector(pair[1]);
 			if (!button || !pane) {
 				return;
 			}
@@ -110,16 +110,9 @@
 	function initRemoveShipmentButtons() {
 		document.querySelectorAll('.shipments-remove-shipment').forEach(function (removeButton) {
 			removeButton.addEventListener('click', function () {
-				var shipmentId = removeButton.getAttribute('data-shipment-id');
-				var shipmentReference = removeButton.getAttribute('data-reference') || shipmentId;
-				if (typeof Craft === 'undefined' || typeof Craft.sendActionRequest !== 'function') {
-					// Craft itself didn't load. Translation infrastructure isn't available either,
-					// so fall back to English; this state shouldn't reach a real user.
-					alert('Craft CP JS not loaded. Cannot delete.');
-					return;
-				}
-
-				var confirmMessage = Craft.t(
+				const shipmentId = removeButton.getAttribute('data-shipment-id');
+				const shipmentReference = removeButton.getAttribute('data-reference') || shipmentId;
+				const confirmMessage = Craft.t(
 					'shipments',
 					'shipmentEdit.deleteConfirmWithReference',
 					{ reference: shipmentReference }
@@ -131,14 +124,14 @@
 				Craft.sendActionRequest('POST', 'shipments/shipments/delete', {
 					data: { id: shipmentId },
 				}).then(function (response) {
-					var responseBody = response && response.data ? response.data : {};
+					const responseBody = response?.data ?? {};
 					if (responseBody.success) {
 						window.location.reload();
 					} else {
 						alert(responseBody.error || Craft.t('shipments', 'error.deleteFailed'));
 					}
 				}).catch(function (error) {
-					var errorBody = error && error.response && error.response.data ? error.response.data : {};
+					const errorBody = error?.response?.data ?? {};
 					alert(errorBody.error || Craft.t('shipments', 'error.deleteFailed'));
 				});
 			});
@@ -146,22 +139,22 @@
 	}
 
 	function initStagingGroups() {
-		var stagingContainer = document.getElementById('shipments-staging-groups');
-		var addGroupButton = document.getElementById('shipments-add-group');
-		var saveButton = document.getElementById('shipments-save-button');
-		var stagingStatus = document.getElementById('shipments-staging-status');
+		const stagingContainer = document.getElementById('shipments-staging-groups');
+		const addGroupButton = document.getElementById('shipments-add-group');
+		const saveButton = document.getElementById('shipments-save-button');
+		const stagingStatus = document.getElementById('shipments-staging-status');
 		if (!stagingContainer || !saveButton) {
 			return;
 		}
 
-		var remainingByLineItem = {};
+		const remainingByLineItem = {};
 		stagingContainer.querySelectorAll('.shipments-staging-group[data-group-index="0"] tr[data-line-item-id]').forEach(function (row) {
-			var lineItemId = row.getAttribute('data-line-item-id');
+			const lineItemId = row.getAttribute('data-line-item-id');
 			remainingByLineItem[lineItemId] = parseInt(row.getAttribute('data-remaining-qty'), 10) || 0;
 		});
 
 		function groupLabelFor(groupIndex) {
-			var letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+			const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 			if (groupIndex < letters.length) {
 				return 'Shipment ' + letters.charAt(groupIndex);
 			}
@@ -169,18 +162,18 @@
 		}
 
 		function renumberGroups() {
-			var groups = stagingContainer.querySelectorAll('.shipments-staging-group');
+			const groups = stagingContainer.querySelectorAll('.shipments-staging-group');
 			groups.forEach(function (groupElement, groupIndex) {
 				groupElement.setAttribute('data-group-index', groupIndex);
-				var label = groupElement.querySelector('.shipments-staging-group-label');
+				const label = groupElement.querySelector('.shipments-staging-group-label');
 				if (label) {
 					label.textContent = groupLabelFor(groupIndex);
 				}
 				groupElement.querySelectorAll('input.shipments-staging-qty').forEach(function (qtyInput) {
-					var lineItemId = qtyInput.getAttribute('data-line-item-id');
+					const lineItemId = qtyInput.getAttribute('data-line-item-id');
 					qtyInput.setAttribute('name', 'groups[' + groupIndex + '][' + lineItemId + ']');
 				});
-				var removeButton = groupElement.querySelector('.shipments-remove-group');
+				const removeButton = groupElement.querySelector('.shipments-remove-group');
 				if (removeButton) {
 					removeButton.classList.toggle('hidden', groups.length <= 1);
 				}
@@ -188,18 +181,18 @@
 		}
 
 		function recompute() {
-			var allBalanced = true;
+			let allBalanced = true;
 			Object.keys(remainingByLineItem).forEach(function (lineItemId) {
-				var sum = 0;
+				let sum = 0;
 				stagingContainer.querySelectorAll('input.shipments-staging-qty[data-line-item-id="' + lineItemId + '"]').forEach(function (qtyInput) {
-					var parsed = parseInt(qtyInput.value, 10);
+					let parsed = parseInt(qtyInput.value, 10);
 					if (isNaN(parsed) || parsed < 0) {
 						parsed = 0;
 					}
 					sum += parsed;
 				});
-				var required = remainingByLineItem[lineItemId];
-				var remaining = required - sum;
+				const required = remainingByLineItem[lineItemId];
+				const remaining = required - sum;
 				if (sum !== required) {
 					allBalanced = false;
 				}
@@ -218,7 +211,7 @@
 		}
 
 		function createTh(text, className) {
-			var th = document.createElement('th');
+			const th = document.createElement('th');
 			if (className) {
 				th.className = className;
 			}
@@ -227,15 +220,15 @@
 		}
 
 		function buildGroupHeader(groupElement) {
-			var headerElement = document.createElement('div');
+			const headerElement = document.createElement('div');
 			headerElement.className = 'shipments-staging-group-header';
 
-			var titleElement = document.createElement('h3');
+			const titleElement = document.createElement('h3');
 			titleElement.className = 'shipments-staging-group-label';
 			// Label text is set by renumberGroups() after insertion.
 			headerElement.appendChild(titleElement);
 
-			var removeButton = document.createElement('button');
+			const removeButton = document.createElement('button');
 			removeButton.type = 'button';
 			removeButton.className = 'btn shipments-remove-group';
 			removeButton.textContent = Craft.t('shipments', 'orderTab.staging.removeGroup');
@@ -250,10 +243,10 @@
 		}
 
 		function buildStagingRow(sourceRow, groupIndex) {
-			var lineItemId = sourceRow.getAttribute('data-line-item-id');
-			var remaining = remainingByLineItem[lineItemId];
+			const lineItemId = sourceRow.getAttribute('data-line-item-id');
+			const remaining = remainingByLineItem[lineItemId];
 
-			var newRow = document.createElement('tr');
+			const newRow = document.createElement('tr');
 			newRow.setAttribute('data-line-item-id', lineItemId);
 			newRow.setAttribute('data-remaining-qty', String(remaining));
 
@@ -262,14 +255,14 @@
 			// escaped; cloneNode preserves them verbatim without re-parsing HTML.
 			newRow.appendChild(sourceRow.children[0].cloneNode(true));
 
-			var remainingCell = document.createElement('td');
+			const remainingCell = document.createElement('td');
 			remainingCell.className = 'shipments-staging-remaining';
 			remainingCell.setAttribute('data-line-item-id', lineItemId);
 			remainingCell.textContent = '0';
 			newRow.appendChild(remainingCell);
 
-			var qtyCell = document.createElement('td');
-			var qtyInput = document.createElement('input');
+			const qtyCell = document.createElement('td');
+			const qtyInput = document.createElement('input');
 			qtyInput.type = 'number';
 			qtyInput.className = 'text shipments-staging-qty';
 			qtyInput.min = '0';
@@ -285,19 +278,19 @@
 		}
 
 		function buildGroupTable(groupIndex) {
-			var tableElement = document.createElement('table');
+			const tableElement = document.createElement('table');
 			tableElement.className = 'data fullwidth';
 
-			var theadElement = document.createElement('thead');
-			var headRow = document.createElement('tr');
+			const theadElement = document.createElement('thead');
+			const headRow = document.createElement('tr');
 			headRow.appendChild(createTh(Craft.t('shipments', 'shipmentEdit.lineItems.lineItem')));
 			headRow.appendChild(createTh(Craft.t('shipments', 'orderTab.staging.remaining'), 'thin'));
 			headRow.appendChild(createTh(Craft.t('shipments', 'orderTab.staging.qtyInGroup'), 'thin'));
 			theadElement.appendChild(headRow);
 			tableElement.appendChild(theadElement);
 
-			var tbody = document.createElement('tbody');
-			var firstGroupRows = stagingContainer.querySelectorAll('.shipments-staging-group[data-group-index="0"] tr[data-line-item-id]');
+			const tbody = document.createElement('tbody');
+			const firstGroupRows = stagingContainer.querySelectorAll('.shipments-staging-group[data-group-index="0"] tr[data-line-item-id]');
 			firstGroupRows.forEach(function (sourceRow) {
 				tbody.appendChild(buildStagingRow(sourceRow, groupIndex));
 			});
@@ -307,8 +300,8 @@
 		}
 
 		function addGroup() {
-			var groupIndex = stagingContainer.querySelectorAll('.shipments-staging-group').length;
-			var groupElement = document.createElement('div');
+			const groupIndex = stagingContainer.querySelectorAll('.shipments-staging-group').length;
+			const groupElement = document.createElement('div');
 			groupElement.className = 'pane shipments-staging-group';
 			groupElement.setAttribute('data-group-index', groupIndex);
 
@@ -331,7 +324,7 @@
 		});
 
 		stagingContainer.querySelectorAll('.shipments-staging-group').forEach(function (groupElement) {
-			var removeButton = groupElement.querySelector('.shipments-remove-group');
+			const removeButton = groupElement.querySelector('.shipments-remove-group');
 			if (!removeButton) {
 				return;
 			}
@@ -342,16 +335,16 @@
 			});
 		});
 
-		var createForm = document.getElementById('shipments-create-form');
+		const createForm = document.getElementById('shipments-create-form');
 		saveButton.addEventListener('click', function () {
 			if (saveButton.disabled) {
 				return;
 			}
 			saveButton.disabled = true;
 
-			var payload = { orderId: createForm ? createForm.getAttribute('data-order-id') : null, groups: {} };
+			const payload = { orderId: createForm ? createForm.getAttribute('data-order-id') : null, groups: {} };
 			stagingContainer.querySelectorAll('.shipments-staging-group').forEach(function (groupElement) {
-				var groupIndex = groupElement.getAttribute('data-group-index');
+				const groupIndex = groupElement.getAttribute('data-group-index');
 				payload.groups[groupIndex] = {};
 				groupElement.querySelectorAll('input.shipments-staging-qty').forEach(function (qtyInput) {
 					payload.groups[groupIndex][qtyInput.getAttribute('data-line-item-id')] = qtyInput.value;
@@ -361,7 +354,7 @@
 			Craft.sendActionRequest('POST', 'shipments/shipments/create-shipment', {
 				data: payload,
 			}).then(function (response) {
-				var responseBody = response && response.data ? response.data : {};
+				const responseBody = response?.data ?? {};
 				if (responseBody.message) {
 					Craft.cp.displayNotice(responseBody.message);
 				}
@@ -369,7 +362,7 @@
 				window.location.reload();
 			}).catch(function (error) {
 				saveButton.disabled = false;
-				var errorBody = error && error.response && error.response.data ? error.response.data : {};
+				const errorBody = error?.response?.data ?? {};
 				Craft.cp.displayError(errorBody.message || Craft.t('shipments', 'error.couldNotSaveShipments'));
 			});
 		});
@@ -379,9 +372,9 @@
 	}
 
 	function initIntegrationReferencesRepeater() {
-		var referencesContainer = document.getElementById('shipments-integration-references');
-		var addReferenceButton = document.getElementById('shipments-add-reference');
-		var referenceTemplate = document.getElementById('shipments-reference-template');
+		const referencesContainer = document.getElementById('shipments-integration-references');
+		const addReferenceButton = document.getElementById('shipments-add-reference');
+		const referenceTemplate = document.getElementById('shipments-reference-template');
 		if (!referencesContainer || !addReferenceButton || !referenceTemplate) {
 			return;
 		}
@@ -391,7 +384,7 @@
 		}
 
 		function bindRemoveReference(row) {
-			var removeButton = row.querySelector('.shipments-remove-reference');
+			const removeButton = row.querySelector('.shipments-remove-reference');
 			if (!removeButton) {
 				return;
 			}
@@ -405,13 +398,13 @@
 		addReferenceButton.addEventListener('click', function () {
 			// Clone the inert `<template>` contents as a structured fragment, then swap
 			// `__INDEX__` in name attributes only. No HTML string parsing.
-			var referenceIndex = nextReferenceIndex();
-			var fragment = referenceTemplate.content.cloneNode(true);
+			const referenceIndex = nextReferenceIndex();
+			const fragment = referenceTemplate.content.cloneNode(true);
 			fragment.querySelectorAll('[name]').forEach(function (inputElement) {
-				var currentName = inputElement.getAttribute('name') || '';
+				const currentName = inputElement.getAttribute('name') || '';
 				inputElement.setAttribute('name', currentName.replace(/__INDEX__/g, String(referenceIndex)));
 			});
-			var newRow = fragment.firstElementChild;
+			const newRow = fragment.firstElementChild;
 			referencesContainer.appendChild(fragment);
 			if (newRow) {
 				bindRemoveReference(newRow);
@@ -419,14 +412,14 @@
 		});
 	}
 
-	// ══════════════════════════ ORDER REQUIRES SHIPPING LIGHTSWITCH ══════════════════════════
+	// Order requires shipping lightswitch.
 	// The lightswitchField's `toggle` / `reverseToggle` options handle showing/hiding the
 	// dependent panes natively. This handler is only responsible for persisting the new state:
 	// AJAX POST to set-active or set-ignored. On flip-off with shipments attached, prompts for
 	// confirmation first and reverts the visual toggle on cancel.
-	var requiresShippingPane = document.querySelector('[data-shipments-requires-shipping]');
+	const requiresShippingPane = document.querySelector('[data-shipments-requires-shipping]');
 	if (requiresShippingPane) {
-		var lightswitchEl = requiresShippingPane.querySelector('.lightswitch');
+		const lightswitchEl = requiresShippingPane.querySelector('.lightswitch');
 		if (lightswitchEl) {
 			// Craft's `Craft.LightSwitch.onChange()` triggers `change` on the lightswitch
 			// element itself (jQuery event), not on the hidden input. Bind via jQuery to match.
@@ -435,17 +428,17 @@
 					return;
 				}
 
-				var wasOn = requiresShippingPane.getAttribute('data-switch-on') === '1';
-				var shipmentCount = parseInt(requiresShippingPane.getAttribute('data-shipment-count') || '0', 10);
-				var revertToggle = function () {
-					var instance = $(lightswitchEl).data('lightswitch');
+				const wasOn = requiresShippingPane.getAttribute('data-switch-on') === '1';
+				const shipmentCount = parseInt(requiresShippingPane.getAttribute('data-shipment-count') || '0', 10);
+				const revertToggle = function () {
+					const instance = $(lightswitchEl).data('lightswitch');
 					if (instance && typeof instance.toggle === 'function') {
 						instance.toggle();
 					}
 				};
 
 				if (wasOn) {
-					var confirmMessage = shipmentCount > 0
+					const confirmMessage = shipmentCount > 0
 						? Craft.t(
 							'shipments',
 							'orderTab.requiresShippingOffConfirmWithCount',
@@ -459,15 +452,15 @@
 					}
 				}
 
-				var orderId = requiresShippingPane.getAttribute('data-order-id');
-				var actionPath = wasOn
+				const orderId = requiresShippingPane.getAttribute('data-order-id');
+				const actionPath = wasOn
 					? 'shipments/tracked-orders/set-ignored'
 					: 'shipments/tracked-orders/set-active';
 
 				Craft.sendActionRequest('POST', actionPath, {
 					data: { orderId: orderId },
 				}).then(function (response) {
-					var responseBody = response && response.data ? response.data : {};
+					const responseBody = response?.data ?? {};
 					requiresShippingPane.setAttribute('data-switch-on', wasOn ? '0' : '1');
 					markMainFormClean();
 					if (responseBody.message) {
@@ -481,26 +474,26 @@
 					}
 				}).catch(function (error) {
 					revertToggle();
-					var errorBody = error && error.response && error.response.data ? error.response.data : {};
+					const errorBody = error?.response?.data ?? {};
 					Craft.cp.displayError(errorBody.message || Craft.t('shipments', 'error.couldNotUpdateOrder'));
 				});
 			});
 		}
 	}
 
-	// ══════════════════════════ RESTORE TRASHED SHIPMENTS ══════════════════════════
+	// Restore trashed shipments.
 	// Surfaces only when the order has trashed shipments AND the toggle is on. POSTs to the
 	// restore action and reloads on success so the existing-shipments list reflects the
 	// restored rows and the trashed-count drops.
-	var restorePane = document.querySelector('[data-shipments-restore-pane]');
-	var restoreButton = document.getElementById('shipments-restore-button');
+	const restorePane = document.querySelector('[data-shipments-restore-pane]');
+	const restoreButton = document.getElementById('shipments-restore-button');
 	if (restorePane && restoreButton) {
 		restoreButton.addEventListener('click', function () {
 			restoreButton.disabled = true;
 			Craft.sendActionRequest('POST', 'shipments/tracked-orders/restore-shipments', {
 				data: { orderId: restorePane.getAttribute('data-order-id') },
 			}).then(function (response) {
-				var responseBody = response && response.data ? response.data : {};
+				const responseBody = response?.data ?? {};
 				if (responseBody.message) {
 					Craft.cp.displayNotice(responseBody.message);
 				}
@@ -508,31 +501,31 @@
 				window.location.reload();
 			}).catch(function (error) {
 				restoreButton.disabled = false;
-				var errorBody = error && error.response && error.response.data ? error.response.data : {};
+				const errorBody = error?.response?.data ?? {};
 				Craft.cp.displayError(errorBody.message || Craft.t('shipments', 'error.couldNotRestoreShipments'));
 			});
 		});
 	}
 
 	function initIntegrationProviderPanels() {
-		var providerSelect = document.getElementById('provider');
+		const providerSelect = document.getElementById('provider');
 		if (!providerSelect) {
 			return;
 		}
 
-		var panels = document.querySelectorAll('.shipments-provider-panel');
-		var providerTabLink = document.querySelector('#tab-provider-settings a, a[href="#provider-settings"]');
-		var providerPane = document.getElementById('provider-settings');
-		var integrationTabLink = document.querySelector('a[href="#integration"]');
-		var integrationPane = document.getElementById('integration');
+		const panels = document.querySelectorAll('.shipments-provider-panel');
+		const providerTabLink = document.querySelector('#tab-provider-settings a, a[href="#provider-settings"]');
+		const providerPane = document.getElementById('provider-settings');
+		const integrationTabLink = document.querySelector('a[href="#integration"]');
+		const integrationPane = document.getElementById('integration');
 
 		function applyProviderVisibility() {
-			var selected = providerSelect.value;
+			const selected = providerSelect.value;
 			panels.forEach(function (panel) {
 				panel.classList.toggle('hidden', panel.getAttribute('data-provider') !== selected);
 			});
 
-			var hasProvider = !!selected;
+			const hasProvider = !!selected;
 			if (providerTabLink) {
 				providerTabLink.classList.toggle('hidden', !hasProvider);
 			}
