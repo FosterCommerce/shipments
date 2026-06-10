@@ -125,7 +125,7 @@ class ShipmentQuery extends ElementQuery
 			'[[tracked.orderId]] = [[shipments_shipments.orderId]]',
 		);
 
-		$query->select([
+		$query->addSelect([
 			'[[shipments_shipments.orderId]]',
 			'[[shipments_shipments.fulfillmentStatus]]',
 			'[[shipments_shipments.shippingStatus]]',

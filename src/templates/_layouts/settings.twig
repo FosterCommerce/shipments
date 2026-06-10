@@ -14,9 +14,7 @@
 	'shipment-fields': { title: 'settings.nav.shipmentFields'|t('shipments'), url: 'shipments/settings/shipment-fields' },
 } %}
 
-{% if selectedItem is not defined %}
-	{% set selectedItem = 'general' %}
-{% endif %}
+{% set selectedItem = selectedItem ?? 'general' %}
 
 {% block sidebar %}
 	<nav>
