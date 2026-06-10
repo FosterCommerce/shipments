@@ -12,8 +12,8 @@ namespace fostercommerce\shipments\enums;
 enum CarrierEventReason: string
 {
 	/**
-	 * Normal ingest: event was deduped, resolved (or recorded as unmapped), and projected
-	 * onto the target shipment's status.
+	 * Normal ingest: event was deduped, resolved (or logged when no mapping exists), and
+	 * projected onto the target shipment's status.
 	 */
 	case Projected = 'projected';
 

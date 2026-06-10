@@ -9,16 +9,12 @@ use craft\commerce\elements\Order;
 use craft\db\Query;
 use craft\web\Controller;
 use fostercommerce\shipments\db\Table;
-use fostercommerce\shipments\enums\StatusAxis;
-use fostercommerce\shipments\models\Integration;
 use fostercommerce\shipments\Plugin;
 use yii\web\Response;
 
 /**
- * Aggregates attention-needed signals:
- *   1. Completed orders whose enabled shipments don't cover the full line-item pool.
- *   2. External status codes ingested from integrations that have no mapping to our
- *      fulfillment/shipping vocabularies.
+ * Lists completed orders whose enabled shipments don't cover the full line-item pool, paged so a
+ * large backlog doesn't hydrate every Commerce order at once.
  */
 class AttentionController extends Controller
 {
@@ -29,7 +25,17 @@ class AttentionController extends Controller
 		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
-		$orderIds = $plugin->shipmentLineItems->findUnderAllocatedOrderIds();
+		$allOrderIds = $plugin->shipmentLineItems->findUnderAllocatedOrderIds();
+
+		// Hydrating every flagged order at once blows out memory once the list grows. Page the id
+		// list and only load full Commerce elements for the current page.
+		$pageSize = 50;
+		$totalOrders = count($allOrderIds);
+		$totalPages = max(1, (int) ceil($totalOrders / $pageSize));
+		$pageParam = $this->request->getParam('page', 1);
+		$requestedPage = is_numeric($pageParam) ? (int) $pageParam : 1;
+		$currentPage = min($totalPages, max(1, $requestedPage));
+		$orderIds = array_slice($allOrderIds, ($currentPage - 1) * $pageSize, $pageSize);
 
 		$orders = [];
 		$staleVerdictHealed = false;
@@ -73,37 +79,6 @@ class AttentionController extends Controller
 			}
 		}
 
-		$unmappedRows = $plugin->integrationStatusMaps->findUnresolvedUnmappedCodes();
-		$unmapped = [];
-		foreach ($unmappedRows as $row) {
-			$integrationIdRaw = $row['integrationId'] ?? null;
-			if (! is_numeric($integrationIdRaw)) {
-				continue;
-			}
-
-			$integration = $plugin->integrations->getIntegrationById((int) $integrationIdRaw);
-			if (! $integration instanceof Integration) {
-				continue;
-			}
-
-			$axisRaw = $row['axis'] ?? null;
-			$axis = is_string($axisRaw) ? StatusAxis::tryFrom($axisRaw) : null;
-			if (! $axis instanceof StatusAxis) {
-				continue;
-			}
-
-			$externalCodeRaw = $row['externalCode'] ?? '';
-			$occurrenceCountRaw = $row['occurrenceCount'] ?? 0;
-			$unmapped[] = [
-				'integration' => $integration,
-				'axis' => $axis,
-				'externalCode' => is_scalar($externalCodeRaw) ? (string) $externalCodeRaw : '',
-				'occurrenceCount' => is_numeric($occurrenceCountRaw) ? (int) $occurrenceCountRaw : 0,
-				'dateFirstSeen' => $row['dateFirstSeen'] ?? null,
-				'dateLastSeen' => $row['dateLastSeen'] ?? null,
-			];
-		}
-
 		$trackedOrderCount = (int) (new Query())
 			->from(Table::TRACKED_ORDERS)
 			->count();
@@ -111,8 +86,10 @@ class AttentionController extends Controller
 		return $this->renderTemplate(Plugin::HANDLE . '/_cp/attention/index', [
 			'title' => Craft::t(Plugin::HANDLE, 'orderTab.attentionNeeded'),
 			'orders' => $orders,
-			'unmapped' => $unmapped,
 			'trackedOrderCount' => $trackedOrderCount,
+			'totalOrders' => $totalOrders,
+			'currentPage' => $currentPage,
+			'totalPages' => $totalPages,
 		]);
 	}
 }

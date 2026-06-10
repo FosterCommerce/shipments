@@ -216,6 +216,11 @@ return [
 	'orderTab.staging.totalsMatch' => 'Staging totals match remaining quantity.',
 	'orderTab.staging.totalsMismatch' => 'Staging totals don’t match remaining quantity yet.',
 
+	// pagination
+	'pagination.next' => 'Next',
+	'pagination.pageOf' => 'Page {current} of {total}',
+	'pagination.previous' => 'Previous',
+
 	// permission
 	'permission.deleteShipments' => 'Delete shipments',
 	'permission.editShipments' => 'Edit shipments',
@@ -313,13 +318,9 @@ return [
 	'settings.integrations.integration' => 'Integration',
 	'settings.integrations.integrationNumber' => 'Integration #{id}',
 	'settings.integrations.lastAttempt' => 'Last attempt',
-	'settings.integrations.lastSeen' => 'Last seen',
-	'settings.integrations.map' => 'Map',
 	'settings.integrations.mapsToFulfillment' => 'Maps to (fulfillment)',
 	'settings.integrations.mapsToShipping' => 'Maps to (shipping)',
 	'settings.integrations.nameHelp' => 'What this integration will be called in the control panel.',
-	'settings.integrations.noUnmappedCodes' => 'No unmapped status codes have been seen.',
-	'settings.integrations.occurrences' => 'Occurrences',
 	'settings.integrations.provider' => 'Provider',
 	'settings.integrations.providerNone' => 'None',
 	'settings.integrations.shippingMappingsHeading' => 'Shipping mappings',
@@ -327,8 +328,6 @@ return [
 	'settings.integrations.statusMappingsFor' => 'Status mappings for {name}',
 	'settings.integrations.statusMappingsSaved' => 'Status mappings saved.',
 	'settings.integrations.type' => 'Type',
-	'settings.integrations.unmappedCodesIntro' => 'External codes below arrived from integrations but have no mapping in the plugin’s vocabulary. Add a mapping on each integration to resolve.',
-	'settings.integrations.unmappedStatusesHeading' => 'Unmapped integration statuses',
 	'settings.integrations.urlTemplate' => 'URL template',
 	'settings.integrations.urlTemplateHelp' => 'Optional. Link template for deep-linking into the remote system. Use `{externalId}` as a placeholder; e.g. `https://ship.shipstation.com/shipments/{externalId}`.',
 

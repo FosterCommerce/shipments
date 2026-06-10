@@ -24,7 +24,6 @@ class Install extends Migration
 	public function safeUp(): bool
 	{
 		$this->archiveTableIfExists(Table::TRACKED_ORDERS);
-		$this->archiveTableIfExists(Table::UNMAPPED_EXTERNAL_STATUSES);
 		$this->archiveTableIfExists(Table::CARRIER_EVENTS);
 		$this->archiveTableIfExists(Table::INTEGRATION_STATUS_MAPS);
 		$this->archiveTableIfExists(Table::INTEGRATION_REFERENCES);
@@ -193,23 +192,6 @@ class Install extends Migration
 		$this->createIndex(null, Table::CARRIER_EVENTS, ['shipmentId', 'dateOccurred'], false);
 		$this->createIndex(null, Table::CARRIER_EVENTS, ['eventHash'], true);
 
-		$this->createTable(Table::UNMAPPED_EXTERNAL_STATUSES, [
-			'id' => $this->primaryKey(),
-			'integrationId' => $this->integer()->notNull(),
-			'axis' => $this->string(16)->notNull(),
-			'externalCode' => $this->string(128)->notNull(),
-			'occurrenceCount' => $this->integer()->notNull()->defaultValue(1),
-			'dateFirstSeen' => $this->dateTime()->notNull(),
-			'dateLastSeen' => $this->dateTime()->notNull(),
-			'resolvedAt' => $this->dateTime(),
-			'dateCreated' => $this->dateTime()->notNull(),
-			'dateUpdated' => $this->dateTime()->notNull(),
-			'uid' => $this->uid(),
-		]);
-
-		$this->createIndex(null, Table::UNMAPPED_EXTERNAL_STATUSES, ['integrationId', 'axis', 'externalCode'], true);
-		$this->createIndex(null, Table::UNMAPPED_EXTERNAL_STATUSES, ['resolvedAt'], false);
-
 		// Which completed orders the plugin is actively watching. An order gets a row here
 		// when the rules engine runs for it, or when an admin flips the "Order requires
 		// shipping" switch on. Orders without a row are invisible to the Attention page,
@@ -243,7 +225,6 @@ class Install extends Migration
 		$this->addForeignKey(null, Table::INTEGRATION_STATUS_MAPS, ['integrationId'], Table::INTEGRATIONS, ['id'], 'CASCADE');
 		$this->addForeignKey(null, Table::CARRIER_EVENTS, ['shipmentId'], Table::SHIPMENTS, ['id'], 'CASCADE');
 		$this->addForeignKey(null, Table::CARRIER_EVENTS, ['integrationId'], Table::INTEGRATIONS, ['id'], 'SET NULL');
-		$this->addForeignKey(null, Table::UNMAPPED_EXTERNAL_STATUSES, ['integrationId'], Table::INTEGRATIONS, ['id'], 'CASCADE');
 		$this->addForeignKey(null, Table::TRACKED_ORDERS, ['orderId'], CommerceTable::ORDERS, ['id'], 'CASCADE');
 
 		return true;
@@ -254,7 +235,6 @@ class Install extends Migration
 		// Drop in reverse FK-dependency order: any table with inbound foreign keys must be
 		// dropped after every table that points at it.
 		$this->dropTableIfExists(Table::TRACKED_ORDERS);
-		$this->dropTableIfExists(Table::UNMAPPED_EXTERNAL_STATUSES);
 		$this->dropTableIfExists(Table::CARRIER_EVENTS);
 		$this->dropTableIfExists(Table::INTEGRATION_STATUS_MAPS);
 		$this->dropTableIfExists(Table::INTEGRATION_REFERENCES);

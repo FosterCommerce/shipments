@@ -140,9 +140,10 @@ class TrackedOrders extends Component
 
 	/**
 	 * Recompute and persist the `underAllocated` verdict for the order. Called from
-	 * `Shipment::afterSave`, `afterDelete`, and `afterRestore` so the cached column on
-	 * `shipments_tracked_orders` stays in sync with the actual allocation pool. No-op if the
-	 * order isn't tracked yet; the tracking path will compute the verdict when it inserts.
+	 * `Shipment::afterSave`, `afterDelete`, and `afterRestore`, and from `Order::afterSave`, so
+	 * the cached column on `shipments_tracked_orders` stays in sync with the actual allocation
+	 * pool. Skips silently if the order isn't tracked yet; the tracking path computes the verdict
+	 * when it inserts. Invalidates the Attention-needed badge cache whenever the verdict flips.
 	 */
 	public function recomputeUnderAllocation(Order $order): void
 	{
@@ -167,6 +168,11 @@ class TrackedOrders extends Component
 
 		$record->underAllocated = $underAllocated->value;
 		$record->save(false);
+
+		// The verdict flipped, so the cached badge total is now wrong. Every caller of this
+		// method (shipment save/delete/restore, order save) funnels through here, so a single
+		// invalidation point keeps the Attention-needed badge in sync.
+		$plugin->shipmentLineItems->invalidateAttentionCount();
 	}
 
 	/**

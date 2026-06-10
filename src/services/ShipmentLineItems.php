@@ -344,9 +344,8 @@ class ShipmentLineItems extends Component
 	}
 
 	/**
-	 * Badge count for the Attention-needed subnav: under-allocated tracked orders plus
-	 * unresolved unmapped integration codes. Cached so every CP page render doesn't run
-	 * two aggregate queries.
+	 * Badge count for the Attention-needed subnav: under-allocated tracked orders. Cached so
+	 * every CP page render doesn't run the aggregate query.
 	 */
 	public function getCachedAttentionCount(): int
 	{
@@ -357,13 +356,7 @@ class ShipmentLineItems extends Component
 			return $cached;
 		}
 
-		/** @var Plugin $plugin */
-		$plugin = Plugin::getInstance();
-
-		$underAllocatedCount = count($this->findUnderAllocatedOrderIds());
-		$unmappedCount = count($plugin->integrationStatusMaps->findUnresolvedUnmappedCodes());
-
-		$total = $underAllocatedCount + $unmappedCount;
+		$total = count($this->findUnderAllocatedOrderIds());
 		$cache->set(self::ATTENTION_COUNT_CACHE_KEY, $total, self::ATTENTION_COUNT_CACHE_TTL);
 
 		return $total;

@@ -63,7 +63,12 @@ class CarrierEvents extends Component
 				$resolved = $mapped;
 				$externalCode ??= $code;
 			} else {
-				$plugin->integrationStatusMaps->recordUnmappedExternalCode($source->id, StatusAxis::Shipping, $code);
+				// No mapping for this carrier code, so the event can't be projected onto a
+				// shipping status. Log it for the admin instead of silently dropping it.
+				Craft::error(
+					"Unmapped inbound shipping status code \"{$code}\" from integration {$source->id}.",
+					Plugin::HANDLE,
+				);
 			}
 		}
 

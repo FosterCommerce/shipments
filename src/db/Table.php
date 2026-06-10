@@ -27,7 +27,5 @@ final class Table
 
 	public const CARRIER_EVENTS = '{{%shipments_carrier_events}}';
 
-	public const UNMAPPED_EXTERNAL_STATUSES = '{{%shipments_unmapped_external_statuses}}';
-
 	public const TRACKED_ORDERS = '{{%shipments_tracked_orders}}';
 }

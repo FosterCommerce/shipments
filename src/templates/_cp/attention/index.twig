@@ -10,7 +10,7 @@
 {% block content %}
 	<h2>{{ 'orderTab.underAllocatedOrders'|t('shipments') }}</h2>
 
-	{% if orders|length == 0 %}
+	{% if totalOrders == 0 %}
 		<div class="pane shipments-attention-empty">
 			{% if trackedOrderCount == 0 %}
 				<p class="light">{{ 'orderTab.noTrackedOrders'|t('shipments')|md(inlineOnly=true) }}</p>
@@ -19,7 +19,7 @@
 			{% endif %}
 		</div>
 	{% else %}
-		<p class="light">{{ 'orderTab.ordersNeedAttentionCount'|t('shipments', { n: orders|length }) }}</p>
+		<p class="light">{{ 'orderTab.ordersNeedAttentionCount'|t('shipments', { n: totalOrders }) }}</p>
 
 		<table class="data fullwidth shipments-attention-table">
 			<thead>
@@ -57,42 +57,17 @@
 				{% endfor %}
 			</tbody>
 		</table>
-	{% endif %}
 
-	<h2 class="shipments-attention-section-heading">{{ 'settings.integrations.unmappedStatusesHeading'|t('shipments') }}</h2>
-
-	{% if unmapped|length == 0 %}
-		<div class="pane shipments-attention-empty">
-			<p class="light">{{ 'settings.integrations.noUnmappedCodes'|t('shipments') }}</p>
-		</div>
-	{% else %}
-		<p class="light">{{ 'settings.integrations.unmappedCodesIntro'|t('shipments') }}</p>
-
-		<table class="data fullwidth shipments-attention-table">
-			<thead>
-				<tr>
-					<th>{{ 'settings.integrations.integration'|t('shipments') }}</th>
-					<th>{{ 'settings.integrations.type'|t('shipments') }}</th>
-					<th>{{ 'settings.integrations.externalCode'|t('shipments') }}</th>
-					<th class="thin">{{ 'settings.integrations.occurrences'|t('shipments') }}</th>
-					<th>{{ 'settings.integrations.lastSeen'|t('shipments') }}</th>
-					<th></th>
-				</tr>
-			</thead>
-			<tbody>
-				{% for row in unmapped %}
-					<tr>
-						<td><strong>{{ row.integration.name }}</strong></td>
-						<td>{{ row.axis.label() }}</td>
-						<td><code>{{ row.externalCode }}</code></td>
-						<td class="thin">{{ row.occurrenceCount }}</td>
-						<td>{% if row.dateLastSeen %}{{ row.dateLastSeen|date('short') }}{% else %}<span class="light">-</span>{% endif %}</td>
-						<td class="thin">
-							<a class="btn small" href="{{ url('shipments/settings/integrations/' ~ row.integration.id ~ '/status-maps') }}">{{ 'settings.integrations.map'|t('shipments') }}</a>
-						</td>
-					</tr>
-				{% endfor %}
-			</tbody>
-		</table>
+		{% if totalPages > 1 %}
+			<nav class="shipments-attention-pagination">
+				{% if currentPage > 1 %}
+					<a class="btn" href="{{ url('shipments/attention-needed', { page: currentPage - 1 }) }}">{{ 'pagination.previous'|t('shipments') }}</a>
+				{% endif %}
+				<span class="light">{{ 'pagination.pageOf'|t('shipments', { current: currentPage, total: totalPages }) }}</span>
+				{% if currentPage < totalPages %}
+					<a class="btn" href="{{ url('shipments/attention-needed', { page: currentPage + 1 }) }}">{{ 'pagination.next'|t('shipments') }}</a>
+				{% endif %}
+			</nav>
+		{% endif %}
 	{% endif %}
 {% endblock %}

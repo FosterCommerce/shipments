@@ -295,8 +295,6 @@ class IntegrationsController extends Controller
 				$externalLabel,
 				$internalCode,
 			);
-
-			$plugin->integrationStatusMaps->resolveUnmappedCode($integrationId, $axis, $externalCode);
 		}
 	}
 }

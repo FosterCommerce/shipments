@@ -6,7 +6,6 @@ namespace fostercommerce\shipments\services;
 
 use Craft;
 use craft\db\Query;
-use DateTime;
 use fostercommerce\shipments\db\Table;
 use fostercommerce\shipments\enums\FulfillmentStatus;
 use fostercommerce\shipments\enums\ShippingStatus;
@@ -14,7 +13,6 @@ use fostercommerce\shipments\enums\StatusAxis;
 use fostercommerce\shipments\errors\IntegrationStatusMapException;
 use fostercommerce\shipments\Plugin;
 use fostercommerce\shipments\records\IntegrationStatusMap;
-use fostercommerce\shipments\records\UnmappedExternalStatus;
 use Throwable;
 use yii\base\Component;
 use yii\base\InvalidArgumentException;
@@ -196,74 +194,5 @@ class IntegrationStatusMaps extends Component
 		}
 
 		return $deletedCount;
-	}
-
-	/**
-	 * Record (or increment) an unmapped external code; bumps `dateLastSeen` when seen again.
-	 */
-	public function recordUnmappedExternalCode(int $integrationId, StatusAxis $axis, string $externalCode): void
-	{
-		$now = new DateTime();
-
-		$record = UnmappedExternalStatus::findOne([
-			'integrationId' => $integrationId,
-			'axis' => $axis->value,
-			'externalCode' => $externalCode,
-		]);
-
-		if ($record instanceof UnmappedExternalStatus) {
-			$record->dateLastSeen = $now;
-			$record->resolvedAt = null;
-			$record->occurrenceCount = (int) $record->occurrenceCount + 1;
-			$record->save(false);
-			return;
-		}
-
-		$record = new UnmappedExternalStatus();
-		$record->integrationId = $integrationId;
-		$record->axis = $axis->value;
-		$record->externalCode = $externalCode;
-		$record->occurrenceCount = 1;
-		$record->dateFirstSeen = $now;
-		$record->dateLastSeen = $now;
-		$record->save(false);
-	}
-
-	/**
-	 * @return list<array<string, mixed>>
-	 */
-	public function findUnresolvedUnmappedCodes(): array
-	{
-		/** @var list<array<string, mixed>> $rows */
-		$rows = (new Query())
-			->from(Table::UNMAPPED_EXTERNAL_STATUSES)
-			->where([
-				'[[resolvedAt]]' => null,
-			])
-			->orderBy([
-				'[[dateLastSeen]]' => SORT_DESC,
-			])
-			->all();
-
-		return $rows;
-	}
-
-	/**
-	 * Mark an unmapped-code row as resolved, typically after the admin adds a matching mapping.
-	 */
-	public function resolveUnmappedCode(int $integrationId, StatusAxis $axis, string $externalCode): void
-	{
-		$record = UnmappedExternalStatus::findOne([
-			'integrationId' => $integrationId,
-			'axis' => $axis->value,
-			'externalCode' => $externalCode,
-		]);
-
-		if (! $record instanceof UnmappedExternalStatus) {
-			return;
-		}
-
-		$record->resolvedAt = new DateTime();
-		$record->save(false);
 	}
 }

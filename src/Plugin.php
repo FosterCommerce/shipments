@@ -129,6 +129,12 @@ class Plugin extends \craft\base\Plugin
 		);
 
 		Event::on(
+			Order::class,
+			Order::EVENT_AFTER_SAVE,
+			$this->recomputeUnderAllocationOnOrderSave(...),
+		);
+
+		Event::on(
 			Shipments::class,
 			Shipments::EVENT_SHIPMENT_STATUS_CHANGED,
 			$this->transitionEmails->onShipmentStatusChanged(...),
@@ -282,6 +288,26 @@ class Plugin extends \craft\base\Plugin
 	protected function createSettingsModel(): ?Model
 	{
 		return new Settings();
+	}
+
+	/**
+	 * Order-side edits (line-item qty changes, removals, status flips into the ignore list) can
+	 * leave the denormalized `underAllocated` column stale, because the shipment-side recompute
+	 * only fires on shipment writes. Recompute on order save so the Attention-needed badge and
+	 * page agree. Only completed orders are ever tracked, so carts bail before any DB lookup.
+	 */
+	private function recomputeUnderAllocationOnOrderSave(Event $event): void
+	{
+		$order = $event->sender;
+		if (! $order instanceof Order || $order->id === null || ! $order->isCompleted) {
+			return;
+		}
+
+		if (ElementHelper::isDraftOrRevision($order)) {
+			return;
+		}
+
+		$this->trackedOrders->recomputeUnderAllocation($order);
 	}
 
 	/**
