@@ -94,6 +94,10 @@ class EmailsController extends Controller
 		$plugin = Plugin::getInstance();
 
 		$idInput = $this->request->getBodyParam('id');
+		if ($idInput !== null && $idInput !== '' && ! is_numeric($idInput)) {
+			throw new BadRequestHttpException(Craft::t(Plugin::HANDLE, 'error.invalidEmailId'));
+		}
+
 		$existingId = is_numeric($idInput) ? (int) $idInput : null;
 
 		if ($existingId !== null) {
