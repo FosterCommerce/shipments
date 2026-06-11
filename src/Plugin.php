@@ -32,9 +32,13 @@ use craft\web\UrlManager;
 use craft\web\View;
 use fostercommerce\shipments\db\Table;
 use fostercommerce\shipments\elements\Shipment;
+use fostercommerce\shipments\enums\ShippingStatus;
+use fostercommerce\shipments\enums\StatusAxis;
+use fostercommerce\shipments\events\ShipmentStatusChangedEvent;
 use fostercommerce\shipments\gql\interfaces\elements\Shipment as ShipmentGqlInterface;
 use fostercommerce\shipments\gql\queries\Shipment as ShipmentGqlQuery;
 use fostercommerce\shipments\models\Settings;
+use fostercommerce\shipments\queue\jobs\AdvanceOrderStatusJob;
 use fostercommerce\shipments\services\CarrierEvents;
 use fostercommerce\shipments\services\Emails;
 use fostercommerce\shipments\services\IntegrationReferences;
@@ -48,6 +52,7 @@ use fostercommerce\shipments\services\Shipments;
 use fostercommerce\shipments\services\TrackedOrders;
 use fostercommerce\shipments\services\TransitionEmails;
 use fostercommerce\shipments\web\assets\cp\ShipmentsCpAsset;
+use Throwable;
 use yii\base\Event;
 
 /**
@@ -89,7 +94,7 @@ class Plugin extends \craft\base\Plugin
 
 	public bool $hasCpSection = true;
 
-	public string $schemaVersion = '1.0.0';
+	public string $schemaVersion = '1.0.1';
 
 	public function init(): void
 	{
@@ -138,6 +143,12 @@ class Plugin extends \craft\base\Plugin
 			Shipments::class,
 			Shipments::EVENT_SHIPMENT_STATUS_CHANGED,
 			$this->transitionEmails->onShipmentStatusChanged(...),
+		);
+
+		Event::on(
+			Shipments::class,
+			Shipments::EVENT_SHIPMENT_STATUS_CHANGED,
+			$this->advanceOrderStatusOnShippingChange(...),
 		);
 
 		Event::on(
@@ -331,12 +342,40 @@ class Plugin extends \craft\base\Plugin
 
 		try {
 			$this->shipments->createFor($order);
-		} catch (\Throwable $throwable) {
+		} catch (Throwable $throwable) {
 			Craft::error(
 				"Shipments auto-create failed for order {$order->id}: " . $throwable->getMessage(),
 				self::HANDLE,
 			);
 		}
+	}
+
+	private function advanceOrderStatusOnShippingChange(ShipmentStatusChangedEvent $event): void
+	{
+		if ($event->axis !== StatusAxis::Shipping) {
+			return;
+		}
+
+		$toCode = $event->toCode;
+		$fromCode = $event->fromCode;
+
+		// Only the edge into a shipped state can newly complete an order; advancing→advancing can't.
+		$enteredShippedState = $toCode instanceof ShippingStatus
+			&& $toCode->advancesOrder()
+			&& (! $fromCode instanceof ShippingStatus || ! $fromCode->advancesOrder());
+		if (! $enteredShippedState) {
+			return;
+		}
+
+		$orderId = $event->shipment->orderId;
+		if ($orderId === null) {
+			return;
+		}
+
+		// Queue so the order save runs after the shipment write commits, in its own transaction.
+		Craft::$app->getQueue()->push(new AdvanceOrderStatusJob([
+			'orderId' => $orderId,
+		]));
 	}
 
 	/**
@@ -364,7 +403,7 @@ class Plugin extends \craft\base\Plugin
 			}
 
 			$this->trackedOrders->markIgnored($order);
-		} catch (\Throwable $throwable) {
+		} catch (Throwable $throwable) {
 			Craft::error(
 				"Tracked-order status-change handler failed for order {$order->id}: " . $throwable->getMessage(),
 				self::HANDLE,

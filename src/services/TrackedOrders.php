@@ -12,6 +12,8 @@ use craft\commerce\Plugin as Commerce;
 use craft\db\Query;
 use DateTime;
 use fostercommerce\shipments\db\Table;
+use fostercommerce\shipments\elements\Shipment;
+use fostercommerce\shipments\enums\ShippingStatus;
 use fostercommerce\shipments\enums\TrackedOrderShippable;
 use fostercommerce\shipments\enums\TrackedOrderState;
 use fostercommerce\shipments\enums\TrackedOrderUnderAllocated;
@@ -173,6 +175,83 @@ class TrackedOrders extends Component
 		// method (shipment save/delete/restore, order save) funnels through here, so a single
 		// invalidation point keeps the Attention-needed badge in sync.
 		$plugin->shipmentLineItems->invalidateAttentionCount();
+	}
+
+	/**
+	 * Once every enabled shipment is shipped, move the order to the configured status. One-way:
+	 * `orderStatusAdvancedAt` stamps it so manual changes afterwards are left alone.
+	 */
+	public function advanceOrderStatusIfAllShipped(Order $order): void
+	{
+		if ($order->id === null) {
+			return;
+		}
+
+		/** @var Plugin $plugin */
+		$plugin = Plugin::getInstance();
+		$targetHandle = $plugin->getSettings()->autoAdvanceOrderStatusHandle;
+		if ($targetHandle === null || $targetHandle === '') {
+			return;
+		}
+
+		$record = $this->findForOrderId($order->id);
+		if (! $record instanceof TrackedOrderRecord || $record->orderStatusAdvancedAt !== null) {
+			return;
+		}
+
+		$enabledShipments = array_filter(
+			$plugin->getShipments()->findByOrderId($order->id),
+			static fn (Shipment $shipment): bool => $shipment->enabled,
+		);
+		if ($enabledShipments === []) {
+			return;
+		}
+
+		foreach ($enabledShipments as $shipment) {
+			$shippingStatus = $shipment->getShippingStatusEnum();
+			if (! $shippingStatus instanceof ShippingStatus || ! $shippingStatus->advancesOrder()) {
+				return;
+			}
+		}
+
+		/** @var Commerce $commerce */
+		$commerce = Commerce::getInstance();
+		$targetStatus = $commerce->getOrderStatuses()->getOrderStatusByHandle($targetHandle);
+		if (! $targetStatus instanceof OrderStatus) {
+			Craft::warning(
+				"Auto order-status target “{$targetHandle}” no longer exists; skipping advance for order {$order->id}.",
+				Plugin::HANDLE,
+			);
+			return;
+		}
+
+		// Already there (admin set it manually, or advanced before the stamp existed); just stamp.
+		if ($order->orderStatusId === $targetStatus->id) {
+			$record->orderStatusAdvancedAt = new DateTime();
+			$record->save(false);
+			return;
+		}
+
+		$order->orderStatusId = $targetStatus->id;
+
+		// Swallow a bad save so it logs without failing the job; a validation error won't pass on retry.
+		try {
+			if (! Craft::$app->getElements()->saveElement($order)) {
+				Craft::warning(
+					"Auto-advance for order {$order->id} to “{$targetHandle}” failed validation: " . implode(', ', $order->getFirstErrors()),
+					Plugin::HANDLE,
+				);
+				return;
+			}
+
+			$record->orderStatusAdvancedAt = new DateTime();
+			$record->save(false);
+		} catch (Throwable $throwable) {
+			Craft::warning(
+				"Auto-advance for order {$order->id} to “{$targetHandle}” errored: " . $throwable->getMessage(),
+				Plugin::HANDLE,
+			);
+		}
 	}
 
 	/**

@@ -271,6 +271,26 @@
 
 		<hr>
 
+		<h2>{{ 'settings.autoAdvance.heading'|t('shipments') }}</h2>
+		<p>{{ 'settings.autoAdvance.help'|t('shipments') }}</p>
+
+		{% if orderStatusOptions|length %}
+			{% set autoAdvanceOptions = [{ label: 'settings.autoAdvance.offOption'|t('shipments'), value: '' }]|merge(orderStatusOptions) %}
+			{{ forms.selectField({
+				label: 'settings.autoAdvance.targetLabel'|t('shipments'),
+				instructions: 'settings.autoAdvance.targetHelp'|t('shipments'),
+				id: 'shipments_auto_advance_order_status',
+				name: 'settings[autoAdvanceOrderStatusHandle]',
+				value: settings.autoAdvanceOrderStatusHandle,
+				options: autoAdvanceOptions,
+				errors: settings.getErrors('autoAdvanceOrderStatusHandle'),
+			}) }}
+		{% else %}
+			<p class="light">{{ 'settings.tracking.noOrderStatuses'|t('shipments') }}</p>
+		{% endif %}
+
+		<hr>
+
 		<div class="buttons">
 			<button type="submit" class="btn submit">{{ 'Save'|t('app') }}</button>
 		</div>

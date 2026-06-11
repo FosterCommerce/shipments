@@ -6,6 +6,7 @@ namespace fostercommerce\shipments\models;
 
 use Craft;
 use craft\base\Model;
+use craft\commerce\Plugin as Commerce;
 use fostercommerce\shipments\Plugin;
 
 class Settings extends Model
@@ -80,6 +81,32 @@ class Settings extends Model
 	 * `split` = partial-qty line items appear in both buckets; `atomic` = whole line item lands in backorder if any of it is.
 	 */
 	public string $qtySplitMode = self::QTY_SPLIT_MODE_SPLIT;
+
+	/**
+	 * Commerce order-status handle to move an order to once every enabled shipment reaches a
+	 * shipped state (see `ShippingStatus::advancesOrder()`). Null or empty disables it. One-way:
+	 * applied once per order, later manual status changes are left alone.
+	 */
+	public ?string $autoAdvanceOrderStatusHandle = null;
+
+	public function validateAutoAdvanceOrderStatusHandle(string $attribute): void
+	{
+		$handle = $this->{$attribute};
+		if ($handle === null || $handle === '') {
+			return;
+		}
+
+		if (in_array($handle, $this->orderStatusesToIgnore, true)) {
+			$this->addError($attribute, Craft::t(Plugin::HANDLE, 'error.autoAdvanceTargetIgnored'));
+			return;
+		}
+
+		/** @var Commerce $commerce */
+		$commerce = Commerce::getInstance();
+		if ($commerce->getOrderStatuses()->getOrderStatusByHandle($handle) === null) {
+			$this->addError($attribute, Craft::t(Plugin::HANDLE, 'error.autoAdvanceTargetUnknown'));
+		}
+	}
 
 	public function validateInventoryGroupingModes(string $attribute): void
 	{
@@ -264,6 +291,7 @@ class Settings extends Model
 				'in',
 				'range' => [self::QTY_SPLIT_MODE_SPLIT, self::QTY_SPLIT_MODE_ATOMIC]],
 			[['groupingSource'], 'string'],
+			[['autoAdvanceOrderStatusHandle'], 'validateAutoAdvanceOrderStatusHandle'],
 			[['inventoryGroupingModes'], 'validateInventoryGroupingModes'],
 			[['lineItemStatusGroups'], 'validateLineItemStatusGroups'],
 			[['shippingCategoryGroups'], 'validateShippingCategoryGroups'],
@@ -274,6 +302,7 @@ class Settings extends Model
 				'orderStatusesToIgnore',
 				'qtySplitMode',
 				'groupingSource',
+				'autoAdvanceOrderStatusHandle',
 				'inventoryGroupingModes',
 				'lineItemStatusGroups',
 				'shippingCategoryGroups',

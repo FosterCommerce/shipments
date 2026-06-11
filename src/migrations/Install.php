@@ -203,6 +203,7 @@ class Install extends Migration
 			'state' => $this->string(16)->notNull()->defaultValue('active'),
 			'underAllocated' => $this->string(16)->notNull()->defaultValue('no'),
 			'evaluatedAt' => $this->dateTime(),
+			'orderStatusAdvancedAt' => $this->dateTime(),
 			'trackedAt' => $this->dateTime()->notNull(),
 			'dateCreated' => $this->dateTime()->notNull(),
 			'dateUpdated' => $this->dateTime()->notNull(),

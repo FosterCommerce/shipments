@@ -21,6 +21,7 @@ use yii\db\ActiveQueryInterface;
  * @property string $state
  * @property string $underAllocated
  * @property ?DateTime $evaluatedAt
+ * @property ?DateTime $orderStatusAdvancedAt
  * @property DateTime $trackedAt
  * @property ActiveQueryInterface $order
  */

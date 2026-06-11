@@ -7,6 +7,7 @@ namespace fostercommerce\shipments\rules;
 use Craft;
 use craft\commerce\base\PurchasableInterface;
 use craft\commerce\elements\Order;
+use craft\commerce\enums\LineItemType;
 use fostercommerce\shipments\base\ShipmentRuleInterface;
 use fostercommerce\shipments\models\Settings;
 use fostercommerce\shipments\models\ShipmentPlan;
@@ -63,6 +64,11 @@ class InventoryStatusRule implements ShipmentRuleInterface
 
 			$remainingQty = $remainingQtyByLineItemId[$lineItemId];
 			if ($remainingQty <= 0) {
+				continue;
+			}
+
+			// Custom line items have no purchasable; getPurchasable() throws on them.
+			if ($lineItem->type === LineItemType::Custom) {
 				continue;
 			}
 

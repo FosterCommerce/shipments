@@ -74,6 +74,19 @@ enum ShippingStatus: string
 		};
 	}
 
+	public function advancesOrder(): bool
+	{
+		return match ($this) {
+			self::InTransit,
+			self::OutForDelivery,
+			self::AttemptedDelivery,
+			self::AvailableForPickup,
+			self::Delivered,
+			self::Exception => true,
+			default => false,
+		};
+	}
+
 	/**
 	 * @return array<string, string>
 	 */

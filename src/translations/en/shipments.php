@@ -60,6 +60,8 @@ return [
 	'error.adminChangesDisallowed' => 'Administrative changes are disallowed in this environment.',
 	'error.allocateAtLeastOneLineItem' => 'Allocate at least one line item before saving.',
 	'error.attributeAlreadyTaken' => '{attribute} “{value}” has already been taken.',
+	'error.autoAdvanceTargetIgnored' => 'The target order status can’t be one of the ignored order statuses above.',
+	'error.autoAdvanceTargetUnknown' => 'Choose an existing Commerce order status.',
 	'error.bucketGroupingModeInvalid' => '{bucketLabel}: grouping mode must be one of {modes}.',
 	'error.cancelNotImplemented' => 'Cancel not implemented by this provider.',
 	'error.couldNotApplyTransition' => 'Couldn’t apply transition: {errors}',
@@ -232,6 +234,7 @@ return [
 	'permission.viewShipments' => 'View shipments',
 
 	// queue
+	'queue.advancingOrderStatus' => 'Advancing order status for order {orderId}',
 	'queue.creatingShipments' => 'Creating shipments for order {id}',
 	'queue.pushingShipment' => 'Pushing shipment {id} to integration',
 	'queue.sendingEmail' => 'Sending shipment email {emailId} for shipment {shipmentId}',
@@ -259,6 +262,13 @@ return [
 	// settings.fields
 	'settings.fields.intro' => 'Add custom fields that admins can fill in on each shipment. Layout edits sync via project config.',
 	'settings.fields.saved' => 'Shipment fields saved.',
+
+	// settings.autoAdvance
+	'settings.autoAdvance.heading' => 'Automatic order status',
+	'settings.autoAdvance.help' => 'When every enabled shipment on an order reaches a shipped state (In transit, Out for delivery, Attempted delivery, Available for pickup, Delivered, or Exception), set the order to the status below. This runs once per order; later manual changes to shipment or order statuses are left alone.',
+	'settings.autoAdvance.offOption' => 'Don’t change',
+	'settings.autoAdvance.targetLabel' => 'Order status to set',
+	'settings.autoAdvance.targetHelp' => 'Leave as “Don’t change” to turn the auto-advance off.',
 
 	// settings.general
 	'settings.general.autoCreationHeading' => 'Automatic shipment creation',
