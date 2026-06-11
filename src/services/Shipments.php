@@ -311,6 +311,10 @@ class Shipments extends Component
 		$total = (int) (clone $query)->count();
 		$pageCount = $total > 0 ? (int) ceil($total / $pageSize) : 0;
 
+		if ($pageCount > 0) {
+			$page = min($page, $pageCount);
+		}
+
 		/** @var list<Shipment> $shipments */
 		$shipments = (clone $query)
 			->limit($pageSize)

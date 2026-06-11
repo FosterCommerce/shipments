@@ -229,13 +229,12 @@ class Emails extends Component
 
 		$view = Craft::$app->getView();
 		$originalTemplateMode = $view->getTemplateMode();
-		$view->setTemplateMode($view::TEMPLATE_MODE_SITE);
-
 		$originalLanguage = Craft::$app->language;
 		$originalFormattingLocale = Craft::$app->getFormattingLocale();
-		Locale::switchAppLanguage($email->getRenderLanguage($context->order));
 
 		try {
+			$view->setTemplateMode($view::TEMPLATE_MODE_SITE);
+			Locale::switchAppLanguage($email->getRenderLanguage($context->order));
 			return $this->renderAndSend($email, $context, $error);
 		} finally {
 			$view->setTemplateMode($originalTemplateMode);

@@ -10,6 +10,7 @@ use craft\db\Query;
 use craft\web\Controller;
 use fostercommerce\shipments\db\Table;
 use fostercommerce\shipments\Plugin;
+use fostercommerce\shipments\queue\jobs\RecomputeAllocationJob;
 use yii\web\Response;
 
 /**
@@ -38,7 +39,7 @@ class AttentionController extends Controller
 		$orderIds = array_slice($allOrderIds, ($currentPage - 1) * $pageSize, $pageSize);
 
 		$orders = [];
-		$staleVerdictHealed = false;
+		$staleOrderIds = [];
 		if ($orderIds !== []) {
 			/** @var list<Order> $loadedOrders */
 			$loadedOrders = Order::find()->id($orderIds)->status(null)->all();
@@ -57,14 +58,8 @@ class AttentionController extends Controller
 				}
 
 				$missing = $plugin->shipmentLineItems->getMissingCoverageFor($order);
-				// The cached `underAllocated` flag on `shipments_tracked_orders` can drift if
-				// the order's line items changed after the cache was last refreshed (qty
-				// edits, line item removals, status flips into the ignored list). Recompute
-				// here when the live pool says there's nothing missing, drop the order from
-				// the page, and let the badge count rebuild from the corrected verdict.
 				if ($missing === []) {
-					$plugin->trackedOrders->recomputeUnderAllocation($order);
-					$staleVerdictHealed = true;
+					$staleOrderIds[] = $orderId;
 					continue;
 				}
 
@@ -74,8 +69,10 @@ class AttentionController extends Controller
 				];
 			}
 
-			if ($staleVerdictHealed) {
-				$plugin->shipmentLineItems->invalidateAttentionCount();
+			if ($staleOrderIds !== []) {
+				Craft::$app->getQueue()->push(new RecomputeAllocationJob([
+					'orderIds' => $staleOrderIds,
+				]));
 			}
 		}
 

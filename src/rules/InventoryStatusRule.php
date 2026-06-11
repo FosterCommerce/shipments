@@ -127,7 +127,9 @@ class InventoryStatusRule implements ShipmentRuleInterface
 	{
 		$availableStock = max(0, $purchasable->getStock());
 
-		if ($purchasable->hasStock() && $availableStock >= $remainingQty) {
+		$isUntracked = $purchasable->hasStock() && $availableStock === 0;
+
+		if ($isUntracked || $availableStock >= $remainingQty) {
 			return [$remainingQty, 0];
 		}
 

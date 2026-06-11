@@ -237,6 +237,7 @@ return [
 	'queue.advancingOrderStatus' => 'Advancing order status for order {orderId}',
 	'queue.creatingShipments' => 'Creating shipments for order {id}',
 	'queue.pushingShipment' => 'Pushing shipment {id} to integration',
+	'queue.recomputingAllocation' => 'Recomputing order allocation',
 	'queue.sendingEmail' => 'Sending shipment email {emailId} for shipment {shipmentId}',
 
 	// rules.fallback
