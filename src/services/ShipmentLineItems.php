@@ -16,6 +16,7 @@ use fostercommerce\shipments\enums\TrackedOrderShippable;
 use fostercommerce\shipments\enums\TrackedOrderState;
 use fostercommerce\shipments\enums\TrackedOrderUnderAllocated;
 use fostercommerce\shipments\errors\IncompleteCoverageException;
+use fostercommerce\shipments\events\ResolveShippableUnitsEvent;
 use fostercommerce\shipments\models\ShipmentLineItem;
 use fostercommerce\shipments\Plugin;
 use yii\base\Component;
@@ -27,9 +28,39 @@ use yii\caching\CacheInterface;
  */
 class ShipmentLineItems extends Component
 {
+	public const EVENT_RESOLVE_SHIPPABLE_UNITS = 'resolveShippableUnits';
+
 	private const ATTENTION_COUNT_CACHE_KEY = 'shipments.attentionCount';
 
 	private const ATTENTION_COUNT_CACHE_TTL = 300;
+
+	/**
+	 * Shippable unit count for every line item on the order, keyed by Commerce line item id.
+	 * Defaults to cart qty; the {@see ResolveShippableUnitsEvent} lets integrators override lines
+	 * whose shippable units differ from cart qty (summary/kit lines that stand for many physical
+	 * units). Pool and overflow math read through here so coverage matches the reported count.
+	 *
+	 * @return array<int, int>
+	 */
+	public function shippableUnitsFor(Order $order): array
+	{
+		$shippableUnits = [];
+		foreach ($order->getLineItems() as $lineItem) {
+			$lineItemId = $lineItem->id;
+			if ($lineItemId === null) {
+				continue;
+			}
+
+			$shippableUnits[$lineItemId] = (int) $lineItem->qty;
+		}
+
+		$event = new ResolveShippableUnitsEvent();
+		$event->order = $order;
+		$event->shippableUnits = $shippableUnits;
+		$this->trigger(self::EVENT_RESOLVE_SHIPPABLE_UNITS, $event);
+
+		return $event->shippableUnits;
+	}
 
 	/**
 	 * Remaining (unallocated) qty for every non-ignored line item on the order, keyed by
@@ -43,6 +74,7 @@ class ShipmentLineItems extends Component
 		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		$ignoredStatuses = $plugin->getSettings()->lineItemStatusesToIgnore;
+		$shippableUnits = $this->shippableUnitsFor($order);
 
 		$pool = [];
 		foreach ($order->getLineItems() as $lineItem) {
@@ -65,7 +97,7 @@ class ShipmentLineItems extends Component
 				continue;
 			}
 
-			$pool[$lineItemId] = (int) $lineItem->qty;
+			$pool[$lineItemId] = $shippableUnits[$lineItemId];
 		}
 
 		if ($pool === [] || $order->id === null) {
@@ -204,14 +236,7 @@ class ShipmentLineItems extends Component
 			return [];
 		}
 
-		$orderedQtys = [];
-		foreach ($order->getLineItems() as $orderLineItem) {
-			if ($orderLineItem->id === null) {
-				continue;
-			}
-
-			$orderedQtys[(int) $orderLineItem->id] = (int) $orderLineItem->qty;
-		}
+		$orderedQtys = $this->shippableUnitsFor($order);
 
 		$otherAllocations = $this->allocatedQtysFor($order->id);
 
@@ -246,14 +271,7 @@ class ShipmentLineItems extends Component
 			return [];
 		}
 
-		$orderedQtys = [];
-		foreach ($order->getLineItems() as $orderLineItem) {
-			if ($orderLineItem->id === null) {
-				continue;
-			}
-
-			$orderedQtys[(int) $orderLineItem->id] = (int) $orderLineItem->qty;
-		}
+		$orderedQtys = $this->shippableUnitsFor($order);
 
 		$otherAllocations = $this->allocatedQtysFor($order->id);
 		foreach ($this->findForShipmentId($shipmentId) as $currentLineItem) {
