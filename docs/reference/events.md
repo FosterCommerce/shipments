@@ -108,6 +108,38 @@ Event::on(
 );
 ```
 
+## `ShipmentLineItems::EVENT_RESOLVE_SHIPPABLE_UNITS`
+
+**Fires:** inside `ShipmentLineItems::shippableUnitsFor()`, after the map is seeded with each line item's cart qty, before pool and overflow math read it. Lets you report a different shippable unit count for a line whose cart qty does not equal its physical units, such as a single summary or kit line that stands for many units. All coverage math reads the resulting map, so the reported count stays consistent everywhere.
+
+**Payload:** `ResolveShippableUnitsEvent`
+
+| Property         | Type               | Notes                                                                          |
+|------------------|--------------------|--------------------------------------------------------------------------------|
+| `order`          | `Order`            | The order whose line items are being resolved.                                 |
+| `shippableUnits` | `array<int, int>`  | Shippable units keyed by Commerce line item id, seeded with cart qty. Overwrite entries to change the count. |
+
+**Listen:**
+
+```php
+Event::on(
+    ShipmentLineItems::class,
+    ShipmentLineItems::EVENT_RESOLVE_SHIPPABLE_UNITS,
+    static function (ResolveShippableUnitsEvent $event): void {
+        // A summary line (cart qty 1) that ships as 30 physical units.
+        foreach ($event->order->getLineItems() as $lineItem) {
+            if ($lineItem->id !== null && $lineItem->sku === 'KIT-30') {
+                $event->shippableUnits[$lineItem->id] = 30;
+            }
+        }
+    },
+);
+```
+
+**Common use:** override shippable units for kit or summary lines whose cart qty differs from the physical unit count.
+
+Listeners overwrite existing entries; do not unset a key. A missing entry reads as zero shippable units, which silently drops the line from coverage. The event fires once per order per request; the resolved map is cached, so a listener that does database work runs only once per order.
+
 ## `Integrations::EVENT_REGISTER_INTEGRATIONS`
 
 **Fires:** during `Integrations::getSelectableProviderTypes()` (called when rendering the integration edit page's provider dropdown).

@@ -35,6 +35,11 @@ class ShipmentLineItems extends Component
 	private const ATTENTION_COUNT_CACHE_TTL = 300;
 
 	/**
+	 * @var array<int, array<int, int>> Resolved maps keyed by order id, so the resolve event fires once per order per request.
+	 */
+	private array $shippableUnitsByOrderId = [];
+
+	/**
 	 * Shippable unit count for every line item on the order, keyed by Commerce line item id.
 	 * Defaults to cart qty; the {@see ResolveShippableUnitsEvent} lets integrators override lines
 	 * whose shippable units differ from cart qty (summary/kit lines that stand for many physical
@@ -44,6 +49,11 @@ class ShipmentLineItems extends Component
 	 */
 	public function shippableUnitsFor(Order $order): array
 	{
+		$orderId = $order->id;
+		if ($orderId !== null && isset($this->shippableUnitsByOrderId[$orderId])) {
+			return $this->shippableUnitsByOrderId[$orderId];
+		}
+
 		$shippableUnits = [];
 		foreach ($order->getLineItems() as $lineItem) {
 			$lineItemId = $lineItem->id;
@@ -58,6 +68,10 @@ class ShipmentLineItems extends Component
 		$event->order = $order;
 		$event->shippableUnits = $shippableUnits;
 		$this->trigger(self::EVENT_RESOLVE_SHIPPABLE_UNITS, $event);
+
+		if ($orderId !== null) {
+			$this->shippableUnitsByOrderId[$orderId] = $event->shippableUnits;
+		}
 
 		return $event->shippableUnits;
 	}

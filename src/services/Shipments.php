@@ -391,7 +391,7 @@ class Shipments extends Component
 			}
 
 			$saved = $this->persistPlans($order, $finalPlans);
-            if ($saved !== []) {
+			if ($saved !== []) {
 				$plugin->getTrackedOrders()->markActive($order);
 			}
 
