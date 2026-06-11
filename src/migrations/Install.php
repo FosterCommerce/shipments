@@ -11,8 +11,8 @@ use fostercommerce\shipments\db\Table;
 use fostercommerce\shipments\enums\FulfillmentStatus;
 
 /**
- * Cumulative install; reflects the full plugin schema. No incremental migrations;
- * this file is the single source of truth for the DB layout.
+ * Cumulative install; reflects the full plugin schema for fresh installs. Schema changes
+ * also ship an incremental `m*` migration to carry existing installs forward.
  *
  * Status model: two fixed-vocabulary axes (FulfillmentStatus, ShippingStatus) stored
  * as string codes on the shipment element's supplementary row. No user-editable
