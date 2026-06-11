@@ -4,14 +4,19 @@
 {% set selectedItem = 'general' %}
 {% set title = 'settings.nav.general'|t('shipments') %}
 {% set docTitle = title %}
+{% set readOnly = not craft.app.config.general.allowAdminChanges %}
 {% set crumbs = [
 	{ label: 'Settings'|t('app'), url: url('settings') },
 	{ label: 'Plugins'|t('app'), url: url('settings/plugins') },
 	{ label: 'nav.shipments'|t('shipments'), url: url('shipments/settings/general') },
 ] %}
 
+{% if readOnly %}
+	{% set contentNotice = readOnlyNotice() %}
+{% endif %}
+
 {% block content %}
-	<form action="" method="post" accept-charset="UTF-8" data-saveshortcut>
+	<form action="" method="post" accept-charset="UTF-8"{% if not readOnly %} data-saveshortcut{% endif %}>
 		{{ actionInput('shipments/settings/save-settings') }}
 		{{ redirectInput('shipments/settings/general') }}
 		{{ csrfInput() }}
@@ -31,6 +36,7 @@
 			label: 'settings.general.autoCreationToggle'|t('shipments'),
 			instructions: 'settings.general.autoCreationToggleHelp'|t('shipments'),
 			id: 'shipments_auto_create_on_complete',
+			disabled: readOnly,
 			name: 'settings[autoCreateOnComplete]',
 			on: settings.autoCreateOnComplete,
 			errors: settings.getErrors('autoCreateOnComplete'),
@@ -55,6 +61,7 @@
 				label: 'settings.general.groupingSourceLabel'|t('shipments'),
 				instructions: 'settings.general.groupingSourceHelp'|t('shipments'),
 				id: 'shipments_grouping_source',
+				disabled: readOnly,
 				name: 'settings[groupingSource]',
 				value: settings.groupingSource,
 				options: groupingSourceOptions,
@@ -72,6 +79,7 @@
 					label: 'settings.grouping.inStockBucketLabel'|t('shipments'),
 					instructions: 'settings.grouping.inStockBucketHelp'|t('shipments'),
 					id: 'shipments_inventory_in_stock',
+					disabled: readOnly,
 					name: 'settings[inventoryGroupingModes][inStock]',
 					value: settings.inventoryGroupingModes.inStock ?? 'together',
 					options: [
@@ -84,6 +92,7 @@
 					label: 'settings.grouping.backorderedBucketLabel'|t('shipments'),
 					instructions: 'settings.grouping.backorderedBucketHelp'|t('shipments'),
 					id: 'shipments_inventory_backorder',
+					disabled: readOnly,
 					name: 'settings[inventoryGroupingModes][backorder]',
 					value: settings.inventoryGroupingModes.backorder ?? 'together',
 					options: [
@@ -96,6 +105,7 @@
 					label: 'settings.grouping.quantitySplitModeLabel'|t('shipments'),
 					instructions: 'settings.grouping.quantitySplitHelp'|t('shipments'),
 					id: 'shipments_qty_split_mode',
+					disabled: readOnly,
 					name: 'settings[qtySplitMode]',
 					value: settings.qtySplitMode,
 					errors: settings.getErrors('qtySplitMode'),
@@ -136,6 +146,7 @@
 								label: 'settings.grouping.lineItemStatusesInGroup'|t('shipments'),
 								instructions: 'settings.grouping.lineItemStatusesInGroupHelp'|t('shipments'),
 								id: 'shipments_line_item_status_group_' ~ groupIndex ~ '_handles',
+								disabled: readOnly,
 								name: 'settings[lineItemStatusGroups][' ~ groupIndex ~ '][statusHandles]',
 								values: group.statusHandles ?? [],
 								options: lineItemStatusOptions,
@@ -144,6 +155,7 @@
 							{{ forms.selectField({
 								label: 'settings.grouping.groupingModeLabel'|t('shipments'),
 								id: 'shipments_line_item_status_group_' ~ groupIndex ~ '_mode',
+								disabled: readOnly,
 								name: 'settings[lineItemStatusGroups][' ~ groupIndex ~ '][mode]',
 								value: group.mode ?? 'together',
 								options: [
@@ -158,9 +170,11 @@
 						</div>
 					{% endfor %}
 
-					<p class="shipments-add-rule-row">
-						<button type="button" class="btn add icon" id="shipments-add-rule">{{ 'settings.grouping.addRule'|t('shipments') }}</button>
-					</p>
+					{% if not readOnly %}
+						<p class="shipments-add-rule-row">
+							<button type="button" class="btn add icon" id="shipments-add-rule">{{ 'settings.grouping.addRule'|t('shipments') }}</button>
+						</p>
+					{% endif %}
 				{% else %}
 					<p class="light">{{ 'settings.grouping.noLineItemStatuses'|t('shipments') }}</p>
 				{% endif %}
@@ -196,6 +210,7 @@
 								label: 'settings.grouping.shippingCategoriesInGroup'|t('shipments'),
 								instructions: 'settings.grouping.shippingCategoriesInGroupHelp'|t('shipments'),
 								id: 'shipments_shipping_category_group_' ~ groupIndex ~ '_handles',
+								disabled: readOnly,
 								name: 'settings[shippingCategoryGroups][' ~ groupIndex ~ '][categoryHandles]',
 								values: group.categoryHandles ?? [],
 								options: shippingCategoryOptions,
@@ -204,6 +219,7 @@
 							{{ forms.selectField({
 								label: 'settings.grouping.groupingModeLabel'|t('shipments'),
 								id: 'shipments_shipping_category_group_' ~ groupIndex ~ '_mode',
+								disabled: readOnly,
 								name: 'settings[shippingCategoryGroups][' ~ groupIndex ~ '][mode]',
 								value: group.mode ?? 'together',
 								options: [
@@ -218,9 +234,11 @@
 						</div>
 					{% endfor %}
 
-					<p class="shipments-add-rule-row">
-						<button type="button" class="btn add icon" id="shipments-add-category-rule">{{ 'settings.grouping.addRule'|t('shipments') }}</button>
-					</p>
+					{% if not readOnly %}
+						<p class="shipments-add-rule-row">
+							<button type="button" class="btn add icon" id="shipments-add-category-rule">{{ 'settings.grouping.addRule'|t('shipments') }}</button>
+						</p>
+					{% endif %}
 				{% else %}
 					<p class="light">{{ 'settings.grouping.noShippingCategories'|t('shipments') }}</p>
 				{% endif %}
@@ -236,6 +254,7 @@
 			label: 'settings.validation.enforceFullCoverage'|t('shipments'),
 			instructions: 'settings.validation.enforceFullCoverageHelp'|t('shipments'),
 			id: 'shipments_enforce_coverage',
+			disabled: readOnly,
 			name: 'settings[enforceCoverage]',
 			on: settings.enforceCoverage,
 			errors: settings.getErrors('enforceCoverage'),
@@ -245,6 +264,7 @@
 			label: 'settings.validation.lineItemStatusesToIgnore'|t('shipments'),
 			instructions: 'settings.validation.lineItemStatusesToIgnoreHelp'|t('shipments'),
 			id: 'shipments_line_item_statuses_to_ignore',
+			disabled: readOnly,
 			name: 'settings[lineItemStatusesToIgnore]',
 			values: settings.lineItemStatusesToIgnore,
 			options: lineItemStatusOptions,
@@ -260,6 +280,7 @@
 			{{ forms.checkboxSelectField({
 				label: 'settings.tracking.orderStatusesToIgnore'|t('shipments'),
 				id: 'shipments_order_statuses_to_ignore',
+				disabled: readOnly,
 				name: 'settings[orderStatusesToIgnore]',
 				values: settings.orderStatusesToIgnore,
 				options: orderStatusOptions,
@@ -280,6 +301,7 @@
 				label: 'settings.autoAdvance.targetLabel'|t('shipments'),
 				instructions: 'settings.autoAdvance.targetHelp'|t('shipments'),
 				id: 'shipments_auto_advance_order_status',
+				disabled: readOnly,
 				name: 'settings[autoAdvanceOrderStatusHandle]',
 				value: settings.autoAdvanceOrderStatusHandle,
 				options: autoAdvanceOptions,
@@ -289,10 +311,12 @@
 			<p class="light">{{ 'settings.tracking.noOrderStatuses'|t('shipments') }}</p>
 		{% endif %}
 
-		<hr>
+		{% if not readOnly %}
+			<hr>
 
-		<div class="buttons">
-			<button type="submit" class="btn submit">{{ 'Save'|t('app') }}</button>
-		</div>
+			<div class="buttons">
+				<button type="submit" class="btn submit">{{ 'Save'|t('app') }}</button>
+			</div>
+		{% endif %}
 	</form>
 {% endblock %}

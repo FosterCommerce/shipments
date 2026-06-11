@@ -13,6 +13,7 @@ use fostercommerce\shipments\rules\LineItemStatusRule;
 use fostercommerce\shipments\rules\ShippingCategoryRule;
 use fostercommerce\shipments\web\assets\cp\ShipmentsCpAsset;
 use yii\web\BadRequestHttpException;
+use yii\web\ForbiddenHttpException;
 use yii\web\Response;
 
 /**
@@ -32,11 +33,18 @@ class SettingsController extends Controller
 
 	/**
 	 * @throws BadRequestHttpException
+	 * @throws ForbiddenHttpException
 	 */
 	public function actionSaveSettings(): ?Response
 	{
 		$this->requirePostRequest();
 		$this->requirePermission(Plugin::PERMISSION_MANAGE_SETTINGS);
+
+		// Settings persist to project config, which is read-only when admin changes are
+		// disabled; without this guard the save surfaces a raw NotSupportedException 500.
+		if (! Craft::$app->getConfig()->getGeneral()->allowAdminChanges) {
+			throw new ForbiddenHttpException(Craft::t(Plugin::HANDLE, 'error.adminChangesDisallowed'));
+		}
 
 		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
