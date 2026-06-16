@@ -187,10 +187,9 @@ class ShipmentsController extends Controller
 	}
 
 	/**
-	 * Replaces an existing shipment's line-item allocation from `lineItems[<lineItemId>] = qty`
-	 * POST rows. Lowering a quantity frees those units back to the order's unallocated pool;
-	 * omitting a line item (or sending qty 0) removes it. Always AJAX, from the edit page's
-	 * Line items tab.
+	 * Replaces a shipment's line-item allocation from `lineItems[<lineItemId>] = qty` POST rows.
+	 *
+	 * Lowering a quantity frees those units back to the order's unallocated pool; omitting a line item (or qty 0) removes it.
 	 *
 	 * @throws BadRequestHttpException
 	 * @throws NotFoundHttpException
@@ -240,9 +239,9 @@ class ShipmentsController extends Controller
 	}
 
 	/**
-	 * Soft-deletes a shipment. JSON-accepting callers (the order tab card button) get a
-	 * `{success}` payload; form-POST callers (the edit page's gear menu) get a flash
-	 * notice + posted-url redirect.
+	 * Soft-deletes a shipment.
+	 *
+	 * JSON callers get a `{success}` payload; form-POST callers get a flash notice and posted-url redirect.
 	 *
 	 * @throws BadRequestHttpException
 	 */
@@ -318,9 +317,9 @@ class ShipmentsController extends Controller
 	}
 
 	/**
-	 * Queues a {@see PushShipmentJob} for one shipment + one integration. The job runs
-	 * the provider's outbound `sendShipmentWithEvents`; success/failure shows up on the shipment's
-	 * `dateLastPushAttempt` / `lastPushAttemptError` fields once the queue runs.
+	 * Queues a {@see PushShipmentJob} for one shipment and one integration.
+	 *
+	 * Push outcome lands on the shipment's `dateLastPushAttempt` / `lastPushAttemptError` once the queue runs.
 	 *
 	 * @throws BadRequestHttpException
 	 * @throws NotFoundHttpException
@@ -476,9 +475,9 @@ class ShipmentsController extends Controller
 	}
 
 	/**
-	 * Structural narrowing of the raw `lineItems[<lineItemId>] = qty` POST. A qty of 0 (or
-	 * less) is dropped, which the service reads as "remove this line item". Allocation policy
-	 * (overflow gating) lives in the service.
+	 * Structural narrowing of the raw `lineItems[<lineItemId>] = qty` POST.
+	 *
+	 * A qty of 0 or less is dropped, which the service reads as "remove this line item".
 	 *
 	 * @param array<mixed, mixed> $postedLineItems
 	 * @return array<int, int>

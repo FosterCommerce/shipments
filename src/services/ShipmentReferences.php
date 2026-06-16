@@ -11,18 +11,21 @@ use yii\base\Component;
 use yii\base\InvalidArgumentException;
 
 /**
- * Allocates the next `-sNNN` shipment reference for an order. Reference base is
- * `$order->reference` when present, or `$order->number` as a fallback (which Commerce always populates
- * with a long hashed value). Final shape: `{base}-s001`, `{base}-s002`, …
+ * Allocates the next `-sNNN` shipment reference for an order.
+ *
+ * Base is `$order->reference`, falling back to `$order->number`. Shape: `{base}-s001`, `{base}-s002`, ...
  */
 class ShipmentReferences extends Component
 {
 	public const SEPARATOR = '-s';
 
 	/**
-	 * Compute the next sequence number for the given order and return the full reference string.
-	 * Call this inside the same transaction that persists the shipment to minimize the race
-	 * window; the `(orderId, number)` and `reference` unique indexes are the ultimate guards.
+	 * Returns the next full reference string for the given order.
+	 *
+	 * Call inside the shipment's persist transaction to minimize the race window;
+	 * the `(orderId, number)` and `reference` unique indexes are the ultimate guards.
+	 *
+	 * @throws InvalidArgumentException
 	 */
 	public function allocate(Order $order): string
 	{

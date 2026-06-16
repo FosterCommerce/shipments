@@ -13,10 +13,10 @@ use fostercommerce\shipments\models\ShipmentPlan;
 use fostercommerce\shipments\Plugin;
 
 /**
- * Groups line items into shipments using explicit store-defined groups. Each group pairs a set
- * of Commerce line item status handles with a mode: `together` bundles all matching line items
- * into one shipment; `per-item` emits one shipment per matched line item. Status handles not
- * assigned to any group fall through to the fallback shipment.
+ * Groups line items into shipments by Commerce line item status, per store-defined groups.
+ *
+ * Each group's mode is `together` (one shipment for all matches) or `per-item` (one per match);
+ * unassigned status handles fall through to the fallback shipment.
  */
 class LineItemStatusRule implements ShipmentRuleInterface
 {

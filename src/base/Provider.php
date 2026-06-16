@@ -18,52 +18,29 @@ use fostercommerce\shipments\Plugin;
 use Throwable;
 
 /**
- * Abstract base for fulfillment-integration providers. See docs/custom-providers.md.
+ * Abstract base for fulfillment-integration providers.
  *
- * Required: `sendShipment()`.
- * Optional with throwing default: `cancelShipment()`, `receiveShipmentUpdate()`, `export()`.
- * Capability gate for inbound webhooks: `canReceiveUpdates()` (override to `true` alongside `receiveShipmentUpdate()`).
- * Other optional hooks: `pull()`, `checkConnection()`, `getSettingsHtml()`.
+ * Only `sendShipment()` is required. See docs/custom-providers.md.
  */
 abstract class Provider extends SavableComponent implements ProviderInterface
 {
 	/**
-	 * @event SendIntegrationPayloadEvent fires before `sendShipment()`. Set `$event->isValid = false` to skip.
-	 *
-	 * ```php
-	 * use fostercommerce\shipments\base\Provider;
-	 * use fostercommerce\shipments\events\SendIntegrationPayloadEvent;
-	 * use yii\base\Event;
-	 *
-	 * Event::on(Provider::class, Provider::EVENT_BEFORE_SEND, function (SendIntegrationPayloadEvent $event) {
-	 *     // inspect $event->shipment / $event->order
-	 * });
-	 * ```
+	 * @event SendIntegrationPayloadEvent The event fired before `sendShipment()`. Set `$event->isValid = false` to skip.
 	 */
 	public const EVENT_BEFORE_SEND = 'beforeSend';
 
 	/**
-	 * @event SendIntegrationPayloadEvent fires after a successful `sendShipment()`.
+	 * @event SendIntegrationPayloadEvent The event fired after a successful `sendShipment()`.
 	 */
 	public const EVENT_AFTER_SEND = 'afterSend';
 
 	/**
-	 * @event CancelIntegrationPayloadEvent fires before `cancelShipment()`. Set `$event->isValid = false` to skip.
-	 *
-	 * ```php
-	 * use fostercommerce\shipments\base\Provider;
-	 * use fostercommerce\shipments\events\CancelIntegrationPayloadEvent;
-	 * use yii\base\Event;
-	 *
-	 * Event::on(Provider::class, Provider::EVENT_BEFORE_CANCEL, function (CancelIntegrationPayloadEvent $event) {
-	 *     // inspect $event->shipment / $event->order
-	 * });
-	 * ```
+	 * @event CancelIntegrationPayloadEvent The event fired before `cancelShipment()`. Set `$event->isValid = false` to skip.
 	 */
 	public const EVENT_BEFORE_CANCEL = 'beforeCancel';
 
 	/**
-	 * @event CancelIntegrationPayloadEvent fires after a successful `cancelShipment()`.
+	 * @event CancelIntegrationPayloadEvent The event fired after a successful `cancelShipment()`.
 	 */
 	public const EVENT_AFTER_CANCEL = 'afterCancel';
 
@@ -97,8 +74,7 @@ abstract class Provider extends SavableComponent implements ProviderInterface
 	abstract public function sendShipment(Shipment $shipment, Order $order): void;
 
 	/**
-	 * Cancel the shipment on the remote system. Default throws so providers that don't yet
-	 * implement cancellation surface a clear error; override to handle.
+	 * Cancel the shipment on the remote system. Override to handle; the default throws.
 	 *
 	 * @throws IntegrationException
 	 */
@@ -108,9 +84,9 @@ abstract class Provider extends SavableComponent implements ProviderInterface
 	}
 
 	/**
-	 * Handle an inbound webhook at `shipments/webhooks/<handle>`. Defensive default that throws
-	 * if reached; the webhook controller gates routing on `canReceiveUpdates()`, so a provider
-	 * that opts in must override this.
+	 * Handle an inbound webhook at `shipments/webhooks/<handle>`.
+	 *
+	 * Providers that opt in via `canReceiveUpdates()` must override this; the default throws.
 	 *
 	 * @throws IntegrationException
 	 */
@@ -120,8 +96,7 @@ abstract class Provider extends SavableComponent implements ProviderInterface
 	}
 
 	/**
-	 * Whether this provider accepts inbound webhook updates. The webhook controller returns
-	 * 405 when this is false.
+	 * Whether this provider accepts inbound webhook updates. The webhook controller returns 405 when false.
 	 */
 	public function canReceiveUpdates(): bool
 	{
@@ -138,8 +113,7 @@ abstract class Provider extends SavableComponent implements ProviderInterface
 	}
 
 	/**
-	 * Remote-initiated pull at `shipments/exports/<handle>`. Default throws so providers
-	 * that don't offer exports surface a clear error.
+	 * Remote-initiated pull at `shipments/exports/<handle>`. Override to offer exports; the default throws.
 	 *
 	 * @throws IntegrationException
 	 */

@@ -15,10 +15,9 @@ use fostercommerce\shipments\errors\IntegrationException;
 use fostercommerce\shipments\Plugin;
 
 /**
- * Placeholder provider returned by `Integrations::createProvider` when a saved provider class
- * can't be resolved; the plugin/module that registered it was uninstalled, the class was
- * renamed, etc. Matches Craft's `MissingComponentTrait` pattern so the settings UI can still
- * render the saved row without crashing.
+ * Placeholder returned by `Integrations::createProvider` when a saved provider class can't be
+ * resolved (uninstalled, renamed). Follows Craft's `MissingComponentTrait` so the settings UI
+ * can still render the saved row without crashing.
  */
 class MissingProvider extends Provider implements MissingComponentInterface
 {

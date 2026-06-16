@@ -21,8 +21,6 @@ use yii\db\Expression;
 /**
  * Outbound push for one (shipment, integration) pair. `PermanentIntegrationException`
  * marks the job failed without retry; plain `IntegrationException` lets Craft retry.
- *
- * @throws IntegrationException
  */
 class PushShipmentJob extends BaseJob
 {
@@ -86,9 +84,8 @@ class PushShipmentJob extends BaseJob
 	}
 
 	/**
-	 * Persist dateLastPushAttempt/Error + bump pushAttemptCount without going through afterSave.
-	 * Uses a SQL `pushAttemptCount + 1` expression so two pushes racing on the same shipment
-	 * each contribute to the counter rather than reading the same stale value.
+	 * Persist attempt metadata without going through afterSave. Uses a SQL `pushAttemptCount + 1`
+	 * expression so concurrent pushes on the same shipment each increment rather than racing on a stale read.
 	 */
 	private function recordAttempt(Shipment $shipment, ?string $error): void
 	{

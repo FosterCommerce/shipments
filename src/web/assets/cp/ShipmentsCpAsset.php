@@ -10,12 +10,8 @@ use craft\web\View;
 use fostercommerce\shipments\Plugin;
 
 /**
- * Control-panel asset bundle for the Shipments plugin. Ships the CSS + JS used by the order-
- * edit Shipments tab (staging-group creation flow, remove-shipment button) and the shipment
- * edit page (integration-references repeater).
- *
- * Mirrors the `CommerceCpAsset` shape: `sourcePath` under `/dist`, depends on `CpAsset`, all
- * files flat under `css/` and `js/`.
+ * Control-panel asset bundle: CSS + JS for the order-edit Shipments tab and the shipment edit page.
+ * Follows the `CommerceCpAsset` shape (`sourcePath` under `/dist`, depends on `CpAsset`).
  */
 class ShipmentsCpAsset extends AssetBundle
 {

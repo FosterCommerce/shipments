@@ -19,14 +19,13 @@ use Throwable;
 use yii\base\Component;
 
 /**
- * Binds emails to axis transitions. When a shipment transitions into a given
- * `(axis, toCode)`, every bound email is queued via `SendShipmentEmailJob`.
+ * Binds emails to axis transitions. A shipment transitioning into a given
+ * `(axis, toCode)` queues every bound email via `SendShipmentEmailJob`.
  */
 class TransitionEmails extends Component
 {
 	/**
-	 * Bindings for a given axis + target enum value. Returns full `Email` models
-	 * (not just ids) so callers can filter by enabled / skip the broken ones.
+	 * Returns bound emails for a given axis + target enum value.
 	 *
 	 * @return list<Email>
 	 */
@@ -56,7 +55,7 @@ class TransitionEmails extends Component
 	}
 
 	/**
-	 * Bindings for an individual email, keyed by axis, valued by a list of toCode strings.
+	 * Returns an email's bindings keyed by axis, valued by a list of toCode strings.
 	 *
 	 * @return array<string, list<string>>
 	 */
@@ -83,8 +82,7 @@ class TransitionEmails extends Component
 	}
 
 	/**
-	 * Replaces all bindings for the given email. Accepts two lists of enum-value
-	 * strings (one per axis); unknown codes are dropped silently.
+	 * Replaces all bindings for the given email. Unknown codes are dropped silently.
 	 *
 	 * @param list<string> $fulfillmentToCodes
 	 * @param list<string> $shippingToCodes

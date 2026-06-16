@@ -155,8 +155,9 @@ class IntegrationReferences extends Component
 	}
 
 	/**
-	 * Diff-and-apply the CP-posted references for a shipment. Unknown integrations and stale
-	 * ids throw; malformed rows are logged and skipped. Caller owns the transaction.
+	 * Diff-and-apply the CP-posted references for a shipment.
+	 *
+	 * Unknown integrations and stale ids throw; malformed rows are logged and skipped. Caller owns the transaction.
 	 *
 	 * @param list<array{id?: ?int, integrationId: int, externalId: string, url: ?string}> $rows
 	 * @throws Throwable

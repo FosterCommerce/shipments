@@ -12,11 +12,7 @@ use fostercommerce\shipments\Plugin;
 use yii\base\UserException;
 
 /**
- * Thrown when an axis transition fails an invariant (e.g. transitioning to
- * FulfillmentStatus::Fulfilled without a tracking number).
- *
- * `$reason` should already be translated by the caller; the exception composes
- * it into the full message via Craft::t so operators see a readable surface.
+ * Thrown when a status axis transition fails an invariant (e.g. reaching Fulfilled without a tracking number).
  */
 class InvalidTransitionException extends UserException
 {

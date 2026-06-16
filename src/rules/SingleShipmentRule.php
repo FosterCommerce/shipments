@@ -11,9 +11,9 @@ use fostercommerce\shipments\models\ShipmentPlan;
 use fostercommerce\shipments\Plugin;
 
 /**
- * Sweeps every remaining line-item quantity into a single shipment. Always runs last in the
- * orchestrator so that any quantities untouched by earlier rules end up grouped here; this is
- * what guarantees the "≥ 1 shipment per completed order" invariant.
+ * Sweeps every remaining line-item quantity into a single shipment.
+ *
+ * Runs last in the orchestrator, ensuring at least one shipment per completed order.
  */
 class SingleShipmentRule implements ShipmentRuleInterface
 {

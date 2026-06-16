@@ -11,13 +11,11 @@ use fostercommerce\shipments\db\Table;
 use fostercommerce\shipments\enums\FulfillmentStatus;
 
 /**
- * Cumulative install; reflects the full plugin schema for fresh installs. Schema changes
- * also ship an incremental `m*` migration to carry existing installs forward.
+ * Cumulative install reflecting the full schema. Every schema change must also ship an
+ * incremental `m*` migration to carry existing installs forward.
  *
- * Status model: two fixed-vocabulary axes (FulfillmentStatus, ShippingStatus) stored
- * as string codes on the shipment element's supplementary row. No user-editable
- * statuses table. Integration-specific external codes map into our vocabularies via
- * `shipments_integration_status_maps`.
+ * Status is two fixed-vocabulary axes (FulfillmentStatus, ShippingStatus) stored as string codes;
+ * integration-specific external codes map in via `shipments_integration_status_maps`.
  */
 class Install extends Migration
 {

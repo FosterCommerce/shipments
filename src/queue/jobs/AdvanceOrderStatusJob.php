@@ -10,9 +10,8 @@ use craft\queue\BaseJob;
 use fostercommerce\shipments\Plugin;
 
 /**
- * Advances an order to the configured status once every enabled shipment is shipped. Queued
- * from the shipment status-change event so the order save runs after the shipment write
- * commits, in its own transaction, and an order failure can never roll back the shipment.
+ * Advances an order to the configured status once every enabled shipment is shipped.
+ * Queued (not inline) so the order save runs in its own transaction and can't roll back the shipment write.
  */
 class AdvanceOrderStatusJob extends BaseJob
 {

@@ -16,9 +16,9 @@ use yii\web\NotFoundHttpException;
 use yii\web\Response;
 
 /**
- * Public entry point at `shipments/webhooks/<integrationHandle>`. Delegates to the
- * provider's `receiveShipmentUpdate()`; signature verification is the provider's job.
- * Returns 405 when the provider's `canReceiveUpdates()` returns false.
+ * Public entry point at `shipments/webhooks/<integrationHandle>`, delegating to the provider's `receiveShipmentUpdate()`.
+ *
+ * Signature verification is the provider's job. Returns 405 when `canReceiveUpdates()` is false.
  */
 class WebhooksController extends Controller
 {

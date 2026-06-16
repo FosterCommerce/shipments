@@ -8,9 +8,9 @@ use Craft;
 use fostercommerce\shipments\Plugin;
 
 /**
- * Carrier-driven shipping lifecycle. Normalized across providers so downstream
- * logic doesn't vary by carrier. Null on a shipment means no carrier event has
- * been observed yet.
+ * Carrier-driven shipping lifecycle, normalized across providers.
+ *
+ * Null on a shipment means no carrier event has been observed yet.
  */
 enum ShippingStatus: string
 {

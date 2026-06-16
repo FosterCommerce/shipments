@@ -7,17 +7,13 @@ namespace fostercommerce\shipments\models;
 use craft\base\Model;
 
 /**
- * DTO emitted by shipment rules describing a proposed shipment: which line items and in what
- * quantities. The orchestrator in `Rules::planFor()` assembles an ordered array of these and
- * the `Shipments` service persists them.
+ * DTO emitted by shipment rules describing a proposed shipment: which line items and quantities.
  */
 class ShipmentPlan extends Model
 {
 	/**
-	 * Handle of the rule that produced this plan. Rules with sub-variants (e.g.
-	 * `LineItemStatusRule` emits one plan per group) may append a colon suffix,
-	 * e.g. `line-item-status:backorder`. Consumers should treat everything up to
-	 * the first colon as the rule identifier.
+	 * Handle of the rule that produced this plan. May carry a colon suffix for sub-variants
+	 * (e.g. `line-item-status:backorder`); the rule identifier is everything before the first colon.
 	 */
 	public string $ruleHandle = '';
 

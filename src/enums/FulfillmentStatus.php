@@ -8,9 +8,7 @@ use Craft;
 use fostercommerce\shipments\Plugin;
 
 /**
- * Merchant / 3PL fulfillment lifecycle. Fixed vocabulary modeled on Shopify's
- * FulfillmentOrder + Fulfillment status enums. Each concrete status drives
- * downstream logic (push eligibility, attention rules, invariants).
+ * Merchant / 3PL fulfillment lifecycle.
  */
 enum FulfillmentStatus: string
 {
@@ -66,8 +64,7 @@ enum FulfillmentStatus: string
 	}
 
 	/**
-	 * Whether reaching this status requires a tracking number on the shipment. Only
-	 * `Fulfilled` is gated; every other status can be entered without tracking.
+	 * Whether reaching this status requires a tracking number on the shipment.
 	 */
 	public function requiresTrackingNumber(): bool
 	{

@@ -5,8 +5,9 @@ declare(strict_types=1);
 namespace fostercommerce\shipments\base;
 
 /**
- * HMAC helpers for webhook signature verification. Constant-time compare via
- * `hash_equals` to avoid timing attacks. Provider classes `use` this trait.
+ * HMAC helpers for webhook signature verification.
+ *
+ * Comparisons use `hash_equals` for constant-time matching.
  */
 trait WebhookSigning
 {

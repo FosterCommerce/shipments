@@ -43,9 +43,9 @@ use yii\base\Exception;
 use yii\base\InvalidArgumentException;
 
 /**
- * Core shipment lifecycle: create on complete, manual save, axis transitions, soft delete.
- * All status changes (CP edits, REST API, webhook ingestors) route through
- * `applyTransition` so invariants, history, events, and email triggers fire once.
+ * Shipment lifecycle service.
+ *
+ * All status changes route through {@see applyTransition} so invariants, history, and events fire once.
  */
 class Shipments extends Component
 {
@@ -106,8 +106,7 @@ class Shipments extends Component
 	}
 
 	/**
-	 * Trashed shipments for the order, powering the order tab's restore button. They reach the
-	 * trash by manual delete; older installs may also have some from the retired cascade-trash.
+	 * Returns trashed shipments for the order, ordered by reference number.
 	 *
 	 * @return list<Shipment>
 	 */
@@ -151,7 +150,7 @@ class Shipments extends Component
 	}
 
 	/**
-	 * Status-change timeline for a shipment, newest first.
+	 * Returns a shipment's status-change history, newest first.
 	 *
 	 * @return list<ShipmentStatusHistoryEntry>
 	 */
@@ -265,8 +264,7 @@ class Shipments extends Component
 	}
 
 	/**
-	 * Canonical export query: non-trashed shipments in `dateUpdated` range, ordered
-	 * deterministically, paginated. Format + auth belong to the provider.
+	 * Returns a paginated page of non-trashed shipments within the query's `dateUpdated` range.
 	 */
 	public function findForExport(ShipmentExportQuery $exportQuery): ShipmentExportResult
 	{
@@ -331,8 +329,9 @@ class Shipments extends Component
 	}
 
 	/**
-	 * Idempotent create; skips silently if the order already has any non-trashed shipments.
-	 * Serialized per-order so two concurrent order-complete fires can't double-create.
+	 * Creates shipments for a completed order from its shipment plan.
+	 *
+	 * Idempotent and serialized per-order: skips silently if the order already has non-trashed shipments.
 	 *
 	 * @return list<Shipment>
 	 * @throws Throwable
@@ -408,8 +407,9 @@ class Shipments extends Component
 	}
 
 	/**
-	 * Create shipments from staging-group POST rows. Verifies submitted totals against the
-	 * remaining pool; throws `AllocationMismatchException` on any mismatch.
+	 * Creates shipments from staging-group POST rows.
+	 *
+	 * Submitted totals must exactly match the order's remaining pool.
 	 *
 	 * @param list<array<int, int>> $postedAllocations
 	 * @return list<Shipment>
@@ -497,8 +497,9 @@ class Shipments extends Component
 	}
 
 	/**
-	 * Lower-level variant; skips the pool check. CP/API callers should use
-	 * `createFromStagingPost` instead.
+	 * Creates shipments directly from allocations, skipping the pool check.
+	 *
+	 * CP/API callers should use {@see createFromStagingPost} instead.
 	 *
 	 * @param list<array<int, int>> $allocations
 	 * @return list<Shipment>
@@ -536,9 +537,9 @@ class Shipments extends Component
 	}
 
 	/**
-	 * Saves fulfillment fields (tracking/carrier/etc.) on a shipment. Status changes
-	 * go through {@see applyTransition}, not this. Asserts coverage when
-	 * `enforceCoverage` is on.
+	 * Saves fulfillment fields (tracking, carrier, etc.) on a shipment.
+	 *
+	 * Status changes go through {@see applyTransition}, not this.
 	 *
 	 * @throws Throwable
 	 */
@@ -571,17 +572,11 @@ class Shipments extends Component
 	}
 
 	/**
-	 * Replace an existing shipment's line-item allocation in place. This is what the CP
-	 * line-items editor uses to split or rebalance a shipment: lowering a quantity returns those
-	 * units to the order's unallocated pool (where the order's Shipments tab can create a new
-	 * shipment for them), raising one consumes available pool. A quantity of 0 (i.e. a line item
-	 * omitted from `$lineItemQtys`) drops the line item.
+	 * Replaces a shipment's line-item allocation in place (omitting a line item drops it).
 	 *
 	 * Gates on {@see ShipmentLineItems::overflowForProposedAllocation} so the order can never be
-	 * over-allocated, then fires {@see EVENT_SHIPMENT_LINE_ITEMS_CHANGED} so providers can push
-	 * the revised shipment downstream as an update. It intentionally does not assert full
-	 * coverage: a split leaves the order transiently under-allocated until the replacement
-	 * shipment is created, and the order's under-allocation notice already surfaces that.
+	 * over-allocated. Does not assert full coverage: a split leaves the order transiently
+	 * under-allocated until the replacement shipment is created.
 	 *
 	 * @param array<int, int> $lineItemQtys lineItemId => qty
 	 * @throws AllocationOverflowException
@@ -706,8 +701,9 @@ class Shipments extends Component
 	}
 
 	/**
-	 * Apply a parsed remote update: fulfillment fields + optional axis transitions.
-	 * Idempotent, single transaction.
+	 * Applies a parsed remote update: fulfillment fields plus optional axis transitions.
+	 *
+	 * Idempotent; runs in a single transaction.
 	 *
 	 * @throws Throwable
 	 */
@@ -826,11 +822,10 @@ class Shipments extends Component
 	}
 
 	/**
-	 * Apply an axis transition. Single code path for CP edits, REST API calls,
-	 * and webhook ingestors. Writes the new code on the shipment, writes a history row
-	 * tagged with the source integration and external code, fires `EVENT_SHIPMENT_STATUS_CHANGED`,
-	 * and runs axis-specific
-	 * invariants + projection updates.
+	 * Applies an axis transition: writes the new code, records history, and fires
+	 * {@see EVENT_SHIPMENT_STATUS_CHANGED}.
+	 *
+	 * Single code path for CP edits, REST API calls, and webhook ingestors.
 	 *
 	 * @throws InvalidTransitionException
 	 * @throws Throwable
@@ -1044,10 +1039,9 @@ class Shipments extends Component
 	}
 
 	/**
-	 * Save one shipment, retrying reference allocation on collision (concurrent creates
-	 * on the same order can race `ShipmentReferences::allocate`).
+	 * Saves one shipment, retrying reference allocation on collision.
 	 *
-	 * @throws DuplicateShipmentReferenceException if retry also collides
+	 * @throws DuplicateShipmentReferenceException if the retries also collide
 	 */
 	private function persistSinglePlanWithReferenceRetry(int $orderId, FulfillmentStatus $fulfillmentStatus): Shipment
 	{

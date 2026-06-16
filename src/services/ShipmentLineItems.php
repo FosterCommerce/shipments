@@ -23,8 +23,7 @@ use yii\base\Component;
 use yii\caching\CacheInterface;
 
 /**
- * Quantity math for line items across an order's shipments. Responsible for computing the
- * per-line-item pool of unallocated qty and enforcing the full-coverage invariant.
+ * Quantity math for line items across an order's shipments: unallocated pool and coverage.
  */
 class ShipmentLineItems extends Component
 {
@@ -35,15 +34,14 @@ class ShipmentLineItems extends Component
 	private const ATTENTION_COUNT_CACHE_TTL = 300;
 
 	/**
-	 * @var array<int, array<int, int>> Resolved maps keyed by order id, so the resolve event fires once per order per request.
+	 * @var array<int, array<int, int>> resolved maps keyed by order id (caches the resolve event per order per request)
 	 */
 	private array $shippableUnitsByOrderId = [];
 
 	/**
-	 * Shippable unit count for every line item on the order, keyed by Commerce line item id.
-	 * Defaults to cart qty; the {@see ResolveShippableUnitsEvent} lets integrators override lines
-	 * whose shippable units differ from cart qty (summary/kit lines that stand for many physical
-	 * units). Pool and overflow math read through here so coverage matches the reported count.
+	 * Returns the shippable unit count per line item, keyed by Commerce line item id.
+	 *
+	 * Defaults to cart qty; {@see ResolveShippableUnitsEvent} lets integrators override it.
 	 *
 	 * @return array<int, int>
 	 */
@@ -77,9 +75,9 @@ class ShipmentLineItems extends Component
 	}
 
 	/**
-	 * Remaining (unallocated) qty for every non-ignored line item on the order, keyed by
-	 * Commerce line item id. Line items whose status handle matches the plugin's
-	 * `lineItemStatusesToIgnore` list are omitted entirely.
+	 * Returns the unallocated qty per non-ignored line item, keyed by Commerce line item id.
+	 *
+	 * Line items matching the plugin's `lineItemStatusesToIgnore` list are omitted.
 	 *
 	 * @return array<int, int>
 	 */
@@ -131,8 +129,7 @@ class ShipmentLineItems extends Component
 	}
 
 	/**
-	 * Qty already allocated to enabled, non-trashed shipments on the order, keyed by line
-	 * item id.
+	 * Returns qty allocated to enabled, non-trashed shipments on the order, keyed by line item id.
 	 *
 	 * @return array<int, int>
 	 */
@@ -170,8 +167,7 @@ class ShipmentLineItems extends Component
 	}
 
 	/**
-	 * True when the order's remaining pool has any positive values (completed order
-	 * lacking full shipment coverage).
+	 * Returns whether the order's remaining pool still has any unallocated qty.
 	 */
 	public function isOrderUnderAllocated(Order $order): bool
 	{
@@ -185,8 +181,7 @@ class ShipmentLineItems extends Component
 	}
 
 	/**
-	 * `lineItemId => qty missing` map for a single order, suitable for rendering
-	 * the notice on the order's Shipments tab.
+	 * Returns the `lineItemId => qty missing` map for the order.
 	 *
 	 * @return array<int, int>
 	 */
@@ -203,9 +198,9 @@ class ShipmentLineItems extends Component
 	}
 
 	/**
-	 * Completed, tracked-and-shippable order ids flagged under-allocated. Reads the cached
-	 * verdict on `shipments_tracked_orders.underAllocated`, which is kept fresh by
-	 * `TrackedOrders::recomputeUnderAllocation` on every shipment save/delete/restore.
+	 * Returns ids of tracked, shippable orders flagged under-allocated.
+	 *
+	 * Reads the cached verdict on `shipments_tracked_orders.underAllocated`, kept fresh by `TrackedOrders::recomputeUnderAllocation`.
 	 *
 	 * @return list<int>
 	 */
@@ -232,10 +227,8 @@ class ShipmentLineItems extends Component
 	}
 
 	/**
-	 * Would counting the given shipment's line-item allocations against the order's pool
-	 * push any line item over its ordered quantity? Returns the mismatches keyed by line
-	 * item id (`lineItemId => amount-by-which-we-would-overflow`) when yes, empty when no.
-	 * Used to gate re-enable and restore transitions.
+	 * Returns the overflow (`lineItemId => amount over`) if the shipment's persisted allocation
+	 * were counted against the order's pool, empty when none. Gates re-enable and restore.
 	 *
 	 * @return array<int, int>
 	 */
@@ -268,13 +261,10 @@ class ShipmentLineItems extends Component
 	}
 
 	/**
-	 * Would replacing the shipment's current allocation with the proposed quantities push any
-	 * line item over its ordered quantity? Returns the mismatches keyed by line item id
-	 * (`lineItemId => amount-by-which-we-would-overflow`) when yes, empty when no. Unlike
-	 * {@see overflowIfCounted}, which checks the persisted rows, this checks a *proposed*
-	 * allocation, so it gates an in-place line-item edit before it is written. The shipment's
-	 * own current allocation is excluded from the "already allocated" totals so that keeping or
-	 * lowering a quantity never reads as overflow.
+	 * Returns the overflow (`lineItemId => amount over`) if the proposed quantities replaced the
+	 * shipment's current allocation, empty when none.
+	 *
+	 * The shipment's own current allocation is excluded so keeping or lowering a qty never reads as overflow.
 	 *
 	 * @param array<int, int> $proposedQtys lineItemId => qty
 	 * @return array<int, int>
@@ -376,8 +366,7 @@ class ShipmentLineItems extends Component
 	}
 
 	/**
-	 * Badge count for the Attention-needed subnav: under-allocated tracked orders. Cached so
-	 * every CP page render doesn't run the aggregate query.
+	 * Returns the cached count of under-allocated tracked orders for the Attention-needed badge.
 	 */
 	public function getCachedAttentionCount(): int
 	{

@@ -14,13 +14,11 @@ use yii\web\NotFoundHttpException;
 use yii\web\Response;
 
 /**
- * Backs the per-order "Order requires shipping" lightswitch and the restore button:
- *   - set-active: track the order (admin owns fulfillment for it).
+ * Backs the per-order "Order requires shipping" lightswitch and the restore button.
+ *
+ *   - set-active: track the order. Refused while its Commerce status is in `orderStatusesToIgnore`.
  *   - set-ignored: drop the order off Attention; its shipments stay put.
  *   - restore-shipments: pull trashed shipments back into the order's allocation pool.
- *
- * set-active is refused while the order's Commerce status is in `orderStatusesToIgnore`:
- * that setting wins over the switch.
  */
 class TrackedOrdersController extends Controller
 {

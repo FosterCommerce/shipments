@@ -7,10 +7,9 @@ namespace fostercommerce\shipments\base;
 use craft\base\SavableComponentInterface;
 
 /**
- * Marker interface for plugin integrations. Follows Formie's pattern; the concrete contract
- * lives on the `Provider` abstract base class. Custom drivers typically subclass `Provider`
- * and implement `sendShipment()` / `cancelShipment()`, plus optionally `receiveShipmentUpdate()`
- * and `canReceiveUpdates()` when the remote pushes status updates back.
+ * Marker interface for plugin integrations.
+ *
+ * The concrete contract lives on the `Provider` abstract base class, which drivers subclass.
  */
 interface ProviderInterface extends SavableComponentInterface
 {

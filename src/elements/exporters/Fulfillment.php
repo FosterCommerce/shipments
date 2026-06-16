@@ -15,10 +15,8 @@ use fostercommerce\shipments\elements\Shipment;
 use fostercommerce\shipments\Plugin;
 
 /**
- * Fulfillment-ops CSV: one row per shipment with the columns warehouse and CS
- * teams ask for (reference, order, status labels, carrier, tracking, ship/deliver
- * dates). Streams via `Db::each()` and eager-loads the order so the per-row
- * order reference doesn't fan out into N queries.
+ * Fulfillment-ops CSV: one row per shipment (reference, order, status labels, carrier, tracking,
+ * ship/deliver dates). Eager-loads the order so the per-row reference doesn't fan out into N queries.
  */
 class Fulfillment extends ElementExporter
 {

@@ -14,14 +14,10 @@ use fostercommerce\shipments\Plugin;
 use Throwable;
 
 /**
- * Groups line items into shipments using explicit store-defined groups keyed by Commerce
- * shipping-category handles. Each group pairs a set of category handles with a mode:
- * `together` bundles all matching line items into one shipment; `per-item` emits one
- * shipment per matched line item. Line items whose shipping category isn't assigned to
- * any group fall through to the fallback shipment.
+ * Groups line items into shipments by Commerce shipping category, per store-defined groups.
  *
- * Typical use: separate LTL / freight items from parcel items, isolate hazmat, group
- * oversized goods for a different carrier.
+ * Each group's mode is `together` (one shipment for all matches) or `per-item` (one per match);
+ * line items whose category is unassigned fall through to the fallback shipment.
  */
 class ShippingCategoryRule implements ShipmentRuleInterface
 {

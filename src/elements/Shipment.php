@@ -33,15 +33,11 @@ use yii\base\Exception as YiiBaseException;
 use yii\db\IntegrityException;
 
 /**
- * Shipment element: a grouped allocation of order line-item quantities plus
- * fulfillment fields (tracking/carrier/service/dateScheduledShip/notes) and two
- * fixed-vocabulary status axes: `fulfillmentStatus` (merchant/3PL lifecycle) and
- * `shippingStatus` (carrier lifecycle).
+ * Shipment element: a grouped allocation of order line-item quantities plus fulfillment fields
+ * and two status axes, `fulfillmentStatus` (merchant/3PL) and `shippingStatus` (carrier).
  *
- * "Shipped at" and "delivered at" are not stored as columns; both are derived from
- * the first matching `shipments_status_history` row via `getDateShipped()` /
- * `getDateDelivered()`. The history table is the single source of truth for
- * transition timestamps.
+ * Transition timestamps are not stored as columns; `shipments_status_history` is their single
+ * source of truth, derived on demand via `getDateShipped()` / `getDateDelivered()`.
  */
 class Shipment extends Element
 {

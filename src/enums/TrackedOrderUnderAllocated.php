@@ -5,10 +5,8 @@ declare(strict_types=1);
 namespace fostercommerce\shipments\enums;
 
 /**
- * Cached verdict on `shipments_tracked_orders.underAllocated`. `Yes` means the order's enabled
- * shipments don't fully cover its non-ignored line items; `No` means they do. Recomputed on
- * every shipment save/delete/restore by `TrackedOrders::recomputeUnderAllocation`; read by the
- * Attention page query and the element-index `orderAllocation` sort.
+ * Cached verdict on `shipments_tracked_orders.underAllocated`: whether enabled shipments
+ * fail to fully cover the order's non-ignored line items.
  */
 enum TrackedOrderUnderAllocated: string
 {

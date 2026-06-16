@@ -10,10 +10,9 @@ use fostercommerce\shipments\elements\Shipment;
 use yii\base\Event;
 
 /**
- * Fired post-write (inside the transaction, like the status-changed event) whenever an
- * existing shipment's line-item allocation is edited in place via
- * {@see \fostercommerce\shipments\services\Shipments::saveLineItems}. Providers listen to
- * push the revised shipment to a remote system as an update.
+ * Fired inside the write transaction whenever an existing shipment's line-item allocation is
+ * edited in place via {@see \fostercommerce\shipments\services\Shipments::saveLineItems}.
+ * Providers listen to push the revised shipment to a remote system as an update.
  *
  * `previousQtys` and `newQtys` are `lineItemId => qty` maps. A line item present in
  * `previousQtys` but absent from `newQtys` was removed; one present only in `newQtys` was

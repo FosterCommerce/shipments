@@ -10,8 +10,7 @@ use fostercommerce\shipments\db\Table;
 use yii\db\ActiveQueryInterface;
 
 /**
- * One row per carrier-reported event. Deduped by `eventHash` (unique). Drives the
- * `shippingStatus` projection on the shipment element.
+ * One row per carrier-reported event, deduped by the unique `eventHash`.
  *
  * @property int $id
  * @property int $shipmentId

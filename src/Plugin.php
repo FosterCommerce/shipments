@@ -302,10 +302,9 @@ class Plugin extends \craft\base\Plugin
 	}
 
 	/**
-	 * Order-side edits (line-item qty changes, removals, status flips into the ignore list) can
-	 * leave the denormalized `underAllocated` column stale, because the shipment-side recompute
-	 * only fires on shipment writes. Recompute on order save so the Attention-needed badge and
-	 * page agree. Only completed orders are ever tracked, so carts bail before any DB lookup.
+	 * Recompute the denormalized `underAllocated` column on order save, since the shipment-side
+	 * recompute only fires on shipment writes and order-side edits can leave it stale.
+	 * Only completed orders are tracked, so carts bail before any DB lookup.
 	 */
 	private function recomputeUnderAllocationOnOrderSave(Event $event): void
 	{

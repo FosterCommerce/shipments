@@ -25,18 +25,11 @@ use yii\base\Component;
 use yii\base\InvalidArgumentException;
 
 /**
- * Manages the `shipments_tracked_orders` table: which completed orders the plugin is
- * actively watching for fulfillment, their cached shippability verdict, and the per-order
- * admin toggle.
+ * Tracked-orders service.
  *
- * Two entry points write rows here:
- *   1. `Shipments::createFor` calls `evaluateAndUpsert` before running the rules engine.
- *   2. The "Order requires shipping" lightswitch controller calls `markActive` when an
- *      admin toggles the switch on, routing through `evaluateAndUpsert`.
- *
- * The Attention page joins this table and filters by `state=active AND shippable=yes`.
- * Orders without a row are invisible to Attention, which is how pre-install history stays
- * quiet.
+ * Manages the `shipments_tracked_orders` table: which completed orders are watched for
+ * fulfillment, their cached shippability verdict, and the per-order admin toggle. Orders
+ * without a row are invisible to the Attention page (it filters `state=active AND shippable=yes`).
  */
 class TrackedOrders extends Component
 {
@@ -50,9 +43,9 @@ class TrackedOrders extends Component
 	}
 
 	/**
-	 * Intersects Commerce's own `LineItem::getIsShippable()` with the plugin's
-	 * `lineItemStatusesToIgnore` setting. If any line item passes both checks, the order
-	 * has shipping work to do.
+	 * Resolve whether the order still has shipping work.
+	 *
+	 * Intersects Commerce's `LineItem::getIsShippable()` with the `lineItemStatusesToIgnore` setting.
 	 */
 	public function resolveShippable(Order $order): TrackedOrderShippable
 	{
@@ -100,9 +93,11 @@ class TrackedOrders extends Component
 	}
 
 	/**
-	 * Idempotent upsert. Inserts a row if one doesn't exist; updates `shippable`,
-	 * `underAllocated`, and `evaluatedAt` if one does. Never flips `state`, admins own that
-	 * via the lightswitch.
+	 * Idempotently upsert the tracked-order row from a fresh evaluation.
+	 *
+	 * Never flips `state`: admins own that via the lightswitch.
+	 *
+	 * @throws InvalidArgumentException if the order has no id
 	 */
 	public function evaluateAndUpsert(Order $order): TrackedOrderRecord
 	{
@@ -141,11 +136,9 @@ class TrackedOrders extends Component
 	}
 
 	/**
-	 * Recompute and persist the `underAllocated` verdict for the order. Called from
-	 * `Shipment::afterSave`, `afterDelete`, and `afterRestore`, and from `Order::afterSave`, so
-	 * the cached column on `shipments_tracked_orders` stays in sync with the actual allocation
-	 * pool. Skips silently if the order isn't tracked yet; the tracking path computes the verdict
-	 * when it inserts. Invalidates the Attention-needed badge cache whenever the verdict flips.
+	 * Recompute and persist the `underAllocated` verdict for the order.
+	 *
+	 * Skips silently if the order isn't tracked yet. Invalidates the Attention-needed badge cache when the verdict flips.
 	 */
 	public function recomputeUnderAllocation(Order $order): void
 	{
@@ -178,8 +171,9 @@ class TrackedOrders extends Component
 	}
 
 	/**
-	 * Once every enabled shipment is shipped, move the order to the configured status. One-way:
-	 * `orderStatusAdvancedAt` stamps it so manual changes afterwards are left alone.
+	 * Move the order to the configured status once every enabled shipment is shipped.
+	 *
+	 * One-way: `orderStatusAdvancedAt` stamps it so later manual changes are left alone.
 	 */
 	public function advanceOrderStatusIfAllShipped(Order $order): void
 	{
@@ -255,10 +249,9 @@ class TrackedOrders extends Component
 	}
 
 	/**
-	 * Moves an order to `state=active`. If the order hasn't been tracked yet, inserts a new
-	 * row via `evaluateAndUpsert`. If the order's current status is in `orderStatusesToIgnore`,
-	 * the caller should have stopped earlier; this method trusts the caller to have enforced
-	 * that.
+	 * Move an order to `state=active`, tracking it first if needed.
+	 *
+	 * Trusts the caller to have already excluded statuses in `orderStatusesToIgnore`.
 	 */
 	public function markActive(Order $order): TrackedOrderRecord
 	{
@@ -273,7 +266,9 @@ class TrackedOrders extends Component
 	}
 
 	/**
-	 * Takes the order out of the plugin's active fulfillment scope.
+	 * Take the order out of the active fulfillment scope.
+	 *
+	 * @throws InvalidArgumentException if the order has no id
 	 */
 	public function markIgnored(Order $order): void
 	{
@@ -291,8 +286,7 @@ class TrackedOrders extends Component
 	}
 
 	/**
-	 * Catches up orders already sitting in a status the admin just added to the ignore list,
-	 * so they leave fulfillment scope now instead of waiting for their next status change.
+	 * Ignore active orders already sitting in a newly ignored status.
 	 *
 	 * @param list<string> $newlyIgnoredStatusHandles
 	 * @return int Number of orders moved to ignored.
@@ -348,9 +342,9 @@ class TrackedOrders extends Component
 	}
 
 	/**
-	 * Restores trashed shipments belonging to the order, in reference order. Each restore
-	 * runs the element's allocation guard via `beforeRestore`, so any shipment that would
-	 * over-allocate the order's pool is left trashed.
+	 * Restore the order's trashed shipments, in reference order.
+	 *
+	 * `beforeRestore` runs the allocation guard, so any shipment that would over-allocate the pool stays trashed.
 	 *
 	 * @return array{restored: int, skipped: int}
 	 */

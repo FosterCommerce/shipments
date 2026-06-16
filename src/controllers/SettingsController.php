@@ -17,10 +17,9 @@ use yii\web\ForbiddenHttpException;
 use yii\web\Response;
 
 /**
- * Renders the Shipments plugin's general settings page and handles saves. Mirrors
- * `craft\commerce\controllers\SettingsController`; we use a custom CP route instead
- * of Craft's default `plugins/save-plugin-settings` flow so the form isn't subject to
- * the delta-tracking wrapper in `_layouts/cp` (which silently strips our POST body).
+ * Renders the general settings page and handles saves.
+ *
+ * Uses a custom CP route instead of `plugins/save-plugin-settings` so the form escapes the `_layouts/cp` delta-tracking wrapper, which silently strips the POST body.
  */
 class SettingsController extends Controller
 {
@@ -104,9 +103,9 @@ class SettingsController extends Controller
 	}
 
 	/**
-	 * Diff of `orderStatusesToIgnore` between the incoming settings payload and the previous
-	 * value on the settings model. Returns only the handles that are new to the list; used
-	 * to scope the retroactive sweep so re-saving settings with no changes triggers nothing.
+	 * Returns the `orderStatusesToIgnore` handles new to the incoming payload versus the previous value.
+	 *
+	 * Scopes the retroactive sweep so re-saving with no changes triggers nothing.
 	 *
 	 * @param array<string, mixed> $incomingSettings
 	 * @param list<string> $previouslyIgnored
@@ -130,8 +129,7 @@ class SettingsController extends Controller
 	}
 
 	/**
-	 * Builds the render-variables payload for the settings page. Used by both the GET handler
-	 * and the POST failure path so validation errors stay visible on the re-rendered page.
+	 * Renders the settings page. Shared by the GET handler and the POST failure path so validation errors stay visible.
 	 */
 	private function renderSettings(): Response
 	{

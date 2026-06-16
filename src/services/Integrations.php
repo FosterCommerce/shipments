@@ -103,8 +103,7 @@ class Integrations extends Component
 	}
 
 	/**
-	 * Build a provider from a saved config. Returns `MissingProvider` if the class can't
-	 * resolve (Craft's `MissingComponentTrait` pattern).
+	 * Build a provider from a saved config, or a `MissingProvider` if the class can't resolve.
 	 *
 	 * @param array<string, mixed>|string $config
 	 * @throws Throwable
@@ -204,12 +203,9 @@ class Integrations extends Component
 	}
 
 	/**
-	 * Resolve an enabled integration handle to its bound provider. Callers needing a specific
-	 * provider type narrow with `instanceof` on the return value.
+	 * Resolve an enabled integration handle to its bound provider.
 	 *
-	 * Throws `PermanentIntegrationException` so callers can map to HTTP status without coupling
-	 * the service to `yii\web`. Exception code carries the intended HTTP status: 404 for an
-	 * unknown handle, 400 for disabled / unbound rows.
+	 * Exception code carries the intended HTTP status: 404 for an unknown handle, 400 for disabled or unbound rows.
 	 *
 	 * @throws PermanentIntegrationException
 	 */

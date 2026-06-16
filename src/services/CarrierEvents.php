@@ -144,10 +144,10 @@ class CarrierEvents extends Component
 	}
 
 	/**
-	 * Decides whether an inbound event should project onto the shipment's status. `Projected`
-	 * is the normal path; `SkippedDisabledShipment` records the event for audit when the
-	 * element-level `enabled` flag is off; `SkippedAttentionOff` covers the per-order
-	 * "Order requires shipping" lightswitch being off.
+	 * Decides whether an inbound event projects onto the shipment's status.
+	 *
+	 * Non-`Projected` reasons still record the event for audit: `SkippedDisabledShipment`
+	 * for the element-level `enabled` flag, `SkippedAttentionOff` for the per-order switch.
 	 */
 	private function resolveEventReason(Shipment $shipment): CarrierEventReason
 	{

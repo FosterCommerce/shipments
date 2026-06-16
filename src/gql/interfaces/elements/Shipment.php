@@ -138,9 +138,8 @@ class Shipment extends Element
 	}
 
 	/**
-	 * Surfaces custom-field GraphQL types from the shipment field layout. Shipments use a
-	 * single project-wide layout; custom fields appear under their handle alongside the
-	 * built-in attributes.
+	 * Surfaces custom-field GraphQL types from the single project-wide shipment field layout,
+	 * keyed by field handle alongside the built-in attributes.
 	 *
 	 * @return array<string, Type|array<string, mixed>>
 	 */

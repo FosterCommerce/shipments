@@ -28,9 +28,8 @@ class ShipmentUpdatePayload extends Model
 	public ?string $service = null;
 
 	/**
-	 * Accepts a `DateTime`, an ISO-8601 string, an int Unix timestamp, or Craft's
-	 * `['date' => ..., 'time' => ..., 'timezone' => ...]` form. Normalized to `DateTime|null`
-	 * by the validator so consumers can rely on `instanceof DateTime`.
+	 * Accepts a `DateTime`, ISO-8601 string, Unix timestamp, or Craft date-array form.
+	 * The validator normalizes it to `DateTime|null` so consumers can rely on `instanceof DateTime`.
 	 *
 	 * @var DateTime|string|int|array<string, mixed>|null
 	 */

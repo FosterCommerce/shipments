@@ -11,9 +11,7 @@ use fostercommerce\shipments\db\Table;
 use yii\db\ActiveQueryInterface;
 
 /**
- * Row shape for `{{%shipments_tracked_orders}}`. `shippable` holds a
- * `TrackedOrderShippable` value; `state` holds a `TrackedOrderState` value. Both are
- * stored as their string case values so the record layer can remain enum-agnostic.
+ * Per-order tracking row for the Attention page. Enum columns store string case values.
  *
  * @property int $id
  * @property int $orderId

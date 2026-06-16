@@ -5,11 +5,9 @@ declare(strict_types=1);
 namespace fostercommerce\shipments\base;
 
 /**
- * Small trait shared by the plugin's CP controllers for narrowing POST body params to the
- * shapes services expect. Every public save/edit entry point coerces raw mixed input here
- * before handing it to a service, so the services can assume typed data.
+ * Narrows POST body params to the shapes services expect.
  *
- * Not a substitute for Craft's `Typecast` (which is model-shaped); this is request-shaped.
+ * Request-shaped, not a substitute for Craft's model-shaped `Typecast`.
  */
 trait ControllerBodyParamsTrait
 {
@@ -29,8 +27,7 @@ trait ControllerBodyParamsTrait
 	}
 
 	/**
-	 * Normalizes an "ids" param (typically posted by reorder JS) to a list of ints. Anything
-	 * non-numeric is dropped silently; the caller asked for ids and that's all this returns.
+	 * Normalizes an "ids" param to a list of ints, dropping non-numeric entries.
 	 *
 	 * @return list<int>
 	 */
