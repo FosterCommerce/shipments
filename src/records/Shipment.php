@@ -16,9 +16,7 @@ use yii\db\ActiveQueryInterface;
  * @property int $orderId
  * @property string $reference
  * @property int $number
- * @property string $fulfillmentStatus
- * @property ?string $shippingStatus
- * @property ?DateTime $dateShippingStatus
+ * @property string $status
  * @property ?DateTime $dateScheduledShip
  * @property ?string $trackingNumber
  * @property ?string $trackingUrl

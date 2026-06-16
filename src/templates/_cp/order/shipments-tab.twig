@@ -114,16 +114,12 @@
 		<h2>{{ 'nav.shipments'|t('shipments') }} ({{ shipments|length }})</h2>
 
 		{% for shipment in shipments %}
-			{% set fulfillmentEnum = shipment.fulfillmentStatusEnum %}
-			{% set shippingEnum = shipment.shippingStatusEnum %}
+			{% set statusEnum = shipment.statusEnum %}
 			<div class="pane shipments-card">
 				<div class="shipments-card-header">
 					<h3>
 						<code>{{ shipment.reference }}</code>
-						<span class="status-label {{ fulfillmentEnum.color() }}"><span class="status {{ fulfillmentEnum.color() }}"></span><span class="status-label-text">{{ fulfillmentEnum.label() }}</span></span>
-						{% if shippingEnum %}
-							<span class="status-label {{ shippingEnum.color() }}"><span class="status {{ shippingEnum.color() }}"></span><span class="status-label-text">{{ shippingEnum.label() }}</span></span>
-						{% endif %}
+						<span class="status-label {{ statusEnum.color() }}"><span class="status {{ statusEnum.color() }}"></span><span class="status-label-text">{{ statusEnum.label() }}</span></span>
 					</h3>
 					<div>
 						<a href="{{ shipment.cpEditUrl }}" class="btn">{{ 'shipmentEdit.editDetails'|t('shipments') }}</a>

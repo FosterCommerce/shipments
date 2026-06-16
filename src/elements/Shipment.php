@@ -20,9 +20,7 @@ use DateTime;
 use fostercommerce\shipments\db\Table;
 use fostercommerce\shipments\elements\db\ShipmentQuery;
 use fostercommerce\shipments\elements\exporters\Fulfillment as FulfillmentExporter;
-use fostercommerce\shipments\enums\FulfillmentStatus;
-use fostercommerce\shipments\enums\ShippingStatus;
-use fostercommerce\shipments\enums\StatusAxis;
+use fostercommerce\shipments\enums\Status;
 use fostercommerce\shipments\errors\AllocationOverflowException;
 use fostercommerce\shipments\errors\DuplicateShipmentReferenceException;
 use fostercommerce\shipments\models\IntegrationReference;
@@ -34,20 +32,16 @@ use yii\db\IntegrityException;
 
 /**
  * Shipment element: a grouped allocation of order line-item quantities plus fulfillment fields
- * and two status axes, `fulfillmentStatus` (merchant/3PL) and `shippingStatus` (carrier).
+ * and a single `status` axis.
  *
  * Transition timestamps are not stored as columns; `shipments_status_history` is their single
- * source of truth, derived on demand via `getDateShipped()` / `getDateDelivered()`.
+ * source of truth, derived on demand via `getDateShipped()`.
  */
 class Shipment extends Element
 {
 	public ?int $orderId = null;
 
-	public string $fulfillmentStatus = FulfillmentStatus::Open->value;
-
-	public ?string $shippingStatus = null;
-
-	public ?DateTime $dateShippingStatus = null;
+	public string $status = Status::Open->value;
 
 	public ?DateTime $dateScheduledShip = null;
 
@@ -88,10 +82,6 @@ class Shipment extends Element
 	private ?DateTime $_dateShipped = null;
 
 	private bool $_dateShippedLoaded = false;
-
-	private ?DateTime $_dateDelivered = null;
-
-	private bool $_dateDeliveredLoaded = false;
 
 	/**
 	 * Cache of `orderId => isUnderAllocated` across per-request element renders so the
@@ -167,7 +157,7 @@ class Shipment extends Element
 	public static function statuses(): array
 	{
 		$map = [];
-		foreach (FulfillmentStatus::cases() as $case) {
+		foreach (Status::cases() as $case) {
 			$map[$case->value] = [
 				'label' => $case->label(),
 				'color' => $case->color(),
@@ -184,49 +174,26 @@ class Shipment extends Element
 
 	public function getStatus(): ?string
 	{
-		return $this->fulfillmentStatus;
+		return $this->status;
 	}
 
-	public function getFulfillmentStatusEnum(): FulfillmentStatus
+	public function getStatusEnum(): Status
 	{
-		return FulfillmentStatus::from($this->fulfillmentStatus);
-	}
-
-	public function getShippingStatusEnum(): ?ShippingStatus
-	{
-		if ($this->shippingStatus === null) {
-			return null;
-		}
-
-		return ShippingStatus::tryFrom($this->shippingStatus);
+		return Status::from($this->status);
 	}
 
 	/**
-	 * First time the carrier reported `in_transit`, derived from `shipments_status_history`.
+	 * First time the shipment reached `shipped`, derived from `shipments_status_history`.
 	 * Null when no such transition has ever happened.
 	 */
 	public function getDateShipped(): ?DateTime
 	{
 		if (! $this->_dateShippedLoaded) {
-			$this->_dateShipped = $this->loadHistoryDate(StatusAxis::Shipping, ShippingStatus::InTransit->value);
+			$this->_dateShipped = $this->loadHistoryDate(Status::Shipped->value);
 			$this->_dateShippedLoaded = true;
 		}
 
 		return $this->_dateShipped;
-	}
-
-	/**
-	 * First time the carrier reported `delivered`, derived from `shipments_status_history`.
-	 * Null when no such transition has ever happened.
-	 */
-	public function getDateDelivered(): ?DateTime
-	{
-		if (! $this->_dateDeliveredLoaded) {
-			$this->_dateDelivered = $this->loadHistoryDate(StatusAxis::Shipping, ShippingStatus::Delivered->value);
-			$this->_dateDeliveredLoaded = true;
-		}
-
-		return $this->_dateDelivered;
 	}
 
 	public function getCpEditUrl(): ?string
@@ -468,9 +435,7 @@ class Shipment extends Element
 			$record->orderId = (int) $this->orderId;
 			$record->reference = (string) $this->reference;
 			$record->number = (int) $this->number;
-			$record->fulfillmentStatus = $this->fulfillmentStatus;
-			$record->shippingStatus = $this->shippingStatus;
-			$record->dateShippingStatus = $this->dateShippingStatus;
+			$record->status = $this->status;
 			$record->dateScheduledShip = $this->dateScheduledShip;
 			$record->trackingNumber = $this->trackingNumber;
 			$record->trackingUrl = $this->trackingUrl;
@@ -517,12 +482,8 @@ class Shipment extends Element
 	{
 		$serialized = parent::toArray($fields, $expand, $recursive);
 
-		if ($fields === [] || in_array('fulfillmentStatus', $fields, true)) {
-			$serialized['fulfillmentStatus'] = $this->getFulfillmentStatusEnum()->label();
-		}
-
-		if ($fields === [] || in_array('shippingStatus', $fields, true)) {
-			$serialized['shippingStatus'] = $this->getShippingStatusEnum()?->label();
+		if ($fields === [] || in_array('status', $fields, true)) {
+			$serialized['status'] = $this->getStatusEnum()->label();
 		}
 
 		if (in_array('orderAllocation', $fields, true) || $fields === []) {
@@ -540,13 +501,10 @@ class Shipment extends Element
 	protected function defineRules(): array
 	{
 		return array_merge(parent::defineRules(), [
-			[['orderId', 'fulfillmentStatus'], 'required'],
-			[['fulfillmentStatus'],
+			[['orderId', 'status'], 'required'],
+			[['status'],
 				'in',
-				'range' => array_map(static fn (FulfillmentStatus $case): string => $case->value, FulfillmentStatus::cases())],
-			[['shippingStatus'],
-				'in',
-				'range' => array_map(static fn (ShippingStatus $case): string => $case->value, ShippingStatus::cases())],
+				'range' => array_map(static fn (Status $case): string => $case->value, Status::cases())],
 			[['reference'],
 				'string',
 				'max' => 255],
@@ -558,7 +516,7 @@ class Shipment extends Element
 				'defaultScheme' => 'https'],
 			[['fulfillmentNotes', 'shippingNotes', 'lastPushAttemptError'], 'string'],
 			[['number', 'pushAttemptCount'], 'integer'],
-			[['dateShippingStatus', 'dateScheduledShip', 'dateLastPushAttempt'], 'safe'],
+			[['dateScheduledShip', 'dateLastPushAttempt'], 'safe'],
 		]);
 	}
 
@@ -574,31 +532,16 @@ class Shipment extends Element
 				'defaultSort' => ['dateCreated', 'desc'],
 			],
 			[
-				'heading' => Craft::t(Plugin::HANDLE, 'shipmentEdit.fulfillmentStatusLabel'),
+				'heading' => Craft::t(Plugin::HANDLE, 'shipmentEdit.statusLabel'),
 			],
 		];
 
-		foreach (FulfillmentStatus::cases() as $case) {
+		foreach (Status::cases() as $case) {
 			$sources[] = [
-				'key' => 'fulfillmentStatus:' . $case->value,
+				'key' => 'status:' . $case->value,
 				'label' => $case->label(),
 				'criteria' => [
-					'fulfillmentStatus' => $case->value,
-				],
-				'defaultSort' => ['dateCreated', 'desc'],
-			];
-		}
-
-		$sources[] = [
-			'heading' => Craft::t(Plugin::HANDLE, 'shipmentEdit.shippingStatusLabel'),
-		];
-
-		foreach (ShippingStatus::cases() as $case) {
-			$sources[] = [
-				'key' => 'shippingStatus:' . $case->value,
-				'label' => $case->label(),
-				'criteria' => [
-					'shippingStatus' => $case->value,
+					'status' => $case->value,
 				],
 				'defaultSort' => ['dateCreated', 'desc'],
 			];
@@ -616,11 +559,8 @@ class Shipment extends Element
 			'order' => [
 				'label' => Craft::t(Plugin::HANDLE, 'shipmentEdit.order'),
 			],
-			'fulfillmentStatus' => [
-				'label' => Craft::t(Plugin::HANDLE, 'shipmentEdit.fulfillmentTab'),
-			],
-			'shippingStatus' => [
-				'label' => Craft::t(Plugin::HANDLE, 'shipmentEdit.shippingTab'),
+			'status' => [
+				'label' => Craft::t(Plugin::HANDLE, 'shipmentEdit.statusLabel'),
 			],
 			'carrier' => [
 				'label' => Craft::t(Plugin::HANDLE, 'shipmentEdit.tracking.carrier'),
@@ -670,8 +610,7 @@ class Shipment extends Element
 	{
 		return [
 			'order',
-			'fulfillmentStatus',
-			'shippingStatus',
+			'status',
 			'carrier',
 			'trackingNumber',
 			'orderAllocation',
@@ -691,14 +630,9 @@ class Shipment extends Element
 				'attribute' => 'reference',
 			],
 			[
-				'label' => Craft::t(Plugin::HANDLE, 'shipmentEdit.fulfillmentStatusLabel'),
-				'orderBy' => '[[shipments_shipments.fulfillmentStatus]]',
-				'attribute' => 'fulfillmentStatus',
-			],
-			[
-				'label' => Craft::t(Plugin::HANDLE, 'shipmentEdit.shippingStatusLabel'),
-				'orderBy' => '[[shipments_shipments.shippingStatus]]',
-				'attribute' => 'shippingStatus',
+				'label' => Craft::t(Plugin::HANDLE, 'shipmentEdit.statusLabel'),
+				'orderBy' => '[[shipments_shipments.status]]',
+				'attribute' => 'status',
 			],
 			[
 				'label' => Craft::t(Plugin::HANDLE, 'shipmentEdit.tracking.carrier'),
@@ -735,8 +669,7 @@ class Shipment extends Element
 	{
 		return match ($attribute) {
 			'order' => $this->orderAttributeHtml(),
-			'fulfillmentStatus' => $this->fulfillmentStatusAttributeHtml(),
-			'shippingStatus' => $this->shippingStatusAttributeHtml(),
+			'status' => $this->statusAttributeHtml(),
 			'trackingNumber' => $this->trackingAttributeHtml(),
 			'orderAllocation' => $this->orderAllocationAttributeHtml(),
 			default => parent::attributeHtml($attribute),
@@ -796,22 +729,9 @@ class Shipment extends Element
 		);
 	}
 
-	private function fulfillmentStatusAttributeHtml(): string
+	private function statusAttributeHtml(): string
 	{
-		$case = $this->getFulfillmentStatusEnum();
-		return Cp::statusLabelHtml([
-			'label' => $case->label(),
-			'color' => $case->color(),
-		]) ?? '';
-	}
-
-	private function shippingStatusAttributeHtml(): string
-	{
-		$case = $this->getShippingStatusEnum();
-		if (! $case instanceof ShippingStatus) {
-			return '';
-		}
-
+		$case = $this->getStatusEnum();
 		return Cp::statusLabelHtml([
 			'label' => $case->label(),
 			'color' => $case->color(),
@@ -878,7 +798,7 @@ class Shipment extends Element
 		return Html::tag('code', Html::encode($trackingNumber));
 	}
 
-	private function loadHistoryDate(StatusAxis $axis, string $toCode): ?DateTime
+	private function loadHistoryDate(string $toCode): ?DateTime
 	{
 		if ($this->id === null) {
 			return null;
@@ -891,7 +811,6 @@ class Shipment extends Element
 			])
 			->where([
 				'[[history.shipmentId]]' => $this->id,
-				'[[history.axis]]' => $axis->value,
 				'[[history.toCode]]' => $toCode,
 			])
 			->orderBy([

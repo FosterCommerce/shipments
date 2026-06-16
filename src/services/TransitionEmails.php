@@ -7,9 +7,7 @@ namespace fostercommerce\shipments\services;
 use Craft;
 use craft\db\Query;
 use fostercommerce\shipments\db\Table;
-use fostercommerce\shipments\enums\FulfillmentStatus;
-use fostercommerce\shipments\enums\ShippingStatus;
-use fostercommerce\shipments\enums\StatusAxis;
+use fostercommerce\shipments\enums\Status;
 use fostercommerce\shipments\events\ShipmentStatusChangedEvent;
 use fostercommerce\shipments\models\Email;
 use fostercommerce\shipments\Plugin;
@@ -19,23 +17,22 @@ use Throwable;
 use yii\base\Component;
 
 /**
- * Binds emails to axis transitions. A shipment transitioning into a given
- * `(axis, toCode)` queues every bound email via `SendShipmentEmailJob`.
+ * Binds emails to status transitions. A shipment transitioning into a given
+ * `toCode` queues every bound email via `SendShipmentEmailJob`.
  */
 class TransitionEmails extends Component
 {
 	/**
-	 * Returns bound emails for a given axis + target enum value.
+	 * Returns bound emails for a given target Status value.
 	 *
 	 * @return list<Email>
 	 */
-	public function findForTransition(StatusAxis $axis, FulfillmentStatus|ShippingStatus $toCode): array
+	public function findForTransition(Status $toCode): array
 	{
 		$ids = (new Query())
 			->select(['emailId'])
 			->from(Table::TRANSITION_EMAILS)
 			->where([
-				'axis' => $axis->value,
 				'toCode' => $toCode->value,
 			])
 			->column();
@@ -55,40 +52,31 @@ class TransitionEmails extends Component
 	}
 
 	/**
-	 * Returns an email's bindings keyed by axis, valued by a list of toCode strings.
+	 * Returns an email's bound toCode strings.
 	 *
-	 * @return array<string, list<string>>
+	 * @return list<string>
 	 */
 	public function findBindingsForEmailId(int $emailId): array
 	{
-		/** @var list<array{axis: string, toCode: string}> $rows */
-		$rows = (new Query())
-			->select(['axis', 'toCode'])
+		/** @var list<string> $toCodes */
+		$toCodes = (new Query())
+			->select(['toCode'])
 			->from(Table::TRANSITION_EMAILS)
 			->where([
 				'emailId' => $emailId,
 			])
-			->all();
+			->column();
 
-		$bindings = [
-			StatusAxis::Fulfillment->value => [],
-			StatusAxis::Shipping->value => [],
-		];
-		foreach ($rows as $row) {
-			$bindings[$row['axis']][] = $row['toCode'];
-		}
-
-		return $bindings;
+		return $toCodes;
 	}
 
 	/**
 	 * Replaces all bindings for the given email. Unknown codes are dropped silently.
 	 *
-	 * @param list<string> $fulfillmentToCodes
-	 * @param list<string> $shippingToCodes
+	 * @param list<string> $toCodes
 	 * @throws Throwable
 	 */
-	public function saveBindingsForEmailId(int $emailId, array $fulfillmentToCodes, array $shippingToCodes): void
+	public function saveBindingsForEmailId(int $emailId, array $toCodes): void
 	{
 		$transaction = Craft::$app->getDb()->beginTransaction();
 
@@ -99,26 +87,13 @@ class TransitionEmails extends Component
 				])
 				->execute();
 
-			foreach ($fulfillmentToCodes as $code) {
-				if (! FulfillmentStatus::tryFrom($code) instanceof FulfillmentStatus) {
+			foreach ($toCodes as $code) {
+				if (! Status::tryFrom($code) instanceof Status) {
 					continue;
 				}
 
 				$record = new ShipmentTransitionEmail();
 				$record->emailId = $emailId;
-				$record->axis = StatusAxis::Fulfillment->value;
-				$record->toCode = $code;
-				$record->save(false);
-			}
-
-			foreach ($shippingToCodes as $code) {
-				if (! ShippingStatus::tryFrom($code) instanceof ShippingStatus) {
-					continue;
-				}
-
-				$record = new ShipmentTransitionEmail();
-				$record->emailId = $emailId;
-				$record->axis = StatusAxis::Shipping->value;
 				$record->toCode = $code;
 				$record->save(false);
 			}
@@ -152,7 +127,7 @@ class TransitionEmails extends Component
 			return;
 		}
 
-		$emails = $this->findForTransition($event->axis, $event->toCode);
+		$emails = $this->findForTransition($event->toCode);
 		if ($emails === []) {
 			return;
 		}
@@ -170,7 +145,6 @@ class TransitionEmails extends Component
 			$queue->push(new SendShipmentEmailJob([
 				'shipmentId' => $event->shipment->id,
 				'emailId' => $email->id,
-				'axis' => $event->axis->value,
 				'toCode' => $event->toCode->value,
 				'historyId' => $event->history->id,
 				'userId' => $event->user?->id,

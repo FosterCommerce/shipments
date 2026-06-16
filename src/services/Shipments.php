@@ -17,13 +17,10 @@ use DateTimeZone;
 use fostercommerce\shipments\db\Table;
 use fostercommerce\shipments\elements\db\ShipmentQuery;
 use fostercommerce\shipments\elements\Shipment;
-use fostercommerce\shipments\enums\FulfillmentStatus;
-use fostercommerce\shipments\enums\ShippingStatus;
-use fostercommerce\shipments\enums\StatusAxis;
+use fostercommerce\shipments\enums\Status;
 use fostercommerce\shipments\errors\AllocationMismatchException;
 use fostercommerce\shipments\errors\AllocationOverflowException;
 use fostercommerce\shipments\errors\DuplicateShipmentReferenceException;
-use fostercommerce\shipments\errors\InvalidTransitionException;
 use fostercommerce\shipments\errors\OrderNotCompletedException;
 use fostercommerce\shipments\events\CreateShipmentsEvent;
 use fostercommerce\shipments\events\ShipmentLineItemsChangedEvent;
@@ -210,21 +207,11 @@ class Shipments extends Component
 
 		$entries = [];
 		foreach ($rows as $row) {
-			$axisRaw = $row['axis'] ?? null;
-			if (! is_string($axisRaw)) {
-				continue;
-			}
-
-			$axis = StatusAxis::tryFrom($axisRaw);
-			if (! $axis instanceof StatusAxis) {
-				continue;
-			}
-
 			$toCodeRaw = $row['toCode'] ?? null;
-			$toCode = is_string($toCodeRaw) ? $axis->resolveCode($toCodeRaw) : null;
+			$toCode = is_string($toCodeRaw) ? Status::tryFrom($toCodeRaw) : null;
 
 			$fromCodeRaw = $row['fromCode'] ?? null;
-			$fromCode = is_string($fromCodeRaw) && $fromCodeRaw !== '' ? $axis->resolveCode($fromCodeRaw) : null;
+			$fromCode = is_string($fromCodeRaw) && $fromCodeRaw !== '' ? Status::tryFrom($fromCodeRaw) : null;
 
 			$user = null;
 			if (is_numeric($row['userId'] ?? null)) {
@@ -249,7 +236,6 @@ class Shipments extends Component
 			$sourceExternalCode = is_string($sourceExternalCodeRaw) && $sourceExternalCodeRaw !== '' ? $sourceExternalCodeRaw : null;
 
 			$entries[] = new ShipmentStatusHistoryEntry(
-				axis: $axis,
 				fromCode: $fromCode,
 				toCode: $toCode,
 				user: $user,
@@ -293,7 +279,7 @@ class Shipments extends Component
 		}
 
 		if ($exportQuery->statusHandle !== null && $exportQuery->statusHandle !== '') {
-			$query->fulfillmentStatus($exportQuery->statusHandle);
+			$query->status($exportQuery->statusHandle);
 		}
 
 		if ($exportQuery->storeId !== null) {
@@ -701,7 +687,7 @@ class Shipments extends Component
 	}
 
 	/**
-	 * Applies a parsed remote update: fulfillment fields plus optional axis transitions.
+	 * Applies a parsed remote update: tracking fields plus an optional status transition.
 	 *
 	 * Idempotent; runs in a single transaction.
 	 *
@@ -769,23 +755,12 @@ class Shipments extends Component
 			}
 		}
 
-		$targetFulfillment = null;
-		if ($payload->targetFulfillmentCode !== null && $payload->targetFulfillmentCode !== '') {
-			$targetFulfillment = FulfillmentStatus::tryFrom($payload->targetFulfillmentCode);
-			if (! $targetFulfillment instanceof FulfillmentStatus) {
+		$targetStatus = null;
+		if ($payload->targetStatusCode !== null && $payload->targetStatusCode !== '') {
+			$targetStatus = Status::tryFrom($payload->targetStatusCode);
+			if (! $targetStatus instanceof Status) {
 				Craft::warning(
-					"Shipments::applyUpdate: unknown fulfillment code “{$payload->targetFulfillmentCode}”; ignored.",
-					Plugin::HANDLE,
-				);
-			}
-		}
-
-		$targetShipping = null;
-		if ($payload->targetShippingCode !== null && $payload->targetShippingCode !== '') {
-			$targetShipping = ShippingStatus::tryFrom($payload->targetShippingCode);
-			if (! $targetShipping instanceof ShippingStatus) {
-				Craft::warning(
-					"Shipments::applyUpdate: unknown shipping code “{$payload->targetShippingCode}”; ignored.",
+					"Shipments::applyUpdate: unknown status code “{$payload->targetStatusCode}”; ignored.",
 					Plugin::HANDLE,
 				);
 			}
@@ -798,15 +773,8 @@ class Shipments extends Component
 				$shipment = $this->saveManual($shipment, $order);
 			}
 
-			if ($targetFulfillment instanceof FulfillmentStatus && $shipment->fulfillmentStatus !== $targetFulfillment->value) {
-				$transitioned = $this->applyTransition($shipment, StatusAxis::Fulfillment, $targetFulfillment, $user, $payload->fulfillmentStatusMessage, $source, $externalCode);
-				if ($transitioned instanceof Shipment) {
-					$shipment = $transitioned;
-				}
-			}
-
-			if ($targetShipping instanceof ShippingStatus && $shipment->shippingStatus !== $targetShipping->value) {
-				$transitioned = $this->applyTransition($shipment, StatusAxis::Shipping, $targetShipping, $user, $payload->shippingStatusMessage, $source, $externalCode);
+			if ($targetStatus instanceof Status && $shipment->status !== $targetStatus->value) {
+				$transitioned = $this->applyTransition($shipment, $targetStatus, $user, $payload->statusMessage, $source, $externalCode);
 				if ($transitioned instanceof Shipment) {
 					$shipment = $transitioned;
 				}
@@ -822,34 +790,23 @@ class Shipments extends Component
 	}
 
 	/**
-	 * Applies an axis transition: writes the new code, records history, and fires
+	 * Applies a status transition: writes the new code, records history, and fires
 	 * {@see EVENT_SHIPMENT_STATUS_CHANGED}.
 	 *
 	 * Single code path for CP edits, REST API calls, and webhook ingestors.
 	 *
-	 * @throws InvalidTransitionException
 	 * @throws Throwable
 	 */
 	public function applyTransition(
 		Shipment $shipment,
-		StatusAxis $axis,
-		FulfillmentStatus|ShippingStatus $to,
+		Status $to,
 		?User $user = null,
 		?string $message = null,
 		?Integration $source = null,
 		?string $externalCode = null,
-		FulfillmentStatus|ShippingStatus|null $expectedFromCode = null,
 	): ?Shipment {
 		if ($shipment->id === null) {
 			return null;
-		}
-
-		if ($axis === StatusAxis::Fulfillment && ! $to instanceof FulfillmentStatus) {
-			throw new InvalidArgumentException('Fulfillment axis requires a FulfillmentStatus case.');
-		}
-
-		if ($axis === StatusAxis::Shipping && ! $to instanceof ShippingStatus) {
-			throw new InvalidArgumentException('Shipping axis requires a ShippingStatus case.');
 		}
 
 		// Per-shipment lock so concurrent transitions can't race the same row.
@@ -862,7 +819,7 @@ class Shipments extends Component
 		}
 
 		try {
-			// Re-read under the lock so optimistic checks use the canonical state.
+			// Re-read under the lock so the transition writes from canonical state.
 			$current = $this->findById($shipment->id, includeTrashed: true);
 			if (! $current instanceof Shipment || $current->id === null) {
 				return null;
@@ -871,35 +828,12 @@ class Shipments extends Component
 			$shipment = $current;
 			$shipmentId = $current->id;
 
-			$fromCode = match ($axis) {
-				StatusAxis::Fulfillment => FulfillmentStatus::tryFrom($shipment->fulfillmentStatus),
-				StatusAxis::Shipping => $shipment->shippingStatus !== null ? ShippingStatus::tryFrom($shipment->shippingStatus) : null,
-			};
-
-			if ($expectedFromCode !== null && $fromCode?->value !== $expectedFromCode->value) {
-				throw new InvalidTransitionException(
-					$shipmentId,
-					$axis,
-					$to,
-					Craft::t(Plugin::HANDLE, 'error.expectedAxisMismatch', [
-						'axis' => $axis->value,
-						'expected' => $expectedFromCode->value,
-						'actual' => $fromCode?->value ?? 'null',
-					]),
-				);
-			}
+			$fromCode = Status::tryFrom($shipment->status);
 
 			$transaction = Craft::$app->getDb()->beginTransaction();
 
 			try {
-				if ($axis === StatusAxis::Fulfillment && $to instanceof FulfillmentStatus) {
-					$shipment->fulfillmentStatus = $to->value;
-				}
-
-				if ($axis === StatusAxis::Shipping && $to instanceof ShippingStatus) {
-					$shipment->shippingStatus = $to->value;
-					$shipment->dateShippingStatus = new DateTime();
-				}
+				$shipment->status = $to->value;
 
 				if (! Craft::$app->getElements()->saveElement($shipment)) {
 					$errors = $shipment->getFirstErrors();
@@ -910,7 +844,6 @@ class Shipments extends Component
 
 				$history = new ShipmentStatusHistory();
 				$history->shipmentId = $shipmentId;
-				$history->axis = $axis->value;
 				$history->fromCode = $fromCode?->value;
 				$history->toCode = $to->value;
 				$history->message = $message;
@@ -928,7 +861,6 @@ class Shipments extends Component
 				// with the status write.
 				$event = new ShipmentStatusChangedEvent();
 				$event->shipment = $shipment;
-				$event->axis = $axis;
 				$event->fromCode = $fromCode;
 				$event->toCode = $to;
 				$event->history = $history;
@@ -981,17 +913,16 @@ class Shipments extends Component
 		try {
 			$saved = [];
 			foreach ($plans as $plan) {
-				$fulfillmentStatus = $plan->suggestedStatusHandle !== null
-					? FulfillmentStatus::from($plan->suggestedStatusHandle)
-					: FulfillmentStatus::Open;
+				$status = $plan->suggestedStatusHandle !== null
+					? Status::from($plan->suggestedStatusHandle)
+					: Status::Open;
 
-				$shipment = $this->persistSinglePlanWithReferenceRetry($orderId, $fulfillmentStatus);
+				$shipment = $this->persistSinglePlanWithReferenceRetry($orderId, $status);
 
 				$creationHistory = new ShipmentStatusHistory();
 				$creationHistory->shipmentId = (int) $shipment->id;
-				$creationHistory->axis = StatusAxis::Fulfillment->value;
 				$creationHistory->fromCode = null;
-				$creationHistory->toCode = $fulfillmentStatus->value;
+				$creationHistory->toCode = $status->value;
 				$creationHistory->userId = $currentUser?->id;
 				if (! $creationHistory->save()) {
 					$errors = $creationHistory->getFirstErrors();
@@ -1019,9 +950,8 @@ class Shipments extends Component
 
 				$statusChangedEvent = new ShipmentStatusChangedEvent();
 				$statusChangedEvent->shipment = $shipment;
-				$statusChangedEvent->axis = StatusAxis::Fulfillment;
 				$statusChangedEvent->fromCode = null;
-				$statusChangedEvent->toCode = $fulfillmentStatus;
+				$statusChangedEvent->toCode = $status;
 				$statusChangedEvent->history = $creationHistory;
 				$statusChangedEvent->user = $currentUser;
 				$this->trigger(self::EVENT_SHIPMENT_STATUS_CHANGED, $statusChangedEvent);
@@ -1043,14 +973,14 @@ class Shipments extends Component
 	 *
 	 * @throws DuplicateShipmentReferenceException if the retries also collide
 	 */
-	private function persistSinglePlanWithReferenceRetry(int $orderId, FulfillmentStatus $fulfillmentStatus): Shipment
+	private function persistSinglePlanWithReferenceRetry(int $orderId, Status $status): Shipment
 	{
 		$attempts = 0;
 		while (true) {
 			$attempts++;
 			$shipment = new Shipment();
 			$shipment->orderId = $orderId;
-			$shipment->fulfillmentStatus = $fulfillmentStatus->value;
+			$shipment->status = $status->value;
 
 			try {
 				if (! Craft::$app->getElements()->saveElement($shipment)) {

@@ -11,9 +11,7 @@ use craft\web\Controller;
 use DateTimeInterface;
 use fostercommerce\shipments\base\ControllerBodyParamsTrait;
 use fostercommerce\shipments\elements\Shipment;
-use fostercommerce\shipments\enums\FulfillmentStatus;
-use fostercommerce\shipments\enums\ShippingStatus;
-use fostercommerce\shipments\enums\StatusAxis;
+use fostercommerce\shipments\enums\Status;
 use fostercommerce\shipments\errors\AllocationMismatchException;
 use fostercommerce\shipments\errors\AllocationOverflowException;
 use fostercommerce\shipments\errors\OrderNotCompletedException;
@@ -67,8 +65,7 @@ class ShipmentsController extends Controller
 		return $this->renderTemplate(Plugin::HANDLE . '/_cp/shipment/edit', [
 			'shipment' => $shipment,
 			'order' => $order,
-			'fulfillmentStatusOptions' => FulfillmentStatus::labelMap(),
-			'shippingStatusOptions' => ShippingStatus::labelMap(),
+			'statusOptions' => Status::labelMap(),
 			'integrations' => $integrations,
 			'statusHistory' => $statusHistory,
 			'unallocatedPool' => $plugin->shipmentLineItems->remainingPoolFor($order),
@@ -139,39 +136,16 @@ class ShipmentsController extends Controller
 		}
 
 		$user = Craft::$app->getUser()->getIdentity();
-		$fulfillmentMessage = $this->bodyString('fulfillmentStatusMessage');
-		$shippingMessage = $this->bodyString('shippingStatusMessage');
+		$statusMessage = $this->bodyString('statusMessage');
+		$statusInput = $this->bodyString('status') ?? '';
 
-		$fulfillmentInput = $this->bodyString('fulfillmentStatus') ?? '';
-		$shippingInput = $this->bodyString('shippingStatus') ?? '';
-
-		if (
-			($fulfillmentInput !== '' && $fulfillmentInput !== $saved->fulfillmentStatus)
-			|| ($shippingInput !== '' && $shippingInput !== $saved->shippingStatus)
-		) {
+		if ($statusInput !== '' && $statusInput !== $saved->status) {
 			$this->requirePermission(Plugin::PERMISSION_TRANSITION);
-		}
 
-		if ($fulfillmentInput !== '' && $fulfillmentInput !== $saved->fulfillmentStatus) {
-			$target = FulfillmentStatus::tryFrom($fulfillmentInput);
-			if ($target instanceof FulfillmentStatus) {
+			$target = Status::tryFrom($statusInput);
+			if ($target instanceof Status) {
 				try {
-					$transitioned = $plugin->shipments->applyTransition($saved, StatusAxis::Fulfillment, $target, $user, $fulfillmentMessage);
-					if ($transitioned instanceof Shipment) {
-						$saved = $transitioned;
-					}
-				} catch (Throwable $throwable) {
-					Craft::$app->getSession()->setError($throwable->getMessage());
-					return null;
-				}
-			}
-		}
-
-		if ($shippingInput !== '' && $shippingInput !== $saved->shippingStatus) {
-			$target = ShippingStatus::tryFrom($shippingInput);
-			if ($target instanceof ShippingStatus) {
-				try {
-					$transitioned = $plugin->shipments->applyTransition($saved, StatusAxis::Shipping, $target, $user, $shippingMessage);
+					$transitioned = $plugin->shipments->applyTransition($saved, $target, $user, $statusMessage);
 					if ($transitioned instanceof Shipment) {
 						$saved = $transitioned;
 					}

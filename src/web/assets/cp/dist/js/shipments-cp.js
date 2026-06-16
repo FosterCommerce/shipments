@@ -29,7 +29,6 @@
 		initIntegrationReferencesRepeater();
 		initIntegrationProviderPanels();
 		initSettingsAddRuleButtons();
-		initStatusHistoryFilter();
 	});
 
 	// Line-items editor on the shipment edit page: posts the current quantities so the service
@@ -63,28 +62,6 @@
 				saveButton.disabled = false;
 				const errorBody = error?.response?.data ?? {};
 				Craft.cp.displayError(errorBody.message || Craft.t('shipments', 'error.couldNotSaveLineItems'));
-			});
-		});
-	}
-
-	function initStatusHistoryFilter() {
-		const filterGroup = document.getElementById('shipments-history-filter');
-		const historyTable = document.getElementById('shipments-history-table');
-		if (!filterGroup || !historyTable) {
-			return;
-		}
-
-		const rows = historyTable.querySelectorAll('tbody tr[data-history-type]');
-		filterGroup.querySelectorAll('button[data-history-filter]').forEach(function (button) {
-			button.addEventListener('click', function () {
-				const filter = button.getAttribute('data-history-filter');
-				filterGroup.querySelectorAll('button[data-history-filter]').forEach(function (other) {
-					other.classList.toggle('active', other === button);
-				});
-				rows.forEach(function (row) {
-					const rowType = row.getAttribute('data-history-type');
-					row.classList.toggle('hidden', filter !== 'all' && rowType !== filter);
-				});
 			});
 		});
 	}

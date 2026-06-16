@@ -12,9 +12,8 @@ use yii\db\ActiveQueryInterface;
 /**
  * @property int $id
  * @property int $shipmentId
- * @property string $axis              'fulfillment' | 'shipping'
- * @property ?string $fromCode         enum value of the axis, or null on first entry
- * @property string $toCode            enum value of the axis
+ * @property ?string $fromCode         Status value, or null on first entry
+ * @property string $toCode            Status value
  * @property ?string $message
  * @property ?int $userId
  * @property ?int $sourceIntegrationId

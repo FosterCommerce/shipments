@@ -118,28 +118,16 @@
 	<p class="light">{{ 'emails.triggersHelp'|t('shipments') }}</p>
 
 	{% if email.id %}
-		{% set fulfillmentOptions = [] %}
-		{% for code, label in fulfillmentStatusOptions %}
-			{% set fulfillmentOptions = fulfillmentOptions|merge([{ label: label, value: code }]) %}
-		{% endfor %}
-
-		{% set shippingOptions = [] %}
-		{% for code, label in shippingStatusOptions %}
-			{% set shippingOptions = shippingOptions|merge([{ label: label, value: code }]) %}
+		{% set statusFieldOptions = [] %}
+		{% for code, label in statusOptions %}
+			{% set statusFieldOptions = statusFieldOptions|merge([{ label: label, value: code }]) %}
 		{% endfor %}
 
 		{{ forms.checkboxGroupField({
-			label: 'emails.fulfillmentStatusTriggers'|t('shipments'),
-			name: 'fulfillmentBindings',
-			values: fulfillmentBindings,
-			options: fulfillmentOptions,
-		}) }}
-
-		{{ forms.checkboxGroupField({
-			label: 'emails.shippingStatusTriggers'|t('shipments'),
-			name: 'shippingBindings',
-			values: shippingBindings,
-			options: shippingOptions,
+			label: 'emails.statusTriggers'|t('shipments'),
+			name: 'statusBindings',
+			values: statusBindings,
+			options: statusFieldOptions,
 		}) }}
 	{% else %}
 		<p class="light"><em>{{ 'emails.saveFirstForTriggers'|t('shipments') }}</em></p>

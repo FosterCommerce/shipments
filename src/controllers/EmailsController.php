@@ -7,9 +7,7 @@ namespace fostercommerce\shipments\controllers;
 use Craft;
 use craft\web\Controller;
 use fostercommerce\shipments\base\ControllerBodyParamsTrait;
-use fostercommerce\shipments\enums\FulfillmentStatus;
-use fostercommerce\shipments\enums\ShippingStatus;
-use fostercommerce\shipments\enums\StatusAxis;
+use fostercommerce\shipments\enums\Status;
 use fostercommerce\shipments\models\Email;
 use fostercommerce\shipments\Plugin;
 use fostercommerce\shipments\records\Email as EmailRecord;
@@ -59,12 +57,9 @@ class EmailsController extends Controller
 			}
 		}
 
-		$bindings = $email->id !== null
+		$statusBindings = $email->id !== null
 			? $plugin->transitionEmails->findBindingsForEmailId($email->id)
-			: [
-				StatusAxis::Fulfillment->value => [],
-				StatusAxis::Shipping->value => [],
-			];
+			: [];
 
 		return $this->renderTemplate(Plugin::HANDLE . '/settings/emails/_edit', [
 			'email' => $email,
@@ -72,10 +67,8 @@ class EmailsController extends Controller
 				EmailRecord::TYPE_CUSTOMER => Craft::t(Plugin::HANDLE, 'emails.recipientType.customer'),
 				EmailRecord::TYPE_CUSTOM => Craft::t(Plugin::HANDLE, 'emails.recipientType.custom'),
 			],
-			'fulfillmentStatusOptions' => FulfillmentStatus::labelMap(),
-			'shippingStatusOptions' => ShippingStatus::labelMap(),
-			'fulfillmentBindings' => $bindings[StatusAxis::Fulfillment->value] ?? [],
-			'shippingBindings' => $bindings[StatusAxis::Shipping->value] ?? [],
+			'statusOptions' => Status::labelMap(),
+			'statusBindings' => $statusBindings,
 			'title' => $email->id === null
 				? Craft::t(Plugin::HANDLE, 'emails.createNew')
 				: (string) $email->name,
@@ -128,13 +121,11 @@ class EmailsController extends Controller
 			return null;
 		}
 
-		$fulfillmentRaw = $this->request->getBodyParam('fulfillmentBindings', []);
-		$shippingRaw = $this->request->getBodyParam('shippingBindings', []);
-		$fulfillmentCodes = is_array($fulfillmentRaw) ? array_values(array_filter($fulfillmentRaw, 'is_string')) : [];
-		$shippingCodes = is_array($shippingRaw) ? array_values(array_filter($shippingRaw, 'is_string')) : [];
+		$statusRaw = $this->request->getBodyParam('statusBindings', []);
+		$statusCodes = is_array($statusRaw) ? array_values(array_filter($statusRaw, 'is_string')) : [];
 
 		if ($email->id !== null) {
-			$plugin->transitionEmails->saveBindingsForEmailId($email->id, $fulfillmentCodes, $shippingCodes);
+			$plugin->transitionEmails->saveBindingsForEmailId($email->id, $statusCodes);
 		}
 
 		Craft::$app->getSession()->setNotice(Craft::t(Plugin::HANDLE, 'emails.saved'));

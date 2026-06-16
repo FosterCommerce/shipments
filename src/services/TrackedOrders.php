@@ -13,7 +13,6 @@ use craft\db\Query;
 use DateTime;
 use fostercommerce\shipments\db\Table;
 use fostercommerce\shipments\elements\Shipment;
-use fostercommerce\shipments\enums\ShippingStatus;
 use fostercommerce\shipments\enums\TrackedOrderShippable;
 use fostercommerce\shipments\enums\TrackedOrderState;
 use fostercommerce\shipments\enums\TrackedOrderUnderAllocated;
@@ -202,8 +201,7 @@ class TrackedOrders extends Component
 		}
 
 		foreach ($enabledShipments as $shipment) {
-			$shippingStatus = $shipment->getShippingStatusEnum();
-			if (! $shippingStatus instanceof ShippingStatus || ! $shippingStatus->advancesOrder()) {
+			if (! $shipment->getStatusEnum()->advancesOrder()) {
 				return;
 			}
 		}

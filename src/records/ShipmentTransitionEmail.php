@@ -10,8 +10,7 @@ use yii\db\ActiveQueryInterface;
 
 /**
  * @property int $id
- * @property string $axis         'fulfillment' | 'shipping'
- * @property string $toCode       enum value the transition must land on to trigger
+ * @property string $toCode       Status value the transition must land on to trigger
  * @property int $emailId
  * @property string $dateCreated
  * @property string $dateUpdated

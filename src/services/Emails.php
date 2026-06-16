@@ -251,7 +251,6 @@ class Emails extends Component
 		$renderVariables = [
 			'shipment' => $shipment,
 			'order' => $order,
-			'axis' => $context->axis,
 			'fromCode' => $context->fromCode,
 			'toCode' => $context->toCode,
 			'statusHistory' => $context->history,

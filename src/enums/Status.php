@@ -8,9 +8,9 @@ use Craft;
 use fostercommerce\shipments\Plugin;
 
 /**
- * Merchant / 3PL fulfillment lifecycle.
+ * Shipment status lifecycle.
  */
-enum FulfillmentStatus: string
+enum Status: string
 {
 	case Open = 'open';
 
@@ -18,9 +18,9 @@ enum FulfillmentStatus: string
 
 	case Scheduled = 'scheduled';
 
-	case OnHold = 'on_hold';
+	case Shipped = 'shipped';
 
-	case Fulfilled = 'fulfilled';
+	case OnHold = 'on_hold';
 
 	case Cancelled = 'cancelled';
 
@@ -29,13 +29,13 @@ enum FulfillmentStatus: string
 	public function label(): string
 	{
 		return match ($this) {
-			self::Open => Craft::t(Plugin::HANDLE, 'status.fulfillment.open'),
-			self::InProgress => Craft::t(Plugin::HANDLE, 'status.fulfillment.inProgress'),
-			self::Scheduled => Craft::t(Plugin::HANDLE, 'status.fulfillment.scheduled'),
-			self::OnHold => Craft::t(Plugin::HANDLE, 'status.fulfillment.onHold'),
-			self::Fulfilled => Craft::t(Plugin::HANDLE, 'status.fulfillment.fulfilled'),
-			self::Cancelled => Craft::t(Plugin::HANDLE, 'status.fulfillment.cancelled'),
-			self::Incomplete => Craft::t(Plugin::HANDLE, 'status.fulfillment.incomplete'),
+			self::Open => Craft::t(Plugin::HANDLE, 'status.open'),
+			self::InProgress => Craft::t(Plugin::HANDLE, 'status.inProgress'),
+			self::Scheduled => Craft::t(Plugin::HANDLE, 'status.scheduled'),
+			self::Shipped => Craft::t(Plugin::HANDLE, 'status.shipped'),
+			self::OnHold => Craft::t(Plugin::HANDLE, 'status.onHold'),
+			self::Cancelled => Craft::t(Plugin::HANDLE, 'status.cancelled'),
+			self::Incomplete => Craft::t(Plugin::HANDLE, 'status.incomplete'),
 		};
 	}
 
@@ -48,8 +48,8 @@ enum FulfillmentStatus: string
 			self::Open => 'gray',
 			self::InProgress => 'blue',
 			self::Scheduled => 'purple',
+			self::Shipped => 'green',
 			self::OnHold => 'orange',
-			self::Fulfilled => 'green',
 			self::Cancelled => 'red',
 			self::Incomplete => 'red',
 		};
@@ -58,7 +58,7 @@ enum FulfillmentStatus: string
 	public function isTerminal(): bool
 	{
 		return match ($this) {
-			self::Fulfilled, self::Cancelled => true,
+			self::Shipped, self::Cancelled => true,
 			default => false,
 		};
 	}
@@ -68,7 +68,15 @@ enum FulfillmentStatus: string
 	 */
 	public function requiresTrackingNumber(): bool
 	{
-		return $this === self::Fulfilled;
+		return $this === self::Shipped;
+	}
+
+	/**
+	 * Whether reaching this status advances the Commerce order to the configured target.
+	 */
+	public function advancesOrder(): bool
+	{
+		return $this === self::Shipped;
 	}
 
 	/**

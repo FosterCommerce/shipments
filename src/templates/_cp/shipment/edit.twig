@@ -2,12 +2,10 @@
 {% import "_includes/forms" as forms %}
 
 {#
-	Shipment edit page: full-page CP form with permanent tabs. Two status axes
-	(fulfillment, shipping) are editable inline. Registers `ShipmentsCpAsset`
-	from the controller.
+	Shipment edit page: full-page CP form with permanent tabs. Status and tracking fields
+	are editable inline. Registers `ShipmentsCpAsset` from the controller.
 
-	@var fulfillmentStatusOptions array<string, string>
-	@var shippingStatusOptions array<string, string>
+	@var statusOptions array<string, string>
 #}
 
 {% set fullPageForm = true %}
@@ -41,14 +39,9 @@
 {% endfor %}
 {% set selectedTab = selectedTab ?? 'shipmentDetails' %}
 
-{% set fulfillmentSelectOptions = [] %}
-{% for code, label in fulfillmentStatusOptions %}
-	{% set fulfillmentSelectOptions = fulfillmentSelectOptions|merge([{ label: label, value: code }]) %}
-{% endfor %}
-
-{% set shippingSelectOptions = [{ label: 'common.none'|t('shipments'), value: '' }] %}
-{% for code, label in shippingStatusOptions %}
-	{% set shippingSelectOptions = shippingSelectOptions|merge([{ label: label, value: code }]) %}
+{% set statusSelectOptions = [] %}
+{% for code, label in statusOptions %}
+	{% set statusSelectOptions = statusSelectOptions|merge([{ label: label, value: code }]) %}
 {% endfor %}
 
 {% block actionButton %}
@@ -103,12 +96,6 @@
 			<div class="data">
 				<h5 class="heading">{{ 'shipmentEdit.statusHistory.dateShipped'|t('shipments') }}</h5>
 				<div class="value">{{ shipment.dateShipped|datetime('short') }}</div>
-			</div>
-		{% endif %}
-		{% if shipment.dateDelivered %}
-			<div class="data">
-				<h5 class="heading">{{ 'status.shipping.delivered'|t('shipments') }}</h5>
-				<div class="value">{{ shipment.dateDelivered|datetime('short') }}</div>
 			</div>
 		{% endif %}
 		{% if shipment.dateCreated %}
@@ -167,22 +154,22 @@
 
 	{# Details tab #}
 	<div id="shipment-details">
-		<h2>{{ 'shipmentEdit.fulfillmentTab'|t('shipments') }}</h2>
+		<h2>{{ 'shipmentEdit.statusLabel'|t('shipments') }}</h2>
 
 		{{ forms.selectField({
-			label: 'shipmentEdit.fulfillmentStatusLabel'|t('shipments'),
-			instructions: 'shipmentEdit.fulfillmentStatusHelp'|t('shipments'),
-			id: 'fulfillmentStatus',
-			name: 'fulfillmentStatus',
-			value: shipment.fulfillmentStatus,
-			options: fulfillmentSelectOptions,
+			label: 'shipmentEdit.statusLabel'|t('shipments'),
+			instructions: 'shipmentEdit.statusHelp'|t('shipments'),
+			id: 'status',
+			name: 'status',
+			value: shipment.status,
+			options: statusSelectOptions,
 		}) }}
 
 		{{ forms.textareaField({
 			label: 'shipmentEdit.statusChangeNote'|t('shipments'),
-			instructions: 'shipmentEdit.fulfillmentStatusNoteHelp'|t('shipments'),
-			id: 'fulfillmentStatusMessage',
-			name: 'fulfillmentStatusMessage',
+			instructions: 'shipmentEdit.statusNoteHelp'|t('shipments'),
+			id: 'statusMessage',
+			name: 'statusMessage',
 			class: 'fullwidth',
 			rows: 2,
 		}) }}
@@ -207,25 +194,7 @@
 
 		<hr>
 
-		<h2>{{ 'shipmentEdit.shippingTab'|t('shipments') }}</h2>
-
-		{{ forms.selectField({
-			label: 'shipmentEdit.shippingStatusLabel'|t('shipments'),
-			instructions: 'shipmentEdit.shippingStatusHelp'|t('shipments'),
-			id: 'shippingStatus',
-			name: 'shippingStatus',
-			value: shipment.shippingStatus,
-			options: shippingSelectOptions,
-		}) }}
-
-		{{ forms.textareaField({
-			label: 'shipmentEdit.statusChangeNote'|t('shipments'),
-			instructions: 'shipmentEdit.shippingStatusNoteHelp'|t('shipments'),
-			id: 'shippingStatusMessage',
-			name: 'shippingStatusMessage',
-			class: 'fullwidth',
-			rows: 2,
-		}) }}
+		<h2>{{ 'shipmentEdit.tracking.heading'|t('shipments') }}</h2>
 
 		<div class="flex shipments-field-row">
 			<div class="flex-grow">
@@ -427,16 +396,9 @@
 	{# Status history tab #}
 	<div id="status-history" class="hidden">
 		{% if statusHistory|length %}
-			<div class="btngroup shipments-history-filter" id="shipments-history-filter">
-				<button type="button" class="btn active" data-history-filter="all">{{ 'common.all'|t('shipments') }}</button>
-				<button type="button" class="btn" data-history-filter="fulfillment">{{ 'shipmentEdit.fulfillmentTab'|t('shipments') }}</button>
-				<button type="button" class="btn" data-history-filter="shipping">{{ 'shipmentEdit.shippingTab'|t('shipments') }}</button>
-			</div>
-
 			<table class="data fullwidth" id="shipments-history-table">
 				<thead>
 					<tr>
-						<th>{{ 'settings.integrations.type'|t('shipments') }}</th>
 						<th>{{ 'shipmentEdit.statusHistory.from'|t('shipments') }}</th>
 						<th>{{ 'emails.field.to'|t('shipments') }}</th>
 						<th>{{ 'shipmentEdit.statusHistory.updatedBy'|t('shipments') }}</th>
@@ -446,13 +408,7 @@
 				</thead>
 				<tbody>
 					{% for entry in statusHistory %}
-						<tr data-history-type="{{ entry.axis.value }}">
-							<td>
-								<strong>{{ entry.axis.label() }}</strong>
-								{% if entry.message %}
-									<div class="light shipments-history-message">{{ entry.message }}</div>
-								{% endif %}
-							</td>
+						<tr>
 							<td>
 								{% if entry.fromCode %}
 									{{ entry.fromCode.label() }}
@@ -465,6 +421,9 @@
 									<strong>{{ entry.toCode.label() }}</strong>
 								{% else %}
 									<span class="light">-</span>
+								{% endif %}
+								{% if entry.message %}
+									<div class="light shipments-history-message">{{ entry.message }}</div>
 								{% endif %}
 							</td>
 							<td>

@@ -15,8 +15,8 @@ use fostercommerce\shipments\elements\Shipment;
 use fostercommerce\shipments\Plugin;
 
 /**
- * Fulfillment-ops CSV: one row per shipment (reference, order, status labels, carrier, tracking,
- * ship/deliver dates). Eager-loads the order so the per-row reference doesn't fan out into N queries.
+ * Fulfillment-ops CSV: one row per shipment (reference, order, status label, carrier, tracking,
+ * ship date). Eager-loads the order so the per-row reference doesn't fan out into N queries.
  */
 class Fulfillment extends ElementExporter
 {
@@ -50,15 +50,13 @@ class Fulfillment extends ElementExporter
 			'reference' => $shipment->reference,
 			'order' => $this->orderLabel($order),
 			'orderId' => $shipment->orderId,
-			'fulfillmentStatus' => $shipment->getFulfillmentStatusEnum()->label(),
-			'shippingStatus' => $shipment->getShippingStatusEnum()?->label(),
+			'status' => $shipment->getStatusEnum()->label(),
 			'carrier' => $shipment->carrier,
 			'service' => $shipment->service,
 			'trackingNumber' => $shipment->trackingNumber,
 			'trackingUrl' => $shipment->trackingUrl,
 			'dateScheduledShip' => $shipment->dateScheduledShip?->format('c'),
 			'dateShipped' => $shipment->getDateShipped()?->format('c'),
-			'dateDelivered' => $shipment->getDateDelivered()?->format('c'),
 			'dateCreated' => $shipment->dateCreated?->format('c'),
 			'enabled' => $shipment->enabled ? 'yes' : 'no',
 			'fulfillmentNotes' => $shipment->fulfillmentNotes,

@@ -7,9 +7,10 @@ namespace fostercommerce\shipments\elements\db;
 use craft\db\Query;
 use craft\elements\db\ElementQuery;
 use craft\helpers\Db;
-use DateTimeInterface;
 use fostercommerce\shipments\db\Table;
 use fostercommerce\shipments\elements\Shipment;
+use fostercommerce\shipments\enums\Status;
+use yii\db\ExpressionInterface;
 
 /**
  * Element query for {@see Shipment} elements.
@@ -24,10 +25,6 @@ class ShipmentQuery extends ElementQuery
 {
 	public mixed $orderId = null;
 
-	public mixed $fulfillmentStatus = null;
-
-	public mixed $shippingStatus = null;
-
 	public mixed $reference = null;
 
 	public mixed $trackingNumber = null;
@@ -38,23 +35,9 @@ class ShipmentQuery extends ElementQuery
 
 	public mixed $integrationId = null;
 
-	public mixed $dateShippingStatus = null;
-
 	public function orderId(mixed $value): static
 	{
 		$this->orderId = $value;
-		return $this;
-	}
-
-	public function fulfillmentStatus(mixed $value): static
-	{
-		$this->fulfillmentStatus = $value;
-		return $this;
-	}
-
-	public function shippingStatus(mixed $value): static
-	{
-		$this->shippingStatus = $value;
 		return $this;
 	}
 
@@ -79,12 +62,6 @@ class ShipmentQuery extends ElementQuery
 	public function service(mixed $value): static
 	{
 		$this->service = $value;
-		return $this;
-	}
-
-	public function dateShippingStatus(mixed $value): static
-	{
-		$this->dateShippingStatus = $value;
 		return $this;
 	}
 
@@ -127,9 +104,7 @@ class ShipmentQuery extends ElementQuery
 
 		$query->addSelect([
 			'[[shipments_shipments.orderId]]',
-			'[[shipments_shipments.fulfillmentStatus]]',
-			'[[shipments_shipments.shippingStatus]]',
-			'[[shipments_shipments.dateShippingStatus]]',
+			'[[shipments_shipments.status]]',
 			'[[shipments_shipments.dateScheduledShip]]',
 			'[[shipments_shipments.reference]]',
 			'[[shipments_shipments.number]]',
@@ -145,13 +120,10 @@ class ShipmentQuery extends ElementQuery
 		]);
 
 		$this->applyNumericFilter('[[shipments_shipments.orderId]]', $this->orderId);
-		$this->applyStringFilter('[[shipments_shipments.fulfillmentStatus]]', $this->fulfillmentStatus);
-		$this->applyStringFilter('[[shipments_shipments.shippingStatus]]', $this->shippingStatus);
 		$this->applyStringFilter('[[shipments_shipments.reference]]', $this->reference);
 		$this->applyStringFilter('[[shipments_shipments.trackingNumber]]', $this->trackingNumber);
 		$this->applyStringFilter('[[shipments_shipments.carrier]]', $this->carrier);
 		$this->applyStringFilter('[[shipments_shipments.service]]', $this->service);
-		$this->applyDateFilter('[[shipments_shipments.dateShippingStatus]]', $this->dateShippingStatus);
 
 		$integrationIdFilter = $this->coerceNumericFilter($this->integrationId);
 		if ($integrationIdFilter !== null) {
@@ -168,6 +140,20 @@ class ShipmentQuery extends ElementQuery
 		}
 
 		return parent::beforePrepare();
+	}
+
+	/**
+	 * @return string|array<string, string>|ExpressionInterface|false|null
+	 */
+	protected function statusCondition(string $status): mixed
+	{
+		if (! Status::tryFrom($status) instanceof Status) {
+			return parent::statusCondition($status);
+		}
+
+		return [
+			'shipments_shipments.status' => $status,
+		];
 	}
 
 	private function applyNumericFilter(string $column, mixed $rawValue): void
@@ -203,25 +189,6 @@ class ShipmentQuery extends ElementQuery
 		}
 
 		$condition = Db::parseParam($column, $value);
-		if ($condition === null) {
-			return;
-		}
-
-		$subQuery->andWhere($condition);
-	}
-
-	private function applyDateFilter(string $column, mixed $rawValue): void
-	{
-		$subQuery = $this->subQuery;
-		if (! $subQuery instanceof Query || $rawValue === null) {
-			return;
-		}
-
-		if (! is_string($rawValue) && ! is_array($rawValue) && ! $rawValue instanceof DateTimeInterface) {
-			return;
-		}
-
-		$condition = Db::parseDateParam($column, $rawValue);
 		if ($condition === null) {
 			return;
 		}

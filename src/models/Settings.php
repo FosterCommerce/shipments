@@ -81,9 +81,9 @@ class Settings extends Model
 	public string $qtySplitMode = self::QTY_SPLIT_MODE_SPLIT;
 
 	/**
-	 * Commerce order-status handle to move an order to once every enabled shipment reaches a
-	 * shipped state (see `ShippingStatus::advancesOrder()`). Null or empty disables it. One-way:
-	 * applied once per order, later manual status changes are left alone.
+	 * Commerce order-status handle to move an order to once every enabled shipment reaches the
+	 * shipped state (see `Status::advancesOrder()`). Null or empty disables it. One-way: applied
+	 * once per order, later manual status changes are left alone.
 	 */
 	public ?string $autoAdvanceOrderStatusHandle = null;
 

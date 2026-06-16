@@ -32,14 +32,12 @@ use craft\web\UrlManager;
 use craft\web\View;
 use fostercommerce\shipments\db\Table;
 use fostercommerce\shipments\elements\Shipment;
-use fostercommerce\shipments\enums\ShippingStatus;
-use fostercommerce\shipments\enums\StatusAxis;
+use fostercommerce\shipments\enums\Status;
 use fostercommerce\shipments\events\ShipmentStatusChangedEvent;
 use fostercommerce\shipments\gql\interfaces\elements\Shipment as ShipmentGqlInterface;
 use fostercommerce\shipments\gql\queries\Shipment as ShipmentGqlQuery;
 use fostercommerce\shipments\models\Settings;
 use fostercommerce\shipments\queue\jobs\AdvanceOrderStatusJob;
-use fostercommerce\shipments\services\CarrierEvents;
 use fostercommerce\shipments\services\Emails;
 use fostercommerce\shipments\services\IntegrationReferences;
 use fostercommerce\shipments\services\Integrations;
@@ -64,7 +62,6 @@ use yii\base\Event;
  * @property-read Integrations $integrations
  * @property-read IntegrationReferences $integrationReferences
  * @property-read IntegrationStatusMaps $integrationStatusMaps
- * @property-read CarrierEvents $carrierEvents
  * @property-read Emails $emails
  * @property-read TransitionEmails $transitionEmails
  * @property-read ShipmentFieldLayouts $shipmentFieldLayouts
@@ -108,7 +105,6 @@ class Plugin extends \craft\base\Plugin
 			'integrations' => Integrations::class,
 			'integrationReferences' => IntegrationReferences::class,
 			'integrationStatusMaps' => IntegrationStatusMaps::class,
-			'carrierEvents' => CarrierEvents::class,
 			'emails' => Emails::class,
 			'transitionEmails' => TransitionEmails::class,
 			'shipmentFieldLayouts' => ShipmentFieldLayouts::class,
@@ -148,7 +144,7 @@ class Plugin extends \craft\base\Plugin
 		Event::on(
 			Shipments::class,
 			Shipments::EVENT_SHIPMENT_STATUS_CHANGED,
-			$this->advanceOrderStatusOnShippingChange(...),
+			$this->advanceOrderStatusOnShipped(...),
 		);
 
 		Event::on(
@@ -212,13 +208,6 @@ class Plugin extends \craft\base\Plugin
 		/** @var IntegrationStatusMaps $integrationStatusMaps */
 		$integrationStatusMaps = $this->get('integrationStatusMaps');
 		return $integrationStatusMaps;
-	}
-
-	public function getCarrierEvents(): CarrierEvents
-	{
-		/** @var CarrierEvents $carrierEvents */
-		$carrierEvents = $this->get('carrierEvents');
-		return $carrierEvents;
 	}
 
 	public function getEmails(): Emails
@@ -349,19 +338,11 @@ class Plugin extends \craft\base\Plugin
 		}
 	}
 
-	private function advanceOrderStatusOnShippingChange(ShipmentStatusChangedEvent $event): void
+	private function advanceOrderStatusOnShipped(ShipmentStatusChangedEvent $event): void
 	{
-		if ($event->axis !== StatusAxis::Shipping) {
-			return;
-		}
-
-		$toCode = $event->toCode;
-		$fromCode = $event->fromCode;
-
-		// Only the edge into a shipped state can newly complete an order; advancing→advancing can't.
-		$enteredShippedState = $toCode instanceof ShippingStatus
-			&& $toCode->advancesOrder()
-			&& (! $fromCode instanceof ShippingStatus || ! $fromCode->advancesOrder());
+		// Only the edge into the shipped state can newly complete an order.
+		$enteredShippedState = $event->toCode->advancesOrder()
+			&& ! ($event->fromCode?->advancesOrder() ?? false);
 		if (! $enteredShippedState) {
 			return;
 		}
@@ -637,7 +618,6 @@ class Plugin extends \craft\base\Plugin
 		$event->rules['shipments/attention-needed'] = self::HANDLE . '/attention/index';
 
 		$event->rules['POST shipments/api/shipments/<id:\d+>'] = self::HANDLE . '/api/update';
-		$event->rules['POST shipments/api/shipments/<id:\d+>/carrier-events'] = self::HANDLE . '/api/carrier-event';
 	}
 
 	private function registerOrderEditTemplateHook(): void

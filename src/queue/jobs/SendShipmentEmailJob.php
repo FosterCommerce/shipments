@@ -7,14 +7,14 @@ namespace fostercommerce\shipments\queue\jobs;
 use Craft;
 use craft\elements\User;
 use craft\queue\BaseJob;
-use fostercommerce\shipments\enums\StatusAxis;
+use fostercommerce\shipments\enums\Status;
 use fostercommerce\shipments\models\ShipmentEmailContext;
 use fostercommerce\shipments\Plugin;
 use fostercommerce\shipments\records\ShipmentStatusHistory;
 use yii\base\Exception;
 
 /**
- * Sends one shipment notification email for a given axis transition. Carries
+ * Sends one shipment notification email for a given status transition. Carries
  * the history row id for narrative metadata and the message that triggered it.
  */
 class SendShipmentEmailJob extends BaseJob
@@ -24,8 +24,6 @@ class SendShipmentEmailJob extends BaseJob
 	public ?int $emailId = null;
 
 	public ?int $historyId = null;
-
-	public ?string $axis = null;
 
 	public ?string $toCode = null;
 
@@ -70,18 +68,10 @@ class SendShipmentEmailJob extends BaseJob
 			);
 		}
 
-		$axis = $this->axis !== null ? StatusAxis::tryFrom($this->axis) : null;
-		$toCode = null;
-		$fromCode = null;
-		if ($axis instanceof StatusAxis) {
-			if ($this->toCode !== null) {
-				$toCode = $axis->resolveCode($this->toCode);
-			}
-
-			if ($history instanceof ShipmentStatusHistory && $history->fromCode !== null && $history->fromCode !== '') {
-				$fromCode = $axis->resolveCode($history->fromCode);
-			}
-		}
+		$toCode = $this->toCode !== null ? Status::tryFrom($this->toCode) : null;
+		$fromCode = $history instanceof ShipmentStatusHistory && $history->fromCode !== null && $history->fromCode !== ''
+			? Status::tryFrom($history->fromCode)
+			: null;
 
 		$user = null;
 		if ($this->userId !== null) {
@@ -94,7 +84,6 @@ class SendShipmentEmailJob extends BaseJob
 		$context = new ShipmentEmailContext(
 			shipment: $shipment,
 			order: $order,
-			axis: $axis,
 			fromCode: $fromCode,
 			toCode: $toCode,
 			history: $history instanceof ShipmentStatusHistory ? $history : null,

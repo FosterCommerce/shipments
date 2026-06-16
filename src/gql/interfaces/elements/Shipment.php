@@ -74,30 +74,15 @@ class Shipment extends Element
 				'type' => Type::string(),
 				'description' => 'Convenience: the parent order’s reference.',
 			],
-			'fulfillmentStatus' => [
-				'name' => 'fulfillmentStatus',
+			'status' => [
+				'name' => 'status',
 				'type' => Type::string(),
-				'description' => 'Merchant/3PL fulfillment status code.',
-			],
-			'shippingStatus' => [
-				'name' => 'shippingStatus',
-				'type' => Type::string(),
-				'description' => 'Carrier shipping status code, null if no carrier event observed yet.',
-			],
-			'dateShippingStatus' => [
-				'name' => 'dateShippingStatus',
-				'type' => Type::string(),
-				'description' => 'Timestamp of the latest carrier event.',
+				'description' => 'Shipment status code.',
 			],
 			'dateShipped' => [
 				'name' => 'dateShipped',
 				'type' => Type::string(),
-				'description' => 'First time the carrier reported in-transit; derived from the status-history table.',
-			],
-			'dateDelivered' => [
-				'name' => 'dateDelivered',
-				'type' => Type::string(),
-				'description' => 'First time the carrier reported delivered; derived from the status-history table.',
+				'description' => 'First time the shipment reached shipped; derived from the status-history table.',
 			],
 			'dateScheduledShip' => [
 				'name' => 'dateScheduledShip',
@@ -127,12 +112,12 @@ class Shipment extends Element
 			'fulfillmentNotes' => [
 				'name' => 'fulfillmentNotes',
 				'type' => Type::string(),
-				'description' => 'Admin notes scoped to the fulfillment axis.',
+				'description' => 'Internal fulfillment notes.',
 			],
 			'shippingNotes' => [
 				'name' => 'shippingNotes',
 				'type' => Type::string(),
-				'description' => 'Admin notes scoped to the shipping axis.',
+				'description' => 'Customer-facing shipping notes.',
 			],
 		], self::getCustomFieldDefinitions()), self::getName());
 	}

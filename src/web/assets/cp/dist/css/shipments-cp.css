@@ -131,11 +131,6 @@
 	font-size: 0.9em;
 }
 
-/* Status-history filter buttons sit above the history table. */
-.shipments-history-filter {
-	margin-bottom: 1em;
-}
-
 /* Line-item membership note. */
 .shipments-membership-note {
 	font-size: 0.85em;

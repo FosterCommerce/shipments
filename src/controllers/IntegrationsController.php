@@ -9,9 +9,7 @@ use craft\helpers\Json;
 use craft\web\Controller;
 use fostercommerce\shipments\base\ControllerBodyParamsTrait;
 use fostercommerce\shipments\base\ProviderInterface;
-use fostercommerce\shipments\enums\FulfillmentStatus;
-use fostercommerce\shipments\enums\ShippingStatus;
-use fostercommerce\shipments\enums\StatusAxis;
+use fostercommerce\shipments\enums\Status;
 use fostercommerce\shipments\models\Integration;
 use fostercommerce\shipments\Plugin;
 use fostercommerce\shipments\services\IntegrationStatusMaps;
@@ -172,8 +170,8 @@ class IntegrationsController extends Controller
 	}
 
 	/**
-	 * Renders + saves the per-integration status mapping editor. Two tables
-	 * (fulfillment + shipping) drive `shipments_integration_status_maps`.
+	 * Renders + saves the per-integration status mapping editor that drives
+	 * `shipments_integration_status_maps`.
 	 *
 	 * @throws NotFoundHttpException
 	 */
@@ -195,8 +193,7 @@ class IntegrationsController extends Controller
 			try {
 				$plugin->integrationStatusMaps->deleteAllForIntegration($id);
 
-				$this->persistMapRows($id, StatusAxis::Fulfillment, $this->request->getBodyParam('fulfillmentMaps', []));
-				$this->persistMapRows($id, StatusAxis::Shipping, $this->request->getBodyParam('shippingMaps', []));
+				$this->persistMapRows($id, $this->request->getBodyParam('statusMaps', []));
 
 				$transaction->commit();
 			} catch (Throwable $throwable) {
@@ -214,8 +211,7 @@ class IntegrationsController extends Controller
 		return $this->renderTemplate(Plugin::HANDLE . '/settings/integrations/_status-maps', [
 			'integration' => $integration,
 			'maps' => $plugin->integrationStatusMaps->findForIntegration($id),
-			'fulfillmentOptions' => FulfillmentStatus::labelMap(),
-			'shippingOptions' => ShippingStatus::labelMap(),
+			'statusOptions' => Status::labelMap(),
 			'directionOptions' => [
 				IntegrationStatusMaps::DIRECTION_INBOUND => Craft::t(Plugin::HANDLE, 'settings.integrations.directionInbound'),
 				IntegrationStatusMaps::DIRECTION_OUTBOUND => Craft::t(Plugin::HANDLE, 'settings.integrations.directionOutbound'),
@@ -255,7 +251,7 @@ class IntegrationsController extends Controller
 	/**
 	 * @param mixed $rawRows raw `editableTableField` POST
 	 */
-	private function persistMapRows(int $integrationId, StatusAxis $axis, mixed $rawRows): void
+	private function persistMapRows(int $integrationId, mixed $rawRows): void
 	{
 		if (! is_array($rawRows)) {
 			return;
@@ -277,7 +273,7 @@ class IntegrationsController extends Controller
 
 			$internalCodeRaw = $row['internalCode'] ?? '';
 			$internalCode = is_string($internalCodeRaw) ? $internalCodeRaw : '';
-			if ($axis->resolveCode($internalCode) === null) {
+			if (! Status::tryFrom($internalCode) instanceof Status) {
 				continue;
 			}
 
@@ -289,7 +285,6 @@ class IntegrationsController extends Controller
 
 			$plugin->integrationStatusMaps->saveMap(
 				$integrationId,
-				$axis,
 				$direction,
 				$externalCode,
 				$externalLabel,

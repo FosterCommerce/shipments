@@ -13,12 +13,11 @@ use fostercommerce\shipments\models\Integration;
 use fostercommerce\shipments\models\ShipmentUpdatePayload;
 use fostercommerce\shipments\Plugin;
 use Throwable;
-use yii\base\InvalidArgumentException;
 use yii\web\BadRequestHttpException;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
 
-/** REST API for status updates + carrier event ingestion. */
+/** REST API for shipment status updates. */
 class ApiController extends Controller
 {
 	public $enableCsrfValidation = false;
@@ -26,7 +25,7 @@ class ApiController extends Controller
 	protected array|bool|int $allowAnonymous = false;
 
 	/**
-	 * PATCH shipment fulfillment fields + optional axis transitions.
+	 * PATCH shipment tracking fields + optional status transition.
 	 *
 	 * @throws BadRequestHttpException
 	 * @throws NotFoundHttpException
@@ -55,9 +54,7 @@ class ApiController extends Controller
 			])->setStatusCode(422);
 		}
 
-		if (($payload->targetFulfillmentCode !== null && $payload->targetFulfillmentCode !== $shipment->fulfillmentStatus)
-			|| ($payload->targetShippingCode !== null && $payload->targetShippingCode !== $shipment->shippingStatus)
-		) {
+		if ($payload->targetStatusCode !== null && $payload->targetStatusCode !== $shipment->status) {
 			$this->requirePermission(Plugin::PERMISSION_TRANSITION);
 		}
 
@@ -81,47 +78,6 @@ class ApiController extends Controller
 	}
 
 	/**
-	 * Raw carrier event ingestion. Delegates to {@see CarrierEvents::ingest()}.
-	 *
-	 * @throws BadRequestHttpException
-	 * @throws NotFoundHttpException
-	 */
-	public function actionCarrierEvent(int $id): Response
-	{
-		$this->requirePostRequest();
-		$this->requirePermission(Plugin::PERMISSION_EDIT);
-
-		/** @var Plugin $plugin */
-		$plugin = Plugin::getInstance();
-
-		$shipment = $plugin->shipments->findById($id, includeTrashed: true);
-		if (! $shipment instanceof Shipment) {
-			throw new NotFoundHttpException('Shipment not found.');
-		}
-
-		$body = $this->request->getBodyParams();
-		$source = $this->resolveSourceIntegration($body['integrationHandle'] ?? null);
-
-		try {
-			$result = $plugin->carrierEvents->ingest($shipment, $body, $source);
-		} catch (InvalidArgumentException $invalidArgumentException) {
-			throw new BadRequestHttpException($invalidArgumentException->getMessage());
-		} catch (Throwable $throwable) {
-			return $this->asJson([
-				'success' => false,
-				'error' => $throwable->getMessage(),
-			])->setStatusCode(422);
-		}
-
-		return $this->asJson([
-			'success' => true,
-			'deduped' => $result['deduped'],
-			'resolved' => $result['resolved']?->value,
-			'shipment' => $this->serializeShipment($result['shipment']),
-		]);
-	}
-
-	/**
 	 * Map the public API body to `ShipmentUpdatePayload` attribute names + pre-parse
 	 * `dateScheduledShip` since the DTO property is typed as `?DateTime`.
 	 *
@@ -133,8 +89,7 @@ class ApiController extends Controller
 		$mapped = [];
 		foreach ($body as $key => $value) {
 			$mapped[match ($key) {
-				'fulfillmentStatus' => 'targetFulfillmentCode',
-				'shippingStatus' => 'targetShippingCode',
+				'status' => 'targetStatusCode',
 				default => $key,
 			}] = $value;
 		}
@@ -170,11 +125,8 @@ class ApiController extends Controller
 			'id' => $shipment->id,
 			'reference' => $shipment->reference,
 			'orderId' => $shipment->orderId,
-			'fulfillmentStatus' => $shipment->fulfillmentStatus,
-			'shippingStatus' => $shipment->shippingStatus,
-			'dateShippingStatus' => $shipment->dateShippingStatus?->format('c'),
+			'status' => $shipment->status,
 			'dateShipped' => $shipment->getDateShipped()?->format('c'),
-			'dateDelivered' => $shipment->getDateDelivered()?->format('c'),
 			'dateScheduledShip' => $shipment->dateScheduledShip?->format('c'),
 			'trackingNumber' => $shipment->trackingNumber,
 			'trackingUrl' => $shipment->trackingUrl,

@@ -2,13 +2,12 @@
 {% import "_includes/forms" as forms %}
 
 {#
-	Per-integration status mapping editor. One editable table per axis.
+	Per-integration status mapping editor.
 
-	@var integration        fostercommerce\shipments\models\Integration
-	@var maps               list<array<string, mixed>>
-	@var fulfillmentOptions array<string, string>
-	@var shippingOptions    array<string, string>
-	@var directionOptions   array<string, string>
+	@var integration      fostercommerce\shipments\models\Integration
+	@var maps             list<array<string, mixed>>
+	@var statusOptions    array<string, string>
+	@var directionOptions array<string, string>
 #}
 
 {% set selectedItem = 'integrations' %}
@@ -21,20 +20,14 @@
 	{ label: integration.name, url: integration.cpEditUrl },
 ] %}
 
-{% set fulfillmentRows = [] %}
-{% set shippingRows = [] %}
+{% set statusRows = [] %}
 {% for row in maps %}
-	{% set entry = {
+	{% set statusRows = statusRows|merge([{
 		externalCode: row.externalCode,
 		externalLabel: row.externalLabel,
 		direction: row.direction,
 		internalCode: row.internalCode,
-	} %}
-	{% if row.axis == 'fulfillment' %}
-		{% set fulfillmentRows = fulfillmentRows|merge([entry]) %}
-	{% elseif row.axis == 'shipping' %}
-		{% set shippingRows = shippingRows|merge([entry]) %}
-	{% endif %}
+	}]) %}
 {% endfor %}
 
 {% set commonCols = {
@@ -61,32 +54,17 @@
 	<p class="light">{{ 'settings.integrations.statusMapIntro'|t('shipments') }}</p>
 
 	{{ forms.editableTableField({
-		label: 'settings.integrations.fulfillmentMappingsHeading'|t('shipments'),
-		id: 'fulfillmentMaps',
-		name: 'fulfillmentMaps',
+		label: 'settings.integrations.statusMappingsHeading'|t('shipments'),
+		id: 'statusMaps',
+		name: 'statusMaps',
 		cols: commonCols|merge({
 			internalCode: {
-				heading: 'settings.integrations.mapsToFulfillment'|t('shipments'),
+				heading: 'settings.integrations.mapsToStatus'|t('shipments'),
 				type: 'select',
-				options: fulfillmentOptions|map((label, value) => ({ label: label, value: value }))|values,
+				options: statusOptions|map((label, value) => ({ label: label, value: value }))|values,
 			},
 		}),
-		rows: fulfillmentRows,
-		addRowLabel: 'settings.integrations.addFulfillmentMapping'|t('shipments'),
-	}) }}
-
-	{{ forms.editableTableField({
-		label: 'settings.integrations.shippingMappingsHeading'|t('shipments'),
-		id: 'shippingMaps',
-		name: 'shippingMaps',
-		cols: commonCols|merge({
-			internalCode: {
-				heading: 'settings.integrations.mapsToShipping'|t('shipments'),
-				type: 'select',
-				options: shippingOptions|map((label, value) => ({ label: label, value: value }))|values,
-			},
-		}),
-		rows: shippingRows,
-		addRowLabel: 'settings.integrations.addShippingMapping'|t('shipments'),
+		rows: statusRows,
+		addRowLabel: 'settings.integrations.addStatusMapping'|t('shipments'),
 	}) }}
 {% endblock %}

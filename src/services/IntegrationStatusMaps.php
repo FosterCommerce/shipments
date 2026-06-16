@@ -7,9 +7,7 @@ namespace fostercommerce\shipments\services;
 use Craft;
 use craft\db\Query;
 use fostercommerce\shipments\db\Table;
-use fostercommerce\shipments\enums\FulfillmentStatus;
-use fostercommerce\shipments\enums\ShippingStatus;
-use fostercommerce\shipments\enums\StatusAxis;
+use fostercommerce\shipments\enums\Status;
 use fostercommerce\shipments\errors\IntegrationStatusMapException;
 use fostercommerce\shipments\Plugin;
 use fostercommerce\shipments\records\IntegrationStatusMap;
@@ -17,7 +15,7 @@ use Throwable;
 use yii\base\Component;
 use yii\base\InvalidArgumentException;
 
-/** Per-integration two-way status-code mappings between external integrations and internal enums (fulfillment + shipping axes). */
+/** Per-integration two-way status-code mappings between external integrations and internal Status codes. */
 class IntegrationStatusMaps extends Component
 {
 	public const DIRECTION_INBOUND = 'inbound';
@@ -29,40 +27,31 @@ class IntegrationStatusMaps extends Component
 	/**
 	 * @return list<array<string, mixed>>
 	 */
-	public function findForIntegration(int $integrationId, ?StatusAxis $axis = null): array
+	public function findForIntegration(int $integrationId): array
 	{
-		$query = (new Query())
+		/** @var list<array<string, mixed>> $rows */
+		$rows = (new Query())
 			->from(Table::INTEGRATION_STATUS_MAPS)
 			->where([
 				'[[integrationId]]' => $integrationId,
 			])
 			->orderBy([
-				'[[axis]]' => SORT_ASC,
 				'[[externalCode]]' => SORT_ASC,
-			]);
-
-		if ($axis instanceof StatusAxis) {
-			$query->andWhere([
-				'[[axis]]' => $axis->value,
-			]);
-		}
-
-		/** @var list<array<string, mixed>> $rows */
-		$rows = $query->all();
+			])
+			->all();
 		return $rows;
 	}
 
 	/**
-	 * Inbound translate: takes an external code and returns the internal enum case, or null if unmapped.
+	 * Inbound translate: takes an external code and returns the Status case, or null if unmapped.
 	 */
-	public function resolveInbound(int $integrationId, StatusAxis $axis, string $externalCode): FulfillmentStatus|ShippingStatus|null
+	public function resolveInbound(int $integrationId, string $externalCode): ?Status
 	{
 		$row = (new Query())
 			->select(['[[internalCode]]'])
 			->from(Table::INTEGRATION_STATUS_MAPS)
 			->where([
 				'[[integrationId]]' => $integrationId,
-				'[[axis]]' => $axis->value,
 				'[[externalCode]]' => $externalCode,
 			])
 			->andWhere([
@@ -85,20 +74,19 @@ class IntegrationStatusMaps extends Component
 			return null;
 		}
 
-		return $axis->resolveCode($internalCode);
+		return Status::tryFrom($internalCode);
 	}
 
 	/**
-	 * Outbound translate: takes an internal enum case and returns the external code, or null if unmapped.
+	 * Outbound translate: takes a Status case and returns the external code, or null if unmapped.
 	 */
-	public function resolveOutbound(int $integrationId, StatusAxis $axis, FulfillmentStatus|ShippingStatus $internal): ?string
+	public function resolveOutbound(int $integrationId, Status $internal): ?string
 	{
 		$row = (new Query())
 			->select(['[[externalCode]]'])
 			->from(Table::INTEGRATION_STATUS_MAPS)
 			->where([
 				'[[integrationId]]' => $integrationId,
-				'[[axis]]' => $axis->value,
 				'[[internalCode]]' => $internal->value,
 			])
 			->andWhere([
@@ -127,7 +115,6 @@ class IntegrationStatusMaps extends Component
 	 */
 	public function saveMap(
 		int $integrationId,
-		StatusAxis $axis,
 		string $direction,
 		string $externalCode,
 		?string $externalLabel,
@@ -137,13 +124,12 @@ class IntegrationStatusMaps extends Component
 			throw new InvalidArgumentException("Invalid direction \"{$direction}\".");
 		}
 
-		if ($axis->resolveCode($internalCode) === null) {
-			throw new InvalidArgumentException("Unknown {$axis->value} code \"{$internalCode}\".");
+		if (! Status::tryFrom($internalCode) instanceof Status) {
+			throw new InvalidArgumentException("Unknown status code \"{$internalCode}\".");
 		}
 
 		$record = IntegrationStatusMap::findOne([
 			'integrationId' => $integrationId,
-			'axis' => $axis->value,
 			'direction' => $direction,
 			'externalCode' => $externalCode,
 		]);
@@ -151,7 +137,6 @@ class IntegrationStatusMaps extends Component
 		if (! $record instanceof IntegrationStatusMap) {
 			$record = new IntegrationStatusMap();
 			$record->integrationId = $integrationId;
-			$record->axis = $axis->value;
 			$record->direction = $direction;
 			$record->externalCode = $externalCode;
 		}

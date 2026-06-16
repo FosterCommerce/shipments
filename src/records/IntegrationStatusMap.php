@@ -11,11 +11,10 @@ use yii\db\ActiveQueryInterface;
 /**
  * @property int $id
  * @property int $integrationId
- * @property string $axis           'fulfillment' | 'shipping'
  * @property string $direction      'inbound' | 'outbound' | 'bidirectional'
  * @property string $externalCode   code from the integration's vocabulary
  * @property ?string $externalLabel optional human label for CP mapping UI
- * @property string $internalCode   enum value in our vocabulary
+ * @property string $internalCode   Status value in our vocabulary
  * @property string $dateCreated
  * @property string $dateUpdated
  * @property string $uid

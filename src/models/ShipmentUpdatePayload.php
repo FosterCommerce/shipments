@@ -9,13 +9,12 @@ use craft\base\Model;
 use craft\helpers\DateTimeHelper;
 use DateTime;
 use DateTimeInterface;
-use fostercommerce\shipments\enums\FulfillmentStatus;
-use fostercommerce\shipments\enums\ShippingStatus;
+use fostercommerce\shipments\enums\Status;
 use fostercommerce\shipments\Plugin;
 
 /**
  * Parsed update for `Shipments::applyUpdate()`. All fields optional; null = don't touch.
- * Either axis may be set to drive an `applyTransition` call.
+ * `targetStatusCode` drives an `applyTransition` call.
  */
 class ShipmentUpdatePayload extends Model
 {
@@ -40,24 +39,14 @@ class ShipmentUpdatePayload extends Model
 	public ?string $shippingNotes = null;
 
 	/**
-	 * Target FulfillmentStatus enum value. Unknown values log + skip, they don't throw.
+	 * Target Status enum value. Unknown values log + skip, they don't throw.
 	 */
-	public ?string $targetFulfillmentCode = null;
+	public ?string $targetStatusCode = null;
 
 	/**
-	 * Target ShippingStatus enum value. Unknown values log + skip, they don't throw.
+	 * Stored on the `ShipmentStatusHistory` row when the status transitions.
 	 */
-	public ?string $targetShippingCode = null;
-
-	/**
-	 * Stored on the fulfillment-axis `ShipmentStatusHistory` row when fulfillment transitions.
-	 */
-	public ?string $fulfillmentStatusMessage = null;
-
-	/**
-	 * Stored on the shipping-axis `ShipmentStatusHistory` row when shipping transitions.
-	 */
-	public ?string $shippingStatusMessage = null;
+	public ?string $statusMessage = null;
 
 	/**
 	 * Custom-field values keyed by field handle. Routed through `Element::setFieldValues`.
@@ -99,13 +88,10 @@ class ShipmentUpdatePayload extends Model
 			[['trackingUrl'],
 				'url',
 				'defaultScheme' => 'https'],
-			[['fulfillmentNotes', 'shippingNotes', 'fulfillmentStatusMessage', 'shippingStatusMessage'], 'string'],
-			[['targetFulfillmentCode'],
+			[['fulfillmentNotes', 'shippingNotes', 'statusMessage'], 'string'],
+			[['targetStatusCode'],
 				'in',
-				'range' => array_map(static fn (FulfillmentStatus $case): string => $case->value, FulfillmentStatus::cases())],
-			[['targetShippingCode'],
-				'in',
-				'range' => array_map(static fn (ShippingStatus $case): string => $case->value, ShippingStatus::cases())],
+				'range' => array_map(static fn (Status $case): string => $case->value, Status::cases())],
 			[['dateScheduledShip'], 'normalizeDateScheduledShip'],
 			[['fields'], 'safe'],
 		];

@@ -28,16 +28,6 @@ class ShipmentArguments extends ElementArguments
 				'type' => Type::listOf(Type::string()),
 				'description' => 'Narrow by shipment reference(s).',
 			],
-			'fulfillmentStatus' => [
-				'name' => 'fulfillmentStatus',
-				'type' => Type::listOf(Type::string()),
-				'description' => 'Narrow by fulfillment status code(s).',
-			],
-			'shippingStatus' => [
-				'name' => 'shippingStatus',
-				'type' => Type::listOf(Type::string()),
-				'description' => 'Narrow by shipping status code(s).',
-			],
 			'trackingNumber' => [
 				'name' => 'trackingNumber',
 				'type' => Type::listOf(Type::string()),

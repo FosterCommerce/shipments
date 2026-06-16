@@ -5,16 +5,14 @@ These tests require a full Craft CMS bootstrap (`craftcms/phpunit` + Codeception
 ## Cases to implement
 
 **`Shipments::applyTransition`**
-- Transitions to `FulfillmentStatus::Fulfilled` require a non-empty `trackingNumber`; throws `InvalidTransitionException` when missing.
-- `expectedFromCode` mismatch throws `InvalidTransitionException`.
-- History row is written with axis + fromCode + toCode + userId + sourceIntegrationId + sourceExternalCode.
+- History row is written with fromCode + toCode + userId + sourceIntegrationId + sourceExternalCode.
 - `EVENT_SHIPMENT_STATUS_CHANGED` fires with the correct payload inside the transaction.
 - Concurrent `applyTransition` calls on the same shipment serialize via the mutex.
 
-**`Shipment::getDateShipped` / `getDateDelivered`**
+**`Shipment::getDateShipped`**
 - Returns null when no matching history row exists.
-- Returns the earliest `dateCreated` for `(axis = shipping, toCode = in_transit)` / `delivered`.
-- A re-transition (e.g. exception → in_transit again) does not change the value; first matching row wins.
+- Returns the earliest `dateCreated` for `toCode = shipped`.
+- A re-transition does not change the value; first matching row wins.
 - Result is instance-cached; second call doesn't re-query.
 
 **`Shipments::createFromStagingPost`**
@@ -31,16 +29,9 @@ These tests require a full Craft CMS bootstrap (`craftcms/phpunit` + Codeception
 - Inbound resolves direction=inbound + bidirectional, ignores direction=outbound.
 - Outbound resolves direction=outbound + bidirectional, ignores direction=inbound.
 - Unmapped codes return null without side effects.
-- `recordUnmappedExternalCode` inserts on first sight and increments `occurrenceCount` + bumps `dateLastSeen` on re-sight.
-
-**`CarrierEvents::ingest`**
-- Dedupes on `eventHash` collision (same shipment+code+dateOccurred+externalCode) returns `deduped=true` without a second row.
-- Unknown code + unknown integration → persists the event with raw code, no transition.
-- Unknown code + known integration with inbound mapping → resolves, transitions shipping axis, records externalCode in history.
-- Unknown code + known integration without mapping → persists + records unmapped row, no transition.
 
 **`TransitionEmails::onShipmentStatusChanged`**
-- Queues `SendShipmentEmailJob` for every enabled binding matching `(axis, toCode)`.
+- Queues `SendShipmentEmailJob` for every enabled binding matching `toCode`.
 - Skips disabled emails.
 - No queue push when `$event->shipment->id` or `$event->history->id` is null.
 - Runs inside the status-change transaction (so email enqueue rolls back if transition fails).
