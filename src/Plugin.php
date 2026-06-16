@@ -379,11 +379,9 @@ class Plugin extends \craft\base\Plugin
 	}
 
 	/**
-	 * Commerce fires `OrderHistories::EVENT_ORDER_STATUS_CHANGE` after an order's status
-	 * changes. If the new status is in `orderStatusesToIgnore` and the order is currently
-	 * tracked, cascade-disable its shipments and flip the tracked-order row to `ignored`.
-	 * Exceptions are swallowed and logged: a tracking failure must not roll back the
-	 * user-driven status change on the Commerce side.
+	 * On a Commerce order-status change into `orderStatusesToIgnore`, take the order out of the
+	 * plugin's active fulfillment scope. Failures here are logged, not thrown: tracking must
+	 * never roll back the admin's status change.
 	 */
 	private function onOrderStatusChange(OrderStatusEvent $event): void
 	{

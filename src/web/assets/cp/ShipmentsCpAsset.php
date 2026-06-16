@@ -49,7 +49,6 @@ class ShipmentsCpAsset extends AssetBundle
 				'orderTab.staging.qtyInGroup',
 				'orderTab.staging.remaining',
 				'orderTab.staging.removeGroup',
-				'orderTab.requiresShippingOffConfirmWithCount',
 				'orderTab.requiresShippingOffConfirm',
 			]);
 		}

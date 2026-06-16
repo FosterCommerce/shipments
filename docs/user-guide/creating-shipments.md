@@ -36,7 +36,7 @@ Define shipment groups in settings, keyed by Commerce **Shipping category**. Eac
 
 - Line items matching **Line item statuses to ignore** are skipped by every rule and left out of the coverage check.
 - **Enforce full coverage** (on by default) blocks saves until every non-ignored line item is fully accounted for across the order's shipments.
-- Auto-creation runs on every completed order while **Create shipments automatically on order completion** is on. To suppress auto-create for orders that land in a hold or fraud-review status, add those status handles to **Order statuses to ignore**; matching orders are cascade-disabled and don't auto-create.
+- Auto-creation runs on every completed order while **Create shipments automatically on order completion** is on. To stop auto-creation for orders in a hold or fraud-review status, add those statuses to **Order statuses to ignore**. Matching orders get no new shipments, and any shipments they already have stay as they are.
 
 ## Manual staging
 
@@ -73,25 +73,20 @@ Runs the rules engine for one order. Same safe-to-run-twice rule: does nothing i
 At the top of the order's Shipments tab there's a **Order requires shipping** lightswitch. It answers one question: does this order have anything to ship?
 
 - **On**: the plugin treats the order as in scope. Staging form is visible, auto-creation runs when the order completes, the order can appear on the Attention page if its shipments don't cover everything.
-- **Off**: the plugin stays out of the way. The staging form is hidden, and any currently-enabled shipments on the order are disabled (their line items return to the pool). The order drops off the Attention page.
+- **Off**: the plugin leaves the order alone. The staging form is hidden and the order drops off the Attention page. Any shipments it already has stay as they are.
 
 The switch flips on automatically the first time the plugin creates shipments for the order, so you rarely need to touch it. Flip it manually when:
 
 - You want the plugin to manage an older order that predates install, or an order that completed before you turned auto-creation on.
 - You want to tell the plugin "this order doesn't need shipping" (a custom one-off, a digital bundle, a mis-ordered test).
 
-Flipping the switch off asks you to confirm first; flipping it back on leaves the previously-disabled shipments disabled so you can decide case-by-case whether to restore them.
+Flipping the switch off asks you to confirm first. It only changes whether the plugin tracks the order; the order's shipments are left untouched either way.
 
 If the order's Commerce status is in the plugin's **Order statuses to ignore** setting, the switch is locked off. Change the order's status or remove the handle from the setting to re-enable fulfillment for this order.
 
-### Why a shipment was disabled
+### Disabling a shipment
 
-A disabled shipment carries a label on its card on the order's Shipments tab that records what drove the disable, read from the `disableReason` column. Two system-driven possibilities:
-
-- **Switch flipped off**: "Disabled, order marked as not shipping." An admin flipped **Order requires shipping** off on the order's Shipments tab; every then-enabled shipment was disabled in one transaction.
-- **Order status in ignore list**: "Disabled, order status in plugin ignore list." The order's Commerce status moved into a handle in **Order statuses to ignore**; the plugin auto-disabled the shipments and locked the switch off.
-
-If a user manually flipped the **Enabled** lightswitch on the shipment edit page, no `disableReason` is recorded; the audit lives in Craft's element revision log instead.
+Turning **Order requires shipping** off, or an order moving into an ignored status, never disables or deletes shipments. A shipment only goes disabled when someone turns off its own **Enabled** switch on the shipment page. Craft's revision history records who did that and when.
 
 ## Disabled vs trashed
 

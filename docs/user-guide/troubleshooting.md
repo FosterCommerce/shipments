@@ -105,18 +105,11 @@ Check:
 2. You're hitting the right site. Shipments aren't per-site; they all live under the primary site, but GraphQL queries still scope by the schema's site.
 3. You're querying through the endpoint that uses your schema's token. Anonymous schemas usually don't have `shipments.read`.
 
-## All shipments on an order went disabled at once
+## Order dropped off the Attention page after a status change
 
-Two causes:
+The order's status moved into one listed under **Shipments -> Settings -> General -> Order statuses to ignore**. The plugin reads those statuses as "this order doesn't need shipping," so it stops showing the order on the Attention page. The order's shipments are not touched: a cancelled or refunded order still needs its shipments to stay in place.
 
-1. An admin flipped **Order requires shipping** off on the order's Shipments tab. The confirmation modal warned; the plugin disabled every enabled shipment and returned their line items to the pool. Flip the switch back on to stop the order being ignored, then re-enable the individual shipments as needed.
-2. The order's Commerce status just changed into something in the plugin's **Order statuses to ignore** setting (**Shipments -> Settings -> General**). The plugin treats those statuses as "this order doesn't need fulfillment" and auto-disables its shipments. To recover: change the order's status, or remove the handle from the ignored list and then flip the switch back on manually.
-
-The disable label on each shipment card tells you which path drove the disable:
-
-- **"Disabled, order marked as not shipping."**: an admin flipped **Order requires shipping** off on the order's Shipments tab.
-- **"Disabled, order status in plugin ignore list."**: the order's Commerce status moved into a handle in **Order statuses to ignore**.
-- No label: an admin manually flipped the shipment's own **Enabled** lightswitch. Check Craft's element revision log to see who/when.
+To bring the order back, either change its status to one that isn't on the ignore list, or remove the status from the setting, then turn **Order requires shipping** back on.
 
 ## Order's lightswitch is greyed out
 
@@ -124,10 +117,15 @@ The order's current Commerce status is in **Shipments -> Settings -> General -> 
 
 ## An inbound webhook says it updated my shipment but nothing changed
 
-If the shipment is disabled (either manually or because its order was untracked), the plugin records the incoming event for the audit trail but doesn't update the shipment's status. Your developer can find the full context in the Craft log under the `shipments` category. To fix:
+The plugin saves the incoming event but won't change the shipment's status in two cases:
 
-1. Re-enable the shipment (either flip **Order requires shipping** back on, or re-enable the shipment directly from its edit page).
-2. Ask the vendor to re-send the latest state, or apply the current status by hand.
+- The shipment is disabled.
+- The order is marked as not requiring shipping: its **Order requires shipping** switch is off, or its status is on the ignore list.
+
+Your developer can see the details in the Craft log under the `shipments` category. To fix:
+
+1. If the shipment is disabled, turn it back on from its edit page. If the order is marked as not requiring shipping, turn **Order requires shipping** back on (or change the order's status off the ignore list).
+2. Ask the carrier or service to re-send the latest update, or set the status by hand.
 
 ## Nothing here matches
 

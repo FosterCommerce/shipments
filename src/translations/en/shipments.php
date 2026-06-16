@@ -185,13 +185,11 @@ return [
 	'orderTab.noTrackedOrders' => 'No completed orders tracked yet. Orders appear here automatically after the plugin creates or edits shipments on them. To bring an older order in, open it and flip the **Order requires shipping** switch on.',
 	'orderTab.notFullyAllocated' => 'This order is not fully allocated',
 	'orderTab.orderTracked' => 'Order is now tracked for fulfillment.',
-	'orderTab.orderUntracked' => 'Order is no longer tracked.',
-	'orderTab.orderUntrackedWithTrashed' => 'Order is no longer tracked. {count} shipment(s) were trashed.',
+	'orderTab.orderUntracked' => 'Order is no longer tracked. Its shipments are left intact.',
 	'orderTab.ordersNeedAttentionCount' => '{n, plural, =1{1 order needs attention} other{# orders need attention}}.',
 	'orderTab.requiresShippingLabel' => 'Order requires shipping',
-	'orderTab.requiresShippingOffConfirm' => 'Turn off shipping for this order? It will drop off the Attention page.',
-	'orderTab.requiresShippingOffConfirmWithCount' => 'Turning this off will trash {count} shipment(s) on this order and stop tracking it for fulfillment. Continue?',
-	'orderTab.requiresShippingOffHelp' => 'Turn off if this order doesn’t need shipping; its shipments will be moved to the trash.',
+	'orderTab.requiresShippingOffConfirm' => 'Turn off shipping for this order? It will drop off the Attention page. Existing shipments are left intact.',
+	'orderTab.requiresShippingOffHelp' => 'Turn off if this order doesn’t need shipping. It drops off the Attention page; its existing shipments are left intact.',
 	'orderTab.requiresShippingOnHelp' => 'Turn on if this order needs shipping.',
 	'orderTab.restoreShipments' => 'Restore {count} shipment(s)',
 	'orderTab.shipmentsRestoredCount' => '{restored} shipment(s) restored.',
@@ -258,7 +256,7 @@ return [
 
 	// settings
 	'settings.saved' => 'Settings saved.',
-	'settings.savedWithSweep' => 'Settings saved. {orders} order(s) were untracked and {shipments} shipment(s) were trashed because their status is now in the ignore list.',
+	'settings.savedWithSweep' => 'Settings saved. {orders} order(s) were untracked because their status is now in the ignore list. Their shipments were left intact.',
 
 	// settings.fields
 	'settings.fields.intro' => 'Add custom fields that admins can fill in on each shipment. Layout edits sync via project config.',
@@ -349,7 +347,7 @@ return [
 	// settings.tracking
 	'settings.tracking.noOrderStatuses' => 'No Commerce order statuses are defined. Configure at least one under Commerce -> Settings -> Order Statuses.',
 	'settings.tracking.orderStatusesToIgnore' => 'Order statuses to ignore',
-	'settings.tracking.orderStatusesToIgnoreHelp' => 'Orders in these Commerce statuses are automatically marked as not requiring shipping. Any existing shipments on them will be moved to the trash, and new shipments can’t be staged as long as the order sits in one of these statuses. Adding a handle here runs a one-time sweep over orders currently in that status on save.',
+	'settings.tracking.orderStatusesToIgnoreHelp' => 'Orders in these Commerce statuses are automatically marked as not requiring shipping and drop off the Attention page. Existing shipments are left intact, but new shipments can’t be staged as long as the order sits in one of these statuses. Adding a handle here runs a one-time sweep over orders currently in that status on save.',
 
 	// settings.validation
 	'settings.validation.enforceFullCoverage' => 'Enforce full coverage',

@@ -415,8 +415,8 @@
 	// Order requires shipping lightswitch.
 	// The lightswitchField's `toggle` / `reverseToggle` options handle showing/hiding the
 	// dependent panes natively. This handler is only responsible for persisting the new state:
-	// AJAX POST to set-active or set-ignored. On flip-off with shipments attached, prompts for
-	// confirmation first and reverts the visual toggle on cancel.
+	// AJAX POST to set-active or set-ignored. On flip-off, prompts for confirmation first and
+	// reverts the visual toggle on cancel. Shipments are left intact either way.
 	const requiresShippingPane = document.querySelector('[data-shipments-requires-shipping]');
 	if (requiresShippingPane) {
 		const lightswitchEl = requiresShippingPane.querySelector('.lightswitch');
@@ -429,7 +429,6 @@
 				}
 
 				const wasOn = requiresShippingPane.getAttribute('data-switch-on') === '1';
-				const shipmentCount = parseInt(requiresShippingPane.getAttribute('data-shipment-count') || '0', 10);
 				const revertToggle = function () {
 					const instance = $(lightswitchEl).data('lightswitch');
 					if (instance && typeof instance.toggle === 'function') {
@@ -438,15 +437,7 @@
 				};
 
 				if (wasOn) {
-					const confirmMessage = shipmentCount > 0
-						? Craft.t(
-							'shipments',
-							'orderTab.requiresShippingOffConfirmWithCount',
-							{ count: shipmentCount }
-						)
-						: Craft.t('shipments', 'orderTab.requiresShippingOffConfirm');
-
-					if (!window.confirm(confirmMessage)) {
+					if (!window.confirm(Craft.t('shipments', 'orderTab.requiresShippingOffConfirm'))) {
 						revertToggle();
 						return;
 					}
@@ -465,12 +456,6 @@
 					markMainFormClean();
 					if (responseBody.message) {
 						Craft.cp.displayNotice(responseBody.message);
-					}
-					// Server cascade-disabled the existing shipments. Reload so the shipments
-					// list reflects their new disabled state; the simple visual toggle isn't
-					// enough when there's actual data to refresh.
-					if (wasOn && shipmentCount > 0) {
-						window.location.reload();
 					}
 				}).catch(function (error) {
 					revertToggle();

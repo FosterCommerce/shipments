@@ -273,14 +273,9 @@ class TrackedOrders extends Component
 	}
 
 	/**
-	 * Moves an order to `state=ignored` and trashes every non-trashed shipment on it. Used
-	 * both by the "off" lightswitch flip (admin choice) and by the ignored-order-status
-	 * event listener. Trashed shipments retain their full history; admins can restore them
-	 * via the order tab when toggling shipping back on.
-	 *
-	 * @return int Number of shipments that were trashed as a result.
+	 * Takes the order out of the plugin's active fulfillment scope.
 	 */
-	public function markIgnored(Order $order): int
+	public function markIgnored(Order $order): void
 	{
 		if ($order->id === null) {
 			throw new InvalidArgumentException('Cannot ignore an order without an id.');
@@ -293,26 +288,19 @@ class TrackedOrders extends Component
 
 		$existing->state = TrackedOrderState::Ignored->value;
 		$existing->save(false);
-
-		return $this->cascadeTrashShipments($order);
 	}
 
 	/**
-	 * Retroactive sweep: flips every currently-tracked-active order whose current status
-	 * is in `$newlyIgnoredStatusHandles` into `state=ignored`, cascade-trashing their
-	 * shipments. Called by the settings save handler when the admin adds handles to
-	 * `orderStatusesToIgnore`.
+	 * Catches up orders already sitting in a status the admin just added to the ignore list,
+	 * so they leave fulfillment scope now instead of waiting for their next status change.
 	 *
 	 * @param list<string> $newlyIgnoredStatusHandles
-	 * @return array{ordersAffected: int, shipmentsTrashed: int}
+	 * @return int Number of orders moved to ignored.
 	 */
-	public function sweepForNewlyIgnoredStatuses(array $newlyIgnoredStatusHandles): array
+	public function sweepForNewlyIgnoredStatuses(array $newlyIgnoredStatusHandles): int
 	{
 		if ($newlyIgnoredStatusHandles === []) {
-			return [
-				'ordersAffected' => 0,
-				'shipmentsTrashed' => 0,
-			];
+			return 0;
 		}
 
 		/** @var Commerce $commerce */
@@ -326,10 +314,7 @@ class TrackedOrders extends Component
 
 		$statusIds = array_values(array_filter($statusIds, static fn (mixed $value): bool => is_int($value)));
 		if ($statusIds === []) {
-			return [
-				'ordersAffected' => 0,
-				'shipmentsTrashed' => 0,
-			];
+			return 0;
 		}
 
 		/** @var list<int> $orderIds */
@@ -348,7 +333,6 @@ class TrackedOrders extends Component
 			->column();
 
 		$ordersAffected = 0;
-		$shipmentsTrashed = 0;
 
 		foreach ($orderIds as $orderId) {
 			$order = $commerce->getOrders()->getOrderById((int) $orderId);
@@ -356,14 +340,11 @@ class TrackedOrders extends Component
 				continue;
 			}
 
-			$shipmentsTrashed += $this->markIgnored($order);
+			$this->markIgnored($order);
 			$ordersAffected++;
 		}
 
-		return [
-			'ordersAffected' => $ordersAffected,
-			'shipmentsTrashed' => $shipmentsTrashed,
-		];
+		return $ordersAffected;
 	}
 
 	/**
@@ -404,36 +385,5 @@ class TrackedOrders extends Component
 			'restored' => $restored,
 			'skipped' => $skipped,
 		];
-	}
-
-	/**
-	 * Soft-deletes every non-trashed shipment on the order. Trashed elements retain their
-	 * row, line items, and history; admins can restore them later. `Shipment::afterDelete`
-	 * recomputes the order's allocation so the unallocated pool reflects the change.
-	 */
-	private function cascadeTrashShipments(Order $order): int
-	{
-		if ($order->id === null) {
-			return 0;
-		}
-
-		/** @var Plugin $plugin */
-		$plugin = Plugin::getInstance();
-		$shipments = $plugin->getShipments()->findByOrderId($order->id);
-
-		$trashedCount = 0;
-		foreach ($shipments as $shipment) {
-			if (! Craft::$app->getElements()->deleteElement($shipment)) {
-				Craft::warning(
-					'Failed to cascade-trash shipment ' . $shipment->id,
-					Plugin::HANDLE,
-				);
-				continue;
-			}
-
-			$trashedCount++;
-		}
-
-		return $trashedCount;
 	}
 }

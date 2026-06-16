@@ -41,11 +41,9 @@ class Settings extends Model
 	public array $lineItemStatusesToIgnore = [];
 
 	/**
-	 * Commerce order-status handles that mean "this order doesn't need fulfillment"
-	 * (for example, `cancelled`, `refunded`). When an order's status transitions into
-	 * any of these, the plugin flips the per-order "Order requires shipping" switch off
-	 * and cascade-trashes its shipments. Orders currently in one of these statuses also
-	 * can't have the switch flipped on.
+	 * Order-status handles that mean "nothing to ship here" (e.g. `cancelled`, `refunded`).
+	 * Orders entering one leave the plugin's active fulfillment scope and can't be re-tracked
+	 * while there.
 	 *
 	 * @var list<string>
 	 */

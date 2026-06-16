@@ -429,9 +429,14 @@ Going through `applyTransition` already gives you per-shipment serialization via
 
 Either pattern is fine; pick the one your sender supports. If you're unsure, dedupe on delivery id is the simpler default.
 
-## Disabled-shipment targets
+## Events the plugin doesn't apply
 
-If an inbound webhook targets a shipment that's currently disabled (either the admin disabled it manually, or the order's "Order requires shipping" switch is off), `CarrierEvents::ingest` still records the raw event (with `reason=skipped_disabled_shipment` or `reason=skipped_attention_off` on the carrier-events row) but does not project onto the shipment's status. A warning is logged under category `shipments` with fields for `shipmentId`, `orderId`, `reference`, `code`, `externalCode`, `integrationHandle`, `reason`, and `eventHash`. The response is still 200 so the vendor's retry loop doesn't spin forever.
+Sometimes the plugin saves an inbound event but won't change the shipment's status. `CarrierEvents::ingest` still stores the raw event, with a `reason` on the carrier-events row saying why. Two reasons:
+
+- `skipped_disabled_shipment`: the shipment is disabled.
+- `skipped_attention_off`: the order is marked as not requiring shipping (its "Order requires shipping" switch is off, or its Commerce status is in the ignore list). The shipment itself stays enabled.
+
+Either way the plugin logs a warning under category `shipments` (with `shipmentId`, `orderId`, `reference`, `code`, `externalCode`, `integrationHandle`, `reason`, and `eventHash`) and still returns 200, so the vendor's retry loop doesn't spin forever.
 
 Your provider doesn't need special handling for this case. If you want to be nice to admins, surface the raw event in your own provider UI so they can see it arrived even when the plugin didn't act on it.
 

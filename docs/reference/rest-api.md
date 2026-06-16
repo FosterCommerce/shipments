@@ -150,8 +150,8 @@ Ingest a single carrier event (scan, status change, exception). The event is has
 - `code` and `dateOccurred` are required; missing or invalid values throw `400 Bad Request`.
 - Dedupe key is SHA-256 of `(shipmentId, code, dateOccurredUtc, externalCode)`. Re-delivering the same event returns `deduped=true` without re-applying the transition.
 - If `code` doesn't match a `ShippingStatus` and no integration mapping resolves it, the event still persists, gets recorded as an unmapped external status (Attention page), and `resolved` returns `null`.
-- Events on disabled shipments persist but do not project (no transition fired). The `reason` column on the persisted event records why.
-- Events on orders whose "Order requires shipping" lightswitch is off persist but do not project.
+- Events on disabled shipments persist but don't update the shipment (no status transition fired). The `reason` column on the persisted event records why.
+- Events on orders whose "Order requires shipping" lightswitch is off persist but don't update the shipment.
 
 ### Responses
 

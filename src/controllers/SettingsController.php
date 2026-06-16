@@ -86,14 +86,13 @@ class SettingsController extends Controller
 		$plugin->shipmentLineItems->invalidateAttentionCount();
 
 		if ($newlyIgnoredStatusHandles !== []) {
-			$sweepResult = $plugin->trackedOrders->sweepForNewlyIgnoredStatuses($newlyIgnoredStatusHandles);
-			if ($sweepResult['ordersAffected'] > 0) {
+			$ordersAffected = $plugin->trackedOrders->sweepForNewlyIgnoredStatuses($newlyIgnoredStatusHandles);
+			if ($ordersAffected > 0) {
 				Craft::$app->getSession()->setNotice(Craft::t(
 					Plugin::HANDLE,
 					'settings.savedWithSweep',
 					[
-						'orders' => $sweepResult['ordersAffected'],
-						'shipments' => $sweepResult['shipmentsTrashed'],
+						'orders' => $ordersAffected,
 					],
 				));
 				return $this->redirectToPostedUrl();

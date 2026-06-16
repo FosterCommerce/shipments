@@ -106,8 +106,8 @@ class Shipments extends Component
 	}
 
 	/**
-	 * Returns trashed shipments for the order. Used by the restore-shipments flow when an
-	 * admin re-enables shipping on an order that previously had its shipments cascade-trashed.
+	 * Trashed shipments for the order, powering the order tab's restore button. They reach the
+	 * trash by manual delete; older installs may also have some from the retired cascade-trash.
 	 *
 	 * @return list<Shipment>
 	 */

@@ -14,17 +14,13 @@ use yii\web\NotFoundHttpException;
 use yii\web\Response;
 
 /**
- * Handles the per-order "Order requires shipping" lightswitch and the related restore-
- * shipments flow:
- *   - POST /shipments/tracked-orders/set-active, flip on (track the order; admin now
- *     owns fulfillment for it).
- *   - POST /shipments/tracked-orders/set-ignored, flip off (cascade-trash all shipments
- *     on the order; the order drops off Attention).
- *   - POST /shipments/tracked-orders/restore-shipments, restore previously-trashed
- *     shipments back into the order's allocation pool.
+ * Backs the per-order "Order requires shipping" lightswitch and the restore button:
+ *   - set-active: track the order (admin owns fulfillment for it).
+ *   - set-ignored: drop the order off Attention; its shipments stay put.
+ *   - restore-shipments: pull trashed shipments back into the order's allocation pool.
  *
- * The setActive path is rejected if the order's current Commerce status is in the
- * plugin's `orderStatusesToIgnore` setting; the setting is authoritative.
+ * set-active is refused while the order's Commerce status is in `orderStatusesToIgnore`:
+ * that setting wins over the switch.
  */
 class TrackedOrdersController extends Controller
 {
@@ -60,17 +56,7 @@ class TrackedOrdersController extends Controller
 		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
-		$trashed = $plugin->trackedOrders->markIgnored($order);
-
-		if ($trashed > 0) {
-			return $this->asSuccess(Craft::t(
-				Plugin::HANDLE,
-				'orderTab.orderUntrackedWithTrashed',
-				[
-					'count' => $trashed,
-				],
-			));
-		}
+		$plugin->trackedOrders->markIgnored($order);
 
 		return $this->asSuccess(Craft::t(
 			Plugin::HANDLE,

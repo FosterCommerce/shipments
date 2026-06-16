@@ -4,7 +4,7 @@ How the pieces fit together. Audience: developers extending or integrating with 
 
 ## Data model
 
-- **`Shipment`**, a Craft element. Owns a grouped allocation of order line-item quantities plus fulfillment fields (tracking, carrier, service, scheduled ship date, notes, free-text fields via a plugin-wide field layout), and two status columns: `fulfillmentStatus` + `shippingStatus`. A `disableReason` column captures *why* the plugin disabled the shipment when the disable was system-driven (cascade from "Order requires shipping" off, order status moved into the ignore list); manual admin disables leave it null and the audit lives in Craft's element revision log instead. The order tab reads it to render the disable label on each card.
+- **`Shipment`**, a Craft element. Owns a grouped allocation of order line-item quantities plus fulfillment fields (tracking, carrier, service, scheduled ship date, notes, free-text fields via a plugin-wide field layout), and two status columns: `fulfillmentStatus` + `shippingStatus`. Disabling is admin-driven only (the **Enabled** lightswitch on the shipment edit page); the plugin never disables shipments on its own, and the audit for a manual disable lives in Craft's element revision log.
 - **`shipments_shipment_line_items`**, join rows between a shipment and Commerce line items, carrying the per-line-item quantity the shipment covers.
 - **`shipments_shipment_status_history`**, axis-aware audit log. Every `applyTransition` writes one row with `axis`, `fromCode`, `toCode`, `userId`, `sourceIntegrationId`, `sourceExternalCode`.
 - **`shipments_integrations`**, named external systems (ShipStation, a custom ERP, etc.). Each integration wraps a `Provider` subclass with settings.
@@ -74,7 +74,7 @@ Same pattern for `Shipments::createFromStagingPost` (per-order mutex instead; po
 | `Emails`                     | Email CRUD + render + send.                                                                                                  |
 | `TransitionEmails`           | `(axis, toCode) -> email[]` bindings. Event listener for `EVENT_SHIPMENT_STATUS_CHANGED`.                                     |
 | `ShipmentFieldLayouts`       | Project-config-backed field layout for `Shipment`.                                                                           |
-| `TrackedOrders`              | Owns `shipments_tracked_orders`. `evaluateAndUpsert`, `markActive`, `markIgnored`, `recomputeUnderAllocation`, `sweepForNewlyIgnoredStatuses`. Drives the Attention page filter and the cascade-disable behavior when an order's status moves into `orderStatusesToIgnore`. |
+| `TrackedOrders`              | Owns `shipments_tracked_orders`. `evaluateAndUpsert`, `markActive`, `markIgnored`, `recomputeUnderAllocation`, `sweepForNewlyIgnoredStatuses`. Drives the Attention page filter. When an order's status moves into `orderStatusesToIgnore` it flips the row to `ignored` (off the Attention page); shipments are left intact. |
 
 ## Events
 

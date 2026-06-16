@@ -23,7 +23,6 @@ Supplementary table for the `Shipment` element. Keyed to `craft_elements.id`; th
 | `carrier`                 | varchar        | Indexed.                                                                   |
 | `service`                 | varchar        |                                                                            |
 | `notes`                   | text           | Admin-editable free-text notes.                                            |
-| `disableReason`           | varchar(255)   | Set when a system action (cascade from "Order requires shipping" off, order status moved into the ignore list) disables the shipment. Read by the order tab to render the disable label. Manual admin disables leave it null. |
 | `dateLastPushAttempt`       | datetime       | Set by `PushShipmentJob` after each attempt.                               |
 | `lastPushAttemptError`    | text           | Error message on the last attempt; null on success.                        |
 | `pushAttemptCount`        | smallint       | Incremented on every push attempt.                                         |
