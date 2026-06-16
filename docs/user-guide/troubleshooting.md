@@ -39,7 +39,7 @@ Common causes:
 Check:
 
 1. The email is **Enabled** (the lightswitch on the email edit page).
-2. The email has a **Transition trigger** checked for the axis and code you're changing to. Triggers are at the bottom of the email edit page.
+2. The email has a **Transition trigger** checked for the status you're changing to. Triggers are at the bottom of the email edit page.
 3. The shipment actually changed to a code with a trigger. Editing and saving without changing status doesn't fire anything.
 4. Craft's queue is running. `./craft queue/run`. If the queue is stalled, emails pile up there.
 5. The HTML template path resolves. A missing template fails the job with a log error.
@@ -75,20 +75,13 @@ Retry behavior:
 - A normal integration error lets Craft's queue retry on its default schedule.
 - A permanent integration error marks the job failed and stops retrying. Find it in the queue, fix the root cause, and requeue.
 
-## Unmapped external status keeps coming back
+## An integration webhook isn't changing the shipment
 
-The inbound webhook keeps sending a code you haven't mapped. Every sighting bumps the occurrence count on the same attention row.
+The inbound webhook is sending a code the plugin doesn't have a mapping for. Unmapped codes are skipped: the shipment's status doesn't change, and nothing is recorded.
 
-Fix: go to **Shipments -> Attention needed**, click **Map** on the row, add a mapping in the integration's mapping editor, and save. The attention row resolves on save.
+Fix: go to the integration's status-mapping editor, add a row mapping the external code to one of the plugin's statuses, and save. Resend the webhook.
 
 If you don't know what the external code means, ask the vendor. Don't map a code you don't understand; you'll misroute shipments.
-
-## Status changes are rejecting with "would violate invariant"
-
-The plugin enforces a few hard rules:
-
-- `fulfillmentStatus -> fulfilled` requires a non-empty `trackingNumber`. Add one, then try again.
-- API callers can pass the status they expect as the starting point. If the shipment has moved to something else, the change is rejected. Re-read the shipment, pass the current status, and retry.
 
 ## CP actions say "Permission denied"
 
@@ -129,4 +122,4 @@ Your developer can see the details in the Craft log under the `shipments` catego
 
 ## Nothing here matches
 
-Gather: the Craft log (`storage/logs/web-<date>.log`), the queue state (Utilities -> Queue Manager), the action you took, and the expected versus actual outcome. Attach to an issue.
+Gather: the Craft log (`storage/logs/web-<date>.log`), the queue state (**Utilities -> Queue Manager**), the action you took, and the expected versus actual outcome. Attach to an issue.

@@ -915,7 +915,7 @@ class Shipments extends Component
 			foreach ($plans as $plan) {
 				$status = $plan->suggestedStatusHandle !== null
 					? Status::from($plan->suggestedStatusHandle)
-					: Status::Open;
+					: Status::New;
 
 				$shipment = $this->persistSinglePlanWithReferenceRetry($orderId, $status);
 

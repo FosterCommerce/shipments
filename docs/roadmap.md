@@ -4,7 +4,7 @@ Working notes. Not a spec.
 
 ## Where we are
 
-Plugin is feature complete for version 1.0.0, but needs more manual testing. Shipments are a Craft element with two fixed-vocabulary status axes (`FulfillmentStatus`, `ShippingStatus`), per-integration status mappings, a REST API, and a mutex-serialized status-write path (`Shipments::applyTransition`). Integration framework, staging-group CP UI on Commerce Orders, status history with source tracking, export route, project-config everywhere. Ships zero concrete providers; Custom modules can register via `Integrations::EVENT_REGISTER_INTEGRATIONS`.
+Plugin is feature complete for version 1.0.0, but needs more manual testing. Shipments are a Craft element with a single fixed-vocabulary `Status`, per-integration status mappings, a REST API, and a mutex-serialized status-write path (`Shipments::applyTransition`). Integration framework, staging-group CP UI on Commerce Orders, status history with source tracking, export route, project-config everywhere. Ships zero concrete providers; Custom modules can register via `Integrations::EVENT_REGISTER_INTEGRATIONS`.
 
 ## Testing needed
 
@@ -36,4 +36,4 @@ Manual, full-feature validation.
 
 ## Saying no
 
-1. **No custom shipment statuses.** Status vocabulary is two fixed PHP enums (`FulfillmentStatus`, `ShippingStatus`), not admin-editable. Admins reconcile vendor vocabulary via a per-integration mapping table that translates the integration's codes into ours.
+1. **No custom shipment statuses.** Status vocabulary is one fixed PHP enum (`Status`), not admin-editable. Admins reconcile vendor vocabulary via a per-integration mapping table that translates the integration's codes into ours.

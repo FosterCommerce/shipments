@@ -12,7 +12,7 @@ How to read shipments from front-end templates (and any CP template). Audience: 
     .all() %}
 
 {% for shipment in shipments %}
-    <p>{{ shipment.reference }}: {{ shipment.fulfillmentStatusEnum.label() }}</p>
+    <p>{{ shipment.reference }}: {{ shipment.statusEnum.label() }}</p>
 {% endfor %}
 ```
 
@@ -20,21 +20,21 @@ How to read shipments from front-end templates (and any CP template). Audience: 
 
 ## Filters
 
-| Method                          | Accepts                                      | Notes                                                                               |
-|---------------------------------|----------------------------------------------|-------------------------------------------------------------------------------------|
-| `orderId(value)`                | `int`, `string`, `list<int\|string>`         | Commerce order id. Pass a list for multiple orders.                                 |
-| `fulfillmentStatus(value)`      | `string`, `list<string>`                     | One of the `FulfillmentStatus` enum values (`open`, `in_progress`, `fulfilled`, etc.). |
-| `shippingStatus(value)`         | `string`, `list<string>`                     | One of the `ShippingStatus` enum values (`pending`, `in_transit`, `delivered`, etc.).   |
-| `reference(value)`              | `string`, `list<string>`                     | Exact reference match. Supports Craft's `'not foo'` / `['or', 'a', 'b']` forms.     |
-| `trackingNumber(value)`         | `string`, `list<string>`                     | Exact tracking number.                                                              |
-| `carrier(value)`                | `string`, `list<string>`                     | Carrier handle as stored on the shipment (e.g. `ups`, `usps`).                      |
-| `service(value)`                | `string`, `list<string>`                     | Carrier service code as stored on the shipment.                                     |
-| `integrationId(value)`          | `int`, `string`, `list<int\|string>`         | Filter to shipments that have an integration reference for the given integration id. |
-| `dateShippingStatus(value)`     | `string`, `array`, `DateTimeInterface`       | When the most recent shipping-status change happened. Accepts the same forms as Craft's `Db::parseDateParam`. |
+| Method                | Accepts                              | Notes                                                                               |
+|-----------------------|--------------------------------------|-------------------------------------------------------------------------------------|
+| `orderId(value)`      | `int`, `string`, `list<int\|string>` | Commerce order id. Pass a list for multiple orders.                                 |
+| `status(value)`       | `string`, `list<string>`             | One of the `Status` enum values (`new`, `in_progress`, `on_hold`, `fulfilled`, `shipped`, `cancelled`). |
+| `reference(value)`    | `string`, `list<string>`             | Exact reference match. Supports Craft's `'not foo'` / `['or', 'a', 'b']` forms.    |
+| `trackingNumber(value)`| `string`, `list<string>`            | Exact tracking number.                                                              |
+| `carrier(value)`      | `string`, `list<string>`             | Carrier name as stored on the shipment (e.g. `UPS`, `USPS`).                        |
+| `service(value)`      | `string`, `list<string>`             | Carrier service code as stored on the shipment.                                     |
+| `integrationId(value)`| `int`, `string`, `list<int\|string>` | Filter to shipments that have an integration reference for the given integration id. |
 
-Standard `ElementQuery` filters work too: `.id(...)`, `.dateCreated(...)`, `.dateUpdated(...)`, `.status(...)`, `.trashed(...)`, `.limit(...)`, `.offset(...)`, `.orderBy(...)`, `.search(...)`, `.with(...)`.
+`status(value)` is Craft's standard element-status filter, specialized to also accept the `Status` enum values. Passing `null` includes disabled shipments.
 
-Filtering on shipped/delivered date directly is not supported on the query (the values are derived from `shipments_status_history`, not stored as columns). Use `.dateCreated()` for created shipments, or read `shipment.dateShipped` / `shipment.dateDelivered` per result and filter in Twig.
+Standard `ElementQuery` filters work too: `.id(...)`, `.dateCreated(...)`, `.dateUpdated(...)`, `.trashed(...)`, `.limit(...)`, `.offset(...)`, `.orderBy(...)`, `.search(...)`, `.with(...)`.
+
+Filtering on the shipped date directly is not supported on the query (the value is derived from `shipments_status_history`, not stored as a column). Use `.dateCreated()` for created shipments, or read `shipment.dateShipped` per result and filter in Twig.
 
 ## Eager-loading shipments from an order
 
@@ -49,7 +49,7 @@ The plugin registers a `shipments` eager-loading map on `Order`, so a single que
 {% for order in orders %}
     <h2>Order #{{ order.reference }}</h2>
     {% for shipment in order.shipments %}
-        <p>{{ shipment.reference }}: {{ shipment.fulfillmentStatusEnum.label() }}</p>
+        <p>{{ shipment.reference }}: {{ shipment.statusEnum.label() }}</p>
     {% endfor %}
 {% endfor %}
 ```
@@ -62,15 +62,14 @@ Direct properties read straight from the row:
 
 - `id`, `enabled`, `dateCreated`, `dateUpdated` (standard element properties)
 - `orderId`, `reference`, `number`
-- `fulfillmentStatus`, `shippingStatus` (string codes)
-- `trackingNumber`, `trackingUrl`, `carrier`, `service`, `notes`
-- `dateShippingStatus`, `dateScheduledShip` (`DateTime` or `null`)
-- `dateShipped`, `dateDelivered` (`DateTime` or `null`; derived from `shipments_status_history`, instance-cached on first read)
+- `status` (string code)
+- `trackingNumber`, `trackingUrl`, `carrier`, `service`, `fulfillmentNotes`, `shippingNotes`
+- `dateScheduledShip` (`DateTime` or `null`)
+- `dateShipped` (`DateTime` or `null`; derived from `shipments_status_history`, instance-cached on first read)
 
 Methods worth knowing:
 
-- `shipment.fulfillmentStatusEnum` returns a `FulfillmentStatus` enum case with `.label()`, `.color()`, and `.value`.
-- `shipment.shippingStatusEnum` returns a `ShippingStatus` enum case (or `null` if no shipping status has been observed yet).
+- `shipment.statusEnum` returns a `Status` enum case with `.label()`, `.color()`, and `.value`.
 - `shipment.lineItems` returns the list of `ShipmentLineItem` models (each has `lineItemId` and `qty`).
 - `shipment.integrationReferences` returns the list of `IntegrationReference` models for deep-linking to remote systems.
 - `shipment.order` returns the parent `Order` element (or `null` if it was deleted).
@@ -79,7 +78,7 @@ For the full status vocabulary and what each code means, see [status vocabulary]
 
 ## Recipe: order-detail page with shipments and their items
 
-Show a customer the shipments on one of their orders, the carrier shipping status of each, and the line items contained in each shipment. The order is loaded in the controlling template (e.g. from `craft.orders.number(...)` or via the order edit URL).
+Show a customer the shipments on one of their orders, the status of each, and the line items contained in each shipment. The order is loaded in the controlling template (e.g. from `craft.orders.number(...)` or via the order edit URL).
 
 ```twig
 {% set shipments = craft.shipments
@@ -101,19 +100,15 @@ Show a customer the shipments on one of their orders, the carrier shipping statu
                 <header>
                     <h3>{{ shipment.reference }}</h3>
 
-                    {% if shipment.shippingStatusEnum %}
-                        <p class="shipping-status">
-                            {{ 'Status'|t }}:
-                            <strong>{{ shipment.shippingStatusEnum.label() }}</strong>
-                            {% if shipment.dateShippingStatus %}
-                                <time datetime="{{ shipment.dateShippingStatus|atom }}">
-                                    {{ shipment.dateShippingStatus|date('medium') }}
-                                </time>
-                            {% endif %}
-                        </p>
-                    {% else %}
-                        <p class="shipping-status">{{ 'Awaiting carrier update.'|t }}</p>
-                    {% endif %}
+                    <p class="status">
+                        {{ 'Status'|t }}:
+                        <strong>{{ shipment.statusEnum.label() }}</strong>
+                        {% if shipment.dateShipped %}
+                            <time datetime="{{ shipment.dateShipped|atom }}">
+                                {{ shipment.dateShipped|date('medium') }}
+                            </time>
+                        {% endif %}
+                    </p>
 
                     {% if shipment.trackingNumber %}
                         <p class="tracking">
@@ -156,7 +151,6 @@ A few things to note:
 
 - `lineItemsById` is built once per render so the inner loop resolves each `shipmentLineItem.lineItemId` to its Commerce `LineItem` in O(1). For orders with many line items this is meaningfully faster than calling `order.lineItemById(id)` inside the loop.
 - A line item that's missing from the order map means it was removed from the order after the shipment was saved. Decide whether to render a placeholder, hide the row, or surface a warning to staff.
-- `shippingStatusEnum` is `null` until the carrier reports something, so handle the no-status case explicitly. `fulfillmentStatusEnum` is intentionally not shown here.
 - If you list shipments across many orders on the same page (e.g. account dashboard), eager-load via `craft.orders.with(['shipments']).all()` and iterate `order.shipments` instead of running one query per order.
 
 ## Customer-facing template
@@ -174,7 +168,7 @@ A typical "shipments on the order confirmation page" snippet:
     {% for shipment in shipments %}
         <article>
             <h3>{{ shipment.reference }}</h3>
-            <p>{{ shipment.fulfillmentStatusEnum.label() }}{% if shipment.shippingStatusEnum %}, {{ shipment.shippingStatusEnum.label() }}{% endif %}</p>
+            <p>{{ shipment.statusEnum.label() }}</p>
             {% if shipment.trackingNumber %}
                 {% if shipment.trackingUrl %}
                     <a href="{{ shipment.trackingUrl }}">{{ shipment.trackingNumber }}</a>

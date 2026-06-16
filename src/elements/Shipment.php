@@ -41,7 +41,7 @@ class Shipment extends Element
 {
 	public ?int $orderId = null;
 
-	public string $status = Status::Open->value;
+	public string $status = Status::New->value;
 
 	public ?DateTime $dateScheduledShip = null;
 

@@ -2,21 +2,20 @@
 
 > **Status: untested / WIP.** The endpoints below ship in the plugin and are documented here against the source, but they have not been exercised against a live integration. The shape, auth model, and error envelope are likely to change once real integration work begins. Don't build against this until it stabilizes.
 
-The plugin exposes four HTTP entry points:
+The plugin exposes three HTTP entry points:
 
-- `POST /shipments/api/shipments/{id}`, apply a partial update plus optional axis transitions to one shipment.
-- `POST /shipments/api/shipments/{id}/carrier-events`, ingest a single carrier event.
+- `POST /shipments/api/shipments/{id}`, apply a partial update plus an optional status transition to one shipment.
 - `POST /shipments/webhooks/{integrationHandle}`, public webhook receiver. Delegates body parsing and signature checks to the integration's provider.
 - `GET /shipments/exports/{integrationHandle}`, public export endpoint. Delegates response shape and auth to the integration's provider.
 
-`api/*` routes live under the CP URL rules. `webhooks/*` and `exports/*` live under the site URL rules and are anonymous.
+The `api/*` route lives under the CP URL rules. `webhooks/*` and `exports/*` live under the site URL rules and are anonymous.
 
 ## Authentication
 
-The two `/shipments/api/...` endpoints are CP-routed and require a logged-in CP user. Send a session cookie or use Craft's elevated session token. They additionally require:
+The `/shipments/api/...` endpoint is CP-routed and requires a logged-in CP user. Send a session cookie or use Craft's elevated session token. It additionally requires:
 
 - `shipments-editShipments` for any update.
-- `shipments-transitionShipments` if the request changes `fulfillmentStatus` or `shippingStatus`.
+- `shipments-transitionShipments` if the request changes `status`.
 
 CSRF validation is **disabled** on the API controller (`enableCsrfValidation = false`) so a bearer-style integration that posts JSON without a CSRF token still works.
 
@@ -24,35 +23,34 @@ The `/shipments/webhooks/{integrationHandle}` and `/shipments/exports/{integrati
 
 ## `POST /shipments/api/shipments/{id}`
 
-Apply a partial update to one shipment. Any combination of fulfillment fields, plus an optional fulfillment-axis or shipping-axis transition.
+Apply a partial update to one shipment. Any combination of fulfillment fields, plus an optional status transition.
 
 ### Request body
 
 All fields optional. `null` or omitted means "don't touch."
 
-| Field                       | Type                                     | Required | Description                                                                                                                          |
-|-----------------------------|------------------------------------------|----------|--------------------------------------------------------------------------------------------------------------------------------------|
-| `trackingNumber`            | string (max 255)                         | no       | Carrier tracking number. Required by invariant before the shipment can transition to fulfillment status `fulfilled`.                 |
-| `trackingUrl`               | string (max 255), URL                    | no       | Public tracking URL. Validated as a URL with `https` default scheme.                                                                 |
-| `carrier`                   | string (max 255)                         | no       | Carrier name (free text, e.g. `UPS`).                                                                                                |
-| `service`                   | string (max 255)                         | no       | Service level (free text, e.g. `Ground`).                                                                                            |
-| `dateScheduledShip`         | ISO-8601 string, Unix int, or DateTime   | no       | Scheduled ship date. Pre-parsed by the controller before validation.                                                                 |
-| `fulfillmentNotes`          | string                                   | no       | Internal warehouse notes.                                                                                                            |
-| `shippingNotes`             | string                                   | no       | Customer-facing notes.                                                                                                               |
-| `fulfillmentStatus`         | enum string                              | no       | Target `FulfillmentStatus`: `open`, `in_progress`, `scheduled`, `on_hold`, `fulfilled`, `cancelled`, `incomplete`.                   |
-| `shippingStatus`            | enum string                              | no       | Target `ShippingStatus`: `pending`, `pre_transit`, `in_transit`, `out_for_delivery`, `attempted_delivery`, `available_for_pickup`, `delivered`, `exception`, `returned`, `failure`. |
-| `fulfillmentStatusMessage`  | string                                   | no       | Note recorded on the fulfillment-axis history row when the fulfillment status changes.                                               |
-| `shippingStatusMessage`     | string                                   | no       | Note recorded on the shipping-axis history row when the shipping status changes.                                                     |
-| `fields`                    | object (handle -> value)                 | no       | Custom field values keyed by field handle. Routed through `Element::setFieldValues`.                                                 |
-| `integrationHandle`         | string                                   | no       | Handle of the integration driving this update. Recorded as `sourceIntegration` on any resulting history row.                         |
-| `externalCode`              | string                                   | no       | Raw external status code from the integration. Recorded alongside `sourceIntegration` on any resulting history row.                  |
+| Field               | Type                                   | Required | Description                                                                                                |
+|---------------------|----------------------------------------|----------|------------------------------------------------------------------------------------------------------------|
+| `trackingNumber`    | string (max 255)                       | no       | Carrier tracking number.                                                                                   |
+| `trackingUrl`       | string (max 255), URL                  | no       | Public tracking URL. Validated as a URL with `https` default scheme.                                       |
+| `carrier`           | string (max 255)                       | no       | Carrier name (free text, e.g. `UPS`).                                                                      |
+| `service`           | string (max 255)                       | no       | Service level (free text, e.g. `Ground`).                                                                  |
+| `dateScheduledShip` | ISO-8601 string, Unix int, or DateTime | no       | Scheduled ship date. Pre-parsed by the controller before validation.                                      |
+| `fulfillmentNotes`  | string                                 | no       | Free-text notes.                                                                                          |
+| `shippingNotes`     | string                                 | no       | Free-text notes.                                                                                          |
+| `status`            | enum string                            | no       | Target `Status`: `new`, `in_progress`, `on_hold`, `fulfilled`, `shipped`, `cancelled`.                    |
+| `statusMessage`     | string                                 | no       | Note recorded on the history row when the status changes.                                                  |
+| `fields`            | object (handle -> value)               | no       | Custom field values keyed by field handle. Routed through `Element::setFieldValues`.                      |
+| `integrationHandle` | string                                 | no       | Handle of the integration driving this update. Recorded as `sourceIntegration` on any resulting history row. |
+| `externalCode`      | string                                 | no       | Raw external status code from the integration. Recorded alongside `sourceIntegration` on any resulting history row. |
 
 ### Invariants
 
-- A transition to `fulfillmentStatus = fulfilled` requires a non-empty `trackingNumber` on the shipment (either pre-existing or set in this same request).
+- No field is required to reach any status. Tracking, carrier, and service are always optional.
 - The shipment is located via `findById($id, includeTrashed: true)`, so updates to soft-deleted shipments succeed.
 - Status transitions hold a per-shipment mutex (`shipments:shipment:{id}:transition`); concurrent transitions on the same shipment serialize.
-- A transition that doesn't actually change the value is a no-op (no history row written, no event fired).
+- A transition to the value the shipment already has writes no history row and fires no event.
+- Reaching `shipped` advances the shipment's Commerce order to the configured target status (see [status vocabulary](../user-guide/status-vocabulary.md)).
 
 ### Responses
 
@@ -65,11 +63,8 @@ All fields optional. `null` or omitted means "don't touch."
     "id": 1234,
     "reference": "SO-1001-s001",
     "orderId": 5678,
-    "fulfillmentStatus": "in_progress",
-    "shippingStatus": "pre_transit",
-    "dateShippingStatus": "2026-04-26T10:15:00+00:00",
+    "status": "in_progress",
     "dateShipped": null,
-    "dateDelivered": null,
     "dateScheduledShip": "2026-04-28T00:00:00+00:00",
     "trackingNumber": "1Z999AA10123456784",
     "trackingUrl": "https://www.ups.com/track?tracknum=1Z999AA10123456784",
@@ -90,17 +85,17 @@ All fields optional. `null` or omitted means "don't touch."
   "success": false,
   "errors": {
     "trackingUrl": ["Tracking Url is not a valid URL."],
-    "targetFulfillmentCode": ["Target Fulfillment Code is invalid."]
+    "targetStatusCode": ["Target Status Code is invalid."]
   }
 }
 ```
 
-**`422 Unprocessable Entity`**, service rejected the update (invariant fail, optimistic-lock fail, save error).
+**`422 Unprocessable Entity`**, service rejected the update (save error).
 
 ```json
 {
   "success": false,
-  "error": "Tracking number is required to mark a shipment fulfilled."
+  "error": "Couldn't apply transition: ..."
 }
 ```
 
@@ -120,100 +115,9 @@ curl -X POST 'https://example.com/shipments/api/shipments/1234' \
     "trackingNumber": "1Z999AA10123456784",
     "carrier": "UPS",
     "service": "Ground",
-    "fulfillmentStatus": "fulfilled",
-    "shippingStatus": "pre_transit",
+    "status": "shipped",
     "integrationHandle": "shipstation",
     "externalCode": "SHIPPED"
-  }'
-```
-
-## `POST /shipments/api/shipments/{id}/carrier-events`
-
-Ingest a single carrier event (scan, status change, exception). The event is hashed for dedupe and, if its code resolves to a `ShippingStatus`, drives a shipping-axis transition.
-
-### Request body
-
-| Field             | Type                                     | Required | Description                                                                                                          |
-|-------------------|------------------------------------------|----------|----------------------------------------------------------------------------------------------------------------------|
-| `code`            | string                                   | yes      | The event code. Either a `ShippingStatus` enum value (`in_transit`, `delivered`, ...) or an integration-specific external code that maps to one. |
-| `dateOccurred`    | ISO-8601 string, Unix int, or array form | yes      | When the event happened at the carrier. UTC-normalized before hashing for dedupe.                                    |
-| `description`     | string                                   | no       | Free-text event description (e.g., `Package departed facility`).                                                     |
-| `externalCode`    | string                                   | no       | Original external code, recorded for audit when `code` was already an internal value.                                |
-| `locationCity`    | string                                   | no       | City the event occurred in.                                                                                          |
-| `locationRegion`  | string                                   | no       | State or region.                                                                                                     |
-| `locationCountry` | string                                   | no       | ISO country code. Truncated to first 2 chars and uppercased on persist.                                              |
-| `rawPayload`      | object, array, or string                 | no       | The full vendor payload for this event, stored verbatim. Arrays/objects are JSON-encoded.                            |
-| `integrationHandle` | string                                 | no       | Handle of the integration that delivered this event. Required to resolve external codes via integration mappings.    |
-
-### Invariants
-
-- `code` and `dateOccurred` are required; missing or invalid values throw `400 Bad Request`.
-- Dedupe key is SHA-256 of `(shipmentId, code, dateOccurredUtc, externalCode)`. Re-delivering the same event returns `deduped=true` without re-applying the transition.
-- If `code` doesn't match a `ShippingStatus` and no integration mapping resolves it, the event still persists, gets recorded as an unmapped external status (Attention page), and `resolved` returns `null`.
-- Events on disabled shipments persist but don't update the shipment (no status transition fired). The `reason` column on the persisted event records why.
-- Events on orders whose "Order requires shipping" lightswitch is off persist but don't update the shipment.
-
-### Responses
-
-**`200 OK`**, event accepted.
-
-```json
-{
-  "success": true,
-  "deduped": false,
-  "resolved": "in_transit",
-  "shipment": {
-    "id": 1234,
-    "reference": "SO-1001-s001",
-    "shippingStatus": "in_transit",
-    "dateShippingStatus": "2026-04-26T10:15:00+00:00"
-  }
-}
-```
-
-`resolved` is `null` if the code couldn't be mapped to a `ShippingStatus`. `deduped` is `true` when the SHA-256 key matched an existing row.
-
-**`400 Bad Request`**, missing or unparseable `code` or `dateOccurred`.
-
-```json
-{
-  "name": "Bad Request",
-  "message": "`dateOccurred` must be a valid timestamp.",
-  "code": 0,
-  "status": 400
-}
-```
-
-**`422 Unprocessable Entity`**, event accepted, but a downstream save or transition failed.
-
-```json
-{
-  "success": false,
-  "error": "Couldn't apply transition: ..."
-}
-```
-
-**`401 Unauthorized`, `403 Forbidden`, `404 Not Found`**, same as the update endpoint.
-
-### curl example
-
-```sh
-curl -X POST 'https://example.com/shipments/api/shipments/1234/carrier-events' \
-  -H 'Content-Type: application/json' \
-  -H 'Cookie: CraftSessionId=...' \
-  -d '{
-    "code": "in_transit",
-    "externalCode": "I_TRANSIT",
-    "dateOccurred": "2026-04-26T10:15:00+00:00",
-    "description": "Package departed origin facility",
-    "locationCity": "Atlanta",
-    "locationRegion": "GA",
-    "locationCountry": "US",
-    "integrationHandle": "shipstation",
-    "rawPayload": {
-      "trackingNumber": "1Z999AA10123456784",
-      "scanType": "DEPARTURE"
-    }
   }'
 ```
 
@@ -303,7 +207,7 @@ The plugin uses two response shapes for failures.
 }
 ```
 
-**Service-level errors** (one message), from caught exceptions in the update and carrier-events endpoints:
+**Service-level errors** (one message), from caught exceptions in the update endpoint:
 
 ```json
 {

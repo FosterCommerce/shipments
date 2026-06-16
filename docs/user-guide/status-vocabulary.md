@@ -1,78 +1,55 @@
 # Status vocabulary
 
-The plugin tracks every shipment against two independent status axes. Both vocabularies are fixed; admins do not add their own codes. Integration-specific codes map into these via [status mappings](./integrations.md).
+Every shipment carries one status from a fixed list. Audience: store admins + CS leads running day-to-day fulfillment.
 
-## Axis 1: Fulfillment status
+Admins do not add their own codes. Integration-specific codes map into this list via [status mappings](./integrations.md).
 
-**Enum:** `fostercommerce\shipments\enums\FulfillmentStatus`. **Modeled on:** Shopify's FulfillmentOrder lifecycle. **Who sets it:** the merchant (or their 3PL, reporting through an integration).
+## The statuses
 
-| Value           | Label           | Semantics                                                                                           | Terminal? |
-|-----------------|-----------------|-----------------------------------------------------------------------------------------------------|-----------|
-| `open`          | Open            | Default state. Created, not worked.                                                                 | no        |
-| `in_progress`   | In progress     | Actively being prepared (picking, packing, labeling).                                               | no        |
-| `scheduled`     | Scheduled       | Awaiting a future action (scheduled pickup, later release).                                         | no        |
-| `on_hold`       | On hold         | Paused (stock issue, fraud review, address verification).                                           | no        |
-| `fulfilled`     | Fulfilled       | Merchant considers this done. **Requires a tracking number** to transition into.                    | yes       |
-| `cancelled`     | Cancelled       | Won't ship.                                                                                         | yes       |
-| `incomplete`    | Incomplete      | Attempt errored mid-way; needs attention.                                                           | no        |
+**Enum:** `fostercommerce\shipments\enums\Status`. **Who sets it:** you (or your 3PL, reporting through an integration), from the shipment edit page, the REST API, or an inbound webhook.
 
-**Invariants the plugin enforces:**
+| Value         | Label       | Typical use                                                        |
+|---------------|-------------|--------------------------------------------------------------------|
+| `new`         | New         | Default state. Created, not yet worked.                            |
+| `in_progress` | In progress | Being prepared (picking, packing, labeling).                       |
+| `on_hold`     | On hold     | Paused (stock issue, fraud review, address verification).          |
+| `fulfilled`   | Fulfilled   | Warehouse work is done.                                            |
+| `shipped`     | Shipped     | In the carrier's hands. See the behavior below.                    |
+| `cancelled`   | Cancelled   | Won't ship.                                                        |
 
-- Transition **into** `fulfilled` requires a non-empty `trackingNumber`. Violations throw `InvalidTransitionException`.
+A status is a label. The plugin does not attach hidden behavior to most of these values: what a status triggers (an email, a push to an integration) is something you configure, not something baked into the code.
 
-Transitioning out of `fulfilled` (e.g. back to `in_progress` after a correction) is allowed and has no automatic side effects.
+## You decide what each status means
 
-## Axis 2: Shipping status
+The "typical use" column is a suggestion, not a rule. Your store chooses how to use the available statuses to fit your workflow. One store treats `fulfilled` as "packed and ready, not yet shipped"; another treats it as the moment the order is effectively done. Both are correct.
 
-**Enum:** `fostercommerce\shipments\enums\ShippingStatus`. **Modeled on:** common carrier webhook vocabularies (USPS, UPS, FedEx event codes). **Who sets it:** the carrier, via integration webhooks or the REST carrier-events endpoint. Admins can override manually from the edit page.
+The plugin does not track detailed carrier events (there is no `delivered`, `in_transit`, `out_for_delivery`, and so on). It models the merchant's side of fulfillment, so the last status you set is often the final word on a shipment. If you need carrier-level tracking detail, that is the job of the carrier's own tracking page, not this plugin.
 
-| Value                 | Label                | Semantics                                                                | Terminal? |
-|-----------------------|----------------------|--------------------------------------------------------------------------|-----------|
-| `pending`             | Pending              | First observed state; carrier acknowledged but no physical movement.     | no        |
-| `pre_transit`         | Pre-transit          | Label generated; not yet scanned into the carrier's network.             | no        |
-| `in_transit`          | In transit           | First "in-motion" scan.                                                  | no        |
-| `out_for_delivery`    | Out for delivery     | On the last-mile vehicle.                                                | no        |
-| `attempted_delivery`  | Attempted delivery   | Delivery attempt failed; carrier retries.                                | no        |
-| `available_for_pickup`| Available for pickup | At a pickup point.                                                       | no        |
-| `delivered`           | Delivered            | Successfully delivered.                                                  | yes       |
-| `exception`           | Exception            | Problem that doesn't fit another status (delay, damage, lost).           | no        |
-| `returned`            | Returned             | Shipped back to origin.                                                  | yes       |
-| `failure`             | Failure              | Undeliverable; won't be retried.                                         | yes       |
+The one fixed behavior is `shipped` advancing the order, described next. Everything else is yours to define.
 
-**Null is a valid value.** A shipment with no observed carrier activity has `shippingStatus = null`. Subsequent movements update `dateShippingStatus`.
+## The one status with built-in behavior
 
-## Derived ship/delivery dates
+`shipped` is the single exception. When a shipment reaches `shipped`, the plugin advances its Commerce order to the order status you configure under **Shipments -> Settings** (the auto-advance target). This is one-way: moving the shipment back out of `shipped` does not move the order back. Leave the target empty to disable it.
 
-`Shipment::getDateShipped()` and `Shipment::getDateDelivered()` derive their values from the `shipments_status_history` table at read time, returning the earliest matching row:
+No status requires any field. You can move a shipment to `shipped` with or without a tracking number; tracking, carrier, and service are always optional.
 
-- `getDateShipped()`: first transition to `(axis = shipping, toCode = in_transit)`.
-- `getDateDelivered()`: first transition to `(axis = shipping, toCode = delivered)`.
+## Derived ship date
 
-These are not stored as columns. The history table is the single source of truth; the getters are a convenience layer. Both are instance-cached.
+`Shipment::getDateShipped()` reads from the `shipments_status_history` table at read time, returning the first transition into `shipped`. It is not a stored column; the history table is the source of truth, and the getter is a convenience layer. It is instance-cached. Null when the shipment has never reached `shipped`.
 
 ## Color palette
 
-Both enums expose `color()` returning a Craft CP status-dot handle (`gray`, `blue`, `green`, `orange`, `purple`, `red`). Used by `Cp::statusLabelHtml()` to render the pills on the element index and order tab.
+`Status::color()` returns a Craft CP status-dot handle, used by `Cp::statusLabelHtml()` to render the pills on the element index and order tab.
 
-## Customer-facing derivation
-
-Not a stored column. Derived at display time when you need a single human-readable phrase:
-
-```php
-match (true) {
-    in_array($shipment->fulfillmentStatus, ['cancelled', 'on_hold', 'incomplete'], true) => $shipment->getFulfillmentStatusEnum()->label(),
-    $shipment->getDateDelivered() !== null => 'Delivered',
-    $shipment->shippingStatus === ShippingStatus::OutForDelivery->value => 'Out for delivery',
-    $shipment->shippingStatus === ShippingStatus::InTransit->value => 'In transit',
-    $shipment->fulfillmentStatus === FulfillmentStatus::Fulfilled->value => 'Shipped',
-    default => $shipment->getFulfillmentStatusEnum()->label(),
-};
-```
-
-## Why two axes?
-
-Shopify, ShipEngine, EasyPost, and ShipStation all separate merchant intent from carrier observation. Collapsing them into a single column is the anti-pattern: it forces you to pick whether "shipped" means "the merchant pressed the button" or "the carrier scanned it," and both answers are wrong for different workflows. The merchant axis drives emails ("your order is on its way"), the carrier axis drives tracking-page updates. Keep them separate, derive display state from both when you need one string.
+| Value         | Color  |
+|---------------|--------|
+| `new`         | gray   |
+| `in_progress` | blue   |
+| `on_hold`     | orange |
+| `fulfilled`   | teal   |
+| `shipped`     | green  |
+| `cancelled`   | red    |
 
 ## Changing the vocabulary
 
-You can't. Both enums are source-code. If a real workflow needs a missing case (e.g. `partially_delivered`), open a PR with the enum change + translations + `color()` entry + semantic notes in this doc. The intent: plugin-wide stability lets emails, jobs, dashboards, and integration providers all agree on what codes mean without coordination.
+You can't from the CP. The list is source-code. If a real workflow needs a missing case, open a PR with the enum change plus its translation entry, `color()` entry, and a note in this doc. The intent: a stable, plugin-wide vocabulary lets emails, jobs, dashboards, and integration providers all agree on what each code means without coordination.

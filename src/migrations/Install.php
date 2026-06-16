@@ -56,7 +56,7 @@ class Install extends Migration
 			'orderId' => $this->integer()->notNull(),
 			'reference' => $this->string()->notNull(),
 			'number' => $this->integer()->notNull(),
-			'status' => $this->string(32)->notNull()->defaultValue(Status::Open->value),
+			'status' => $this->string(32)->notNull()->defaultValue(Status::New->value),
 			'dateScheduledShip' => $this->dateTime(),
 			'trackingNumber' => $this->string(),
 			'trackingUrl' => $this->string(),

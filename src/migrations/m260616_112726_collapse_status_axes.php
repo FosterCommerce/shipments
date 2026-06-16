@@ -80,7 +80,7 @@ class m260616_112726_collapse_status_axes extends Migration
 		$this->createIndex(null, Table::TRANSITION_EMAILS, ['toCode', 'emailId'], true);
 
 		// carrier_events: gone with the shipping axis.
-		$this->dropTableIfExists(Table::CARRIER_EVENTS);
+		$this->dropTableIfExists('{{%shipments_carrier_events}}');
 
 		return true;
 	}

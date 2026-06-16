@@ -10,9 +10,8 @@ Templates get these variables:
 |-----------------|----------------------------|--------------------------------------------------------------------------------------|
 | `shipment`      | `Shipment` element         | The shipment after the change.                                                       |
 | `order`         | `Order` element            | The Commerce order.                                                                  |
-| `axis`          | `StatusAxis`               | Which status changed, `Fulfillment` or `Shipping`.                                   |
-| `fromCode`      | enum value, nullable       | The status before the change (null if this is a new shipment).                       |
-| `toCode`        | enum value                 | The status after the change.                                                         |
+| `fromCode`      | `?Status`                  | The status before the change (null if this is a new shipment).                       |
+| `toCode`        | `?Status`                  | The status after the change.                                                         |
 | `statusHistory` | `ShipmentStatusHistory`    | The new history row; pull the note or source integration from it.                    |
 | `user`          | `?User`                    | Who made the change (null for webhooks and background jobs).                         |
 | `message`       | `?string`                  | The optional note the admin left on the change.                                      |
@@ -29,9 +28,9 @@ A starter HTML template is at `src/templates/emails/shipment.twig` in the plugin
     <strong>{{ order.reference ?: order.number }}</strong>
 </p>
 
-{% if axis and toCode %}
+{% if toCode %}
     <p>
-        {{ axis.label() }}:
+        {{ 'Status'|t('shipments') }}:
         <strong>{{ toCode.label() }}</strong>
     </p>
 {% endif %}

@@ -12,30 +12,27 @@ use fostercommerce\shipments\Plugin;
  */
 enum Status: string
 {
-	case Open = 'open';
+	case New = 'new';
 
 	case InProgress = 'in_progress';
 
-	case Scheduled = 'scheduled';
+	case OnHold = 'on_hold';
+
+	case Fulfilled = 'fulfilled';
 
 	case Shipped = 'shipped';
 
-	case OnHold = 'on_hold';
-
 	case Cancelled = 'cancelled';
-
-	case Incomplete = 'incomplete';
 
 	public function label(): string
 	{
 		return match ($this) {
-			self::Open => Craft::t(Plugin::HANDLE, 'status.open'),
+			self::New => Craft::t(Plugin::HANDLE, 'status.new'),
 			self::InProgress => Craft::t(Plugin::HANDLE, 'status.inProgress'),
-			self::Scheduled => Craft::t(Plugin::HANDLE, 'status.scheduled'),
-			self::Shipped => Craft::t(Plugin::HANDLE, 'status.shipped'),
 			self::OnHold => Craft::t(Plugin::HANDLE, 'status.onHold'),
+			self::Fulfilled => Craft::t(Plugin::HANDLE, 'status.fulfilled'),
+			self::Shipped => Craft::t(Plugin::HANDLE, 'status.shipped'),
 			self::Cancelled => Craft::t(Plugin::HANDLE, 'status.cancelled'),
-			self::Incomplete => Craft::t(Plugin::HANDLE, 'status.incomplete'),
 		};
 	}
 
@@ -45,30 +42,13 @@ enum Status: string
 	public function color(): string
 	{
 		return match ($this) {
-			self::Open => 'gray',
+			self::New => 'gray',
 			self::InProgress => 'blue',
-			self::Scheduled => 'purple',
-			self::Shipped => 'green',
 			self::OnHold => 'orange',
+			self::Fulfilled => 'teal',
+			self::Shipped => 'green',
 			self::Cancelled => 'red',
-			self::Incomplete => 'red',
 		};
-	}
-
-	public function isTerminal(): bool
-	{
-		return match ($this) {
-			self::Shipped, self::Cancelled => true,
-			default => false,
-		};
-	}
-
-	/**
-	 * Whether reaching this status requires a tracking number on the shipment.
-	 */
-	public function requiresTrackingNumber(): bool
-	{
-		return $this === self::Shipped;
 	}
 
 	/**

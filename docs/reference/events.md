@@ -64,21 +64,20 @@ Event::on(
 
 ## `Shipments::EVENT_SHIPMENT_STATUS_CHANGED`
 
-**Fires:** inside `applyTransition` (every transition) and inside `persistPlans` (initial creation, with `fromCode = null`). Fires **inside** the DB transaction, Craft's default queue backend is DB-backed, so queue pushes from listeners ride the same transaction.
+**Fires:** inside `applyTransition` (every transition) and on initial creation (with `fromCode = null`). Fires **inside** the DB transaction, Craft's default queue backend is DB-backed, so queue pushes from listeners ride the same transaction.
 
 **Payload:** `ShipmentStatusChangedEvent`
 
-| Property              | Type                                                | Notes                                                                  |
-|-----------------------|-----------------------------------------------------|------------------------------------------------------------------------|
-| `shipment`            | `Shipment`                                          | The post-transition state.                                             |
-| `axis`                | `StatusAxis`                                        | `Fulfillment` or `Shipping`.                                           |
-| `fromCode`            | `FulfillmentStatus \| ShippingStatus \| null`       | null on creation, or when shipping axis had no prior observed state.   |
-| `toCode`              | `FulfillmentStatus \| ShippingStatus`               | What it just transitioned to.                                          |
-| `history`             | `ShipmentStatusHistory`                             | The just-saved history row.                                            |
-| `user`                | `?User`                                             | Who initiated (null for queue / webhook).                              |
-| `message`             | `?string`                                           | Optional note on the history row.                                      |
-| `sourceIntegration`   | `?Integration`                                      | Which integration drove the change (null for CP actions).              |
-| `sourceExternalCode`  | `?string`                                           | The raw external code from the integration.                            |
+| Property              | Type            | Notes                                                       |
+|-----------------------|-----------------|-------------------------------------------------------------|
+| `shipment`            | `Shipment`      | The post-transition state.                                  |
+| `fromCode`            | `?Status`       | null on creation.                                           |
+| `toCode`              | `Status`        | What it just transitioned to.                               |
+| `history`             | `ShipmentStatusHistory` | The just-saved history row.                         |
+| `user`                | `?User`         | Who initiated (null for queue / webhook).                   |
+| `message`             | `?string`       | Optional note on the history row.                           |
+| `sourceIntegration`   | `?Integration`  | Which integration drove the change (null for CP actions).   |
+| `sourceExternalCode`  | `?string`       | The raw external code from the integration.                 |
 
 **Common use:** queue a `PushShipmentJob` when specific transitions happen.
 
@@ -87,15 +86,11 @@ Event::on(
     Shipments::class,
     Shipments::EVENT_SHIPMENT_STATUS_CHANGED,
     static function (ShipmentStatusChangedEvent $event) use ($integrationId): void {
-        if ($event->axis !== StatusAxis::Fulfillment) {
+        if ($event->toCode !== Status::Shipped) {
             return;
         }
 
-        if ($event->toCode !== FulfillmentStatus::Fulfilled) {
-            return;
-        }
-
-        // Don't re-push if the fulfilled came *from* this integration.
+        // Don't re-push if the change came *from* this integration.
         if ($event->sourceIntegration?->id === $integrationId) {
             return;
         }

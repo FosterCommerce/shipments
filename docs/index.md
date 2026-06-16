@@ -1,6 +1,6 @@
 # Shipments documentation
 
-First-class shipments for Craft Commerce. Every completed order produces one or more shipments, each with its own fulfillment + shipping status, notification emails, CP UI, and integration hooks.
+First-class shipments for Craft Commerce. Every completed order produces one or more shipments, each with its own status, notification emails, CP UI, and integration hooks.
 
 ## Where to go
 
@@ -9,8 +9,8 @@ First-class shipments for Craft Commerce. Every completed order produces one or 
 **Running the plugin day-to-day?** See the [user guide](./user-guide/):
 
 - [Creating shipments](./user-guide/creating-shipments.md), auto-creation on order complete and manual staging from the order tab
-- [Status transitions](./user-guide/status-transitions.md), the two-axis model
-- [Status vocabulary](./user-guide/status-vocabulary.md), both enums, what each status means
+- [Status transitions](./user-guide/status-transitions.md), the status lifecycle and how to change it
+- [Status vocabulary](./user-guide/status-vocabulary.md), what each status means and how you decide
 - [Integrations](./user-guide/integrations.md), setting one up, mapping status codes
 
 **Building on top of the plugin?** See the [dev guide](./dev-guide/) + [developer reference](./reference/):

@@ -425,10 +425,9 @@ return [
 	// status
 	'status.created' => 'Created',
 	'status.cancelled' => 'Cancelled',
+	'status.fulfilled' => 'Fulfilled',
 	'status.inProgress' => 'In progress',
-	'status.incomplete' => 'Incomplete',
+	'status.new' => 'New',
 	'status.onHold' => 'On hold',
-	'status.open' => 'Open',
-	'status.scheduled' => 'Scheduled',
 	'status.shipped' => 'Shipped',
 ];

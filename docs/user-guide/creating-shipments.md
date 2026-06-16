@@ -14,7 +14,7 @@ Turn it on at **Shipments -> Settings -> General -> Automatic shipment creation*
 
 1. Checks if the order already has any non-trashed shipments. If yes, stops. Safe to run twice.
 2. Runs the rules from the **Grouping source** setting and produces a list of planned shipments.
-3. Saves each one in `open` fulfillment status.
+3. Saves each one in `new` status.
 4. Adds a "shipment created" row to history.
 5. Fires the status-change event so emails and integration pushes can react.
 

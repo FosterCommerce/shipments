@@ -26,14 +26,11 @@ The template path field autocompletes against your site templates.
 
 ## Templates
 
-Templates render with `shipment` and `order` available, plus the axis, the to/from codes, the user who made the change, and any note the admin left. Authoring or customizing templates is developer work; see the [email templates dev guide](../dev-guide/email-templates.md) for the full variable list and a starter template.
+Templates render with `shipment` and `order` available, plus the to/from codes, the user who made the change, and any note the admin left. Authoring or customizing templates is developer work; see the [email templates dev guide](../dev-guide/email-templates.md) for the full variable list and a starter template.
 
 ## Transition triggers
 
-This controls "when does this send." Scroll to the bottom of the email edit page:
-
-- **Fulfillment status triggers**, check one or more fulfillment status values. The email sends when a shipment changes into *any* checked value.
-- **Shipping status triggers**, the same, for shipping status values.
+This controls "when does this send." Scroll to the bottom of the email edit page: a checkbox per status. Check one or more. The email sends when a shipment changes into *any* checked status.
 
 Uncheck and save to remove a trigger. Multiple emails can share a trigger; every match queues on every change.
 
@@ -49,7 +46,7 @@ Uncheck and save to remove a trigger. Multiple emails can share a trigger; every
 
 ## Disabled emails
 
-Flipping Enabled off stops all future sends. Jobs already in the queue still run. There's no per-axis pause; it's all-or-nothing per email. Clone the email if you want one version live and another paused.
+Flipping Enabled off stops all future sends. Jobs already in the queue still run. It's all-or-nothing per email. Clone the email if you want one version live and another paused.
 
 ## Language
 
@@ -57,20 +54,18 @@ The email renders in the order's language by default, or in a specific site lang
 
 ## Common patterns
 
-**One customer-facing email per major milestone:**
+**Customer-facing milestone:**
 
-- "Your order has shipped", bound to `fulfillment: fulfilled`.
-- "Your package is out for delivery", bound to `shipping: out_for_delivery`.
-- "Your package has been delivered", bound to `shipping: delivered`.
+- "Your order has shipped", bound to `shipped`.
 
-**Internal alerts for exceptions:**
+**Internal alerts:**
 
-- "Shipment on hold", custom recipient `warehouse-lead@your-store.example`, bound to `fulfillment: on_hold`.
-- "Delivery problem", custom recipient `cs@your-store.example`, bound to `shipping: exception`, `shipping: failure`, `shipping: returned`.
+- "Shipment on hold", custom recipient `warehouse-lead@your-store.example`, bound to `on_hold`.
+- "Shipment cancelled", custom recipient `cs@your-store.example`, bound to `cancelled`.
 
 **A "please ship this" email for 3PLs:**
 
-- Custom recipient for the 3PL dispatch inbox, bound to `fulfillment: in_progress`.
+- Custom recipient for the 3PL dispatch inbox, bound to `in_progress`.
 
 ## Testing
 

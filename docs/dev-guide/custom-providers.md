@@ -1,6 +1,6 @@
 # Custom providers
 
-The plugin ships no concrete providers. To talk to ShipStation, Veeqo, or anything custom, write a `Provider` subclass in a site module (or a dedicated plugin) and register it.
+The plugin ships no concrete providers. To talk to any external fulfillment system, write a `Provider` subclass in a site module (or a dedicated plugin) and register it.
 
 ## The contract
 
@@ -41,7 +41,6 @@ use craft\web\View;
 use fostercommerce\shipments\base\Provider;
 use fostercommerce\shipments\base\WebhookSigning;
 use fostercommerce\shipments\elements\Shipment;
-use fostercommerce\shipments\enums\StatusAxis;
 use fostercommerce\shipments\errors\IntegrationException;
 use fostercommerce\shipments\errors\PermanentIntegrationException;
 use fostercommerce\shipments\Plugin as ShipmentsPlugin;
@@ -167,30 +166,23 @@ class ExampleErpProvider extends Provider
             return null;
         }
 
-        // Translate Example ERP's merchant status via the per-integration mapping table.
+        // Translate Example ERP's status via the per-integration mapping table.
         $externalCode = (string) ($payload['status'] ?? '');
         $integration = $plugin->integrations->getIntegrationByHandle($this->handle);
         if ($integration !== null && $integration->id !== null && $externalCode !== '') {
             $internal = $plugin->integrationStatusMaps->resolveInbound(
                 $integration->id,
-                StatusAxis::Fulfillment,
                 $externalCode,
             );
 
+            // Unmapped codes resolve to null; leave the shipment untouched.
             if ($internal !== null) {
                 $plugin->shipments->applyTransition(
                     $shipment,
-                    StatusAxis::Fulfillment,
                     $internal,
                     null,
                     'Example ERP reported: ' . $externalCode,
                     $integration,
-                    $externalCode,
-                );
-            } else {
-                $plugin->integrationStatusMaps->recordUnmappedExternalCode(
-                    $integration->id,
-                    StatusAxis::Fulfillment,
                     $externalCode,
                 );
             }
@@ -269,11 +261,10 @@ Your provider now appears in the Provider dropdown on the Integration edit page.
 
 Every write path, CP edits, webhooks, REST API, ends in the same service:
 
-- `Shipments::applyTransition(Shipment, StatusAxis, FulfillmentStatus|ShippingStatus, ?User, ?message, ?sourceIntegration, ?externalCode, ?expectedFromCode)`, single canonical status-write. Runs invariants (e.g. `fulfilled` requires tracking), writes a history row tagged with the source integration and the external code it sent, fires `EVENT_SHIPMENT_STATUS_CHANGED` inside the transaction, and stamps `dateShippingStatus` on shipping-axis transitions. The "shipped" and "delivered" timestamps are derived from history rows on read (`Shipment::getDateShipped()` / `getDateDelivered()`); not stored as separate columns.
-- `Shipments::applyUpdate(Shipment, ShipmentUpdatePayload, ?User $user = null, ?Integration $source = null, ?string $externalCode = null)`, convenience wrapper that writes fulfillment fields (tracking/carrier/etc.) + optional axis transitions in one call. Idempotent; null fields are skipped. Pass `$source` and `$externalCode` so any axis transitions inside this call land on the history row tagged with your integration and the original code it sent.
-- `CarrierEvents::ingest(Shipment, array, ?Integration)`, raw carrier event ingestion. Dedupes by SHA-256 `eventHash`, resolves the code via the integration's mappings, records unmapped codes, and drives a shipping-axis transition when resolvable.
+- `Shipments::applyTransition(Shipment, Status, ?User, ?message, ?sourceIntegration, ?externalCode)`, single canonical status-write. Writes a history row tagged with the source integration and the external code it sent, and fires `EVENT_SHIPMENT_STATUS_CHANGED` inside the transaction. No field is required to reach any status. The `dateShipped` timestamp is derived from history rows on read (`Shipment::getDateShipped()`), not stored as a column.
+- `Shipments::applyUpdate(Shipment, ShipmentUpdatePayload, ?User $user = null, ?Integration $source = null, ?string $externalCode = null)`, convenience wrapper that writes fulfillment fields (tracking/carrier/etc.) plus an optional status transition in one call. Idempotent; null fields are skipped. Pass `$source` and `$externalCode` so any transition inside this call lands on the history row tagged with your integration and the original code it sent.
 
-Pass `expectedFromCode` to `applyTransition` for optimistic locking when your caller has a specific pre-state in mind. Per-shipment mutex serialization is automatic.
+Per-shipment mutex serialization is automatic.
 
 ### Permanent vs retryable failures
 
@@ -284,18 +275,13 @@ Pass `expectedFromCode` to `applyTransition` for optimistic locking when your ca
 `Shipments::EVENT_SHIPMENT_STATUS_CHANGED` fires on initial creation (`fromCode = null`) and on every subsequent transition, inside the write transaction. Queue a push from wherever makes sense:
 
 ```php
-use fostercommerce\shipments\enums\FulfillmentStatus;
-use fostercommerce\shipments\enums\StatusAxis;
+use fostercommerce\shipments\enums\Status;
 
 Event::on(
     Shipments::class,
     Shipments::EVENT_SHIPMENT_STATUS_CHANGED,
     static function (ShipmentStatusChangedEvent $event) use ($integrationId): void {
-        if ($event->axis !== StatusAxis::Fulfillment) {
-            return;
-        }
-
-        if ($event->toCode !== FulfillmentStatus::Fulfilled) {
+        if ($event->toCode !== Status::Shipped) {
             return;
         }
 
@@ -314,7 +300,7 @@ For a CP-initiated push, the **Push to {integration}** button in the sidebar of 
 For remotes that won't webhook you, override `pull()` and trigger it from a console command you control:
 
 ```php
-// modules/veeqo/console/controllers/SyncController.php
+// modules/mystore/console/controllers/SyncController.php
 public function actionPull(): int
 {
     foreach (ShipmentsPlugin::getInstance()->integrations->getAllIntegrations() as $integration) {
@@ -323,7 +309,7 @@ public function actionPull(): int
         }
 
         $provider = $integration->getProvider();
-        if ($provider instanceof VeeqoProvider) {
+        if ($provider instanceof ExampleErpProvider) {
             $provider->pull();
         }
     }
@@ -332,14 +318,14 @@ public function actionPull(): int
 }
 ```
 
-Point cron at `./craft veeqo/sync/pull` on whatever interval you need.
+Point cron at `./craft mystore/sync/pull` on whatever interval you need.
 
 ## Exports
 
 When a remote pulls from us on a schedule, override `export(Request): Response`. The plugin provides the route (`shipments/exports/<integrationHandle>`) and the canonical shipment query; your provider picks the format.
 
 ```php
-use fostercommerce\shipments\enums\FulfillmentStatus;
+use fostercommerce\shipments\enums\Status;
 use fostercommerce\shipments\models\ShipmentExportQuery;
 
 public function export(Request $request): Response
@@ -347,7 +333,7 @@ public function export(Request $request): Response
     $this->assertAuthorized($request);
 
     $query = ShipmentExportQuery::fromRequest($request);
-    $query->statusHandle = FulfillmentStatus::Fulfilled->value;
+    $query->statusHandle = Status::Shipped->value;
 
     $result = ShipmentsPlugin::getInstance()->shipments->findForExport($query);
 
@@ -382,8 +368,7 @@ Webhook senders retry. The same delivery can arrive twice (sender-side retry, ne
 
 If your `receiveShipmentUpdate()` routes the actual mutation through one of these, you get idempotency for free:
 
-- **`CarrierEvents::ingest`** dedupes by SHA-256 of `(shipmentId, code, dateOccurred, externalCode)`. A second delivery of the same event is skipped silently on insert.
-- **`Shipments::applyTransition`** short-circuits same-to-same transitions (skips silently when the axis already equals the target) and serializes concurrent calls per shipment via `Craft::$app->getMutex()`. The mutex holds across read-current-state + write, so two parallel deliveries can't both decide to transition off the same pre-state.
+- **`Shipments::applyTransition`** short-circuits same-to-same transitions (skips silently when the status already equals the target) and serializes concurrent calls per shipment via `Craft::$app->getMutex()`. The mutex holds across read-current-state + write, so two parallel deliveries can't both decide to transition off the same pre-state.
 - **`Shipments::applyUpdate`** wraps `applyTransition` and applies fulfillment fields with null-skip semantics, so re-delivering the same payload settles to the same state.
 
 If your handler resolves the shipment and immediately calls one of these, you do not need to add your own dedupe.
@@ -392,7 +377,7 @@ If your handler resolves the shipment and immediately calls one of these, you do
 
 You need explicit idempotency when your handler does meaningful work *outside* those service calls before mutating state. Examples: fetching extra data from the remote, writing to your own tables, queuing side-effect jobs, or making a decision based on a pre-state you read yourself. Two patterns:
 
-**1. Dedupe on the sender's delivery id.** Most webhook senders attach a unique id per delivery (Shopify: `X-Shopify-Webhook-Id`; Stripe: `id` on the event; ShipStation: the resource path + delivery timestamp). Record processed ids in your own table and short-circuit on hit:
+**1. Dedupe on the sender's delivery id.** Most webhook senders attach a unique id per delivery (a dedicated header, an `id` on the event body, or a resource path plus delivery timestamp). Record processed ids in your own table and short-circuit on hit:
 
 ```php
 $deliveryId = (string) $request->getHeaders()->get('X-Example-Delivery-Id');
@@ -429,17 +414,6 @@ Going through `applyTransition` already gives you per-shipment serialization via
 
 Either pattern is fine; pick the one your sender supports. If you're unsure, dedupe on delivery id is the simpler default.
 
-## Events the plugin doesn't apply
-
-Sometimes the plugin saves an inbound event but won't change the shipment's status. `CarrierEvents::ingest` still stores the raw event, with a `reason` on the carrier-events row saying why. Two reasons:
-
-- `skipped_disabled_shipment`: the shipment is disabled.
-- `skipped_attention_off`: the order is marked as not requiring shipping (its "Order requires shipping" switch is off, or its Commerce status is in the ignore list). The shipment itself stays enabled.
-
-Either way the plugin logs a warning under category `shipments` (with `shipmentId`, `orderId`, `reference`, `code`, `externalCode`, `integrationHandle`, `reason`, and `eventHash`) and still returns 200, so the vendor's retry loop doesn't spin forever.
-
-Your provider doesn't need special handling for this case. If you want to be nice to admins, surface the raw event in your own provider UI so they can see it arrived even when the plugin didn't act on it.
-
 ## Testing
 
 1. Install the plugin, boot your module.
@@ -450,4 +424,4 @@ Your provider doesn't need special handling for this case. If you want to be nic
 
 ## Reference implementations
 
-First-party provider plugins (`fostercommerce/shipments-shipstation`, `fostercommerce/shipments-veeqo`) ship as separate Composer packages as they're funded. Until then, this doc is the contract.
+First-party provider plugins ship as separate Composer packages (`fostercommerce/shipments-<vendor>`) as they're funded. Until then, this doc is the contract.

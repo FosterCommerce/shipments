@@ -25,7 +25,5 @@ final class Table
 
 	public const INTEGRATION_STATUS_MAPS = '{{%shipments_integration_status_maps}}';
 
-	public const CARRIER_EVENTS = '{{%shipments_carrier_events}}';
-
 	public const TRACKED_ORDERS = '{{%shipments_tracked_orders}}';
 }

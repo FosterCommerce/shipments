@@ -6,13 +6,13 @@ A Craft CMS plugin that adds first-class **shipments** to Craft Commerce, splitt
 
 - Splits completed orders into one or more shipments based on configurable rules
   (e.g., backordered items get their own shipment automatically).
-- Tracks each shipment on two axes: fulfillment status (what your warehouse is doing)
-  and shipping status (what the carrier reports).
+- Tracks each shipment through a single status you control (new, in progress, on hold,
+  fulfilled, shipped, cancelled); your store decides what each one means.
 - Validates full coverage: every line item quantity on an order must be accounted for
   across its shipments before a save goes through.
 - Sends notification emails when shipments hit specific statuses.
-- Connects to fulfillment systems (ShipStation, ERPs, custom) through a provider
-  framework with webhook support, status-code mapping, and a REST API.
+- Connects to external fulfillment systems through a provider framework with webhook
+  support, status-code mapping, and a REST API.
 - Adds a Shipments tab to the order edit page and a standalone Shipments element index
   in the CP.
 
@@ -43,7 +43,7 @@ In addition to `accessPlugin-shipments`:
 
 - `shipments-viewShipments`, see the Shipments index and edit pages.
 - `shipments-editShipments`, create and edit shipments (tracking, carrier, notes).
-- `shipments-transitionShipments`, change fulfillment or shipping status.
+- `shipments-transitionShipments`, change a shipment's status.
 - `shipments-deleteShipments`, delete shipments.
 - `shipments-pushShipments`, push shipments to integrations via the per-shipment push button.
 - `shipments-manageIntegrations`, manage integrations and status mappings.
@@ -54,7 +54,7 @@ See [`docs/reference/permissions.md`](./docs/reference/permissions.md) for the f
 
 ## Integration framework
 
-The plugin connects to fulfillment systems (ShipStation, Veeqo, ERPs) through a provider framework. Providers handle pushing shipments out, receiving webhook updates back, and translating between the remote system's status codes and the plugin's own status vocabulary. Status codes the plugin doesn't recognize surface on the Attention page for manual mapping.
+The plugin connects to external fulfillment systems through a provider framework. Providers handle pushing shipments out, receiving webhook updates back, and translating between the remote system's status codes and the plugin's own status vocabulary. An inbound code the plugin has no mapping for is skipped; you add a mapping for the ones you want to act on.
 
 The plugin ships no providers itself. They come from separate packages or your site module. See [`docs/dev-guide/custom-providers.md`](./docs/dev-guide/custom-providers.md) for how to build one.
 

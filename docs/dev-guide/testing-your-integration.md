@@ -81,7 +81,7 @@ curl -X POST https://your-site.test/shipments/webhooks/example-erp \
 
 Check the shipment's Status history tab: there should be a row with `sourceIntegration` = your integration and `sourceExternalCode` = `SHIPPED_TO_CARRIER`.
 
-**If the transition didn't happen but the webhook returned 200:** the external code wasn't mapped. Check **Shipments -> Attention needed -> Unmapped integration statuses**, your code should appear there with a Map button.
+**If the transition didn't happen but the webhook returned 200:** the external code wasn't mapped. Unmapped codes are skipped silently. Add a mapping for the code in the integration's status-mapping editor and resend.
 
 ## 4. Push path
 
@@ -104,7 +104,7 @@ Craft::$app->getQueue()->push(new PushShipmentJob([
 Craft::$app->getQueue()->run();  // process synchronously
 ```
 
-## 5. Mapping layer fuzz
+## 5. Mapping layer
 
 Send a handful of deliberately-unmapped codes:
 
@@ -114,18 +114,12 @@ for code in BLAZE STORM OPERATION_SUNSET; do
 done
 ```
 
-After all three, check **Shipments -> Attention needed**:
-
-- Three separate rows in **Unmapped integration statuses**.
-- `occurrenceCount = 1` on each. Send one twice, confirm it increments to 2.
-- Each has a **Map** button linking to the mapping editor.
-
-Add a mapping for one, save, reload the attention page, that row should be gone.
+Each webhook returns 200, but the shipment's status does not change: an unmapped code resolves to null and is skipped. Add a mapping for one of the codes, save, resend that webhook, and confirm the shipment now transitions.
 
 ## Common bugs surfaced by testing
 
 - **Signature verification passes locally but fails in staging.** Usually a trailing newline or BOM in the env var. `App::parseEnv` doesn't trim; the vendor's secret usually has no surrounding whitespace.
-- **Shipment resolves but transition silently doesn't happen.** The external code isn't mapped, check attention-needed. Or the transition would violate an invariant (e.g. `fulfilled` without tracking); check the log.
+- **Shipment resolves but transition silently doesn't happen.** The external code isn't mapped, so it resolves to null and is skipped. Add a mapping for it.
 - **Push fails once then retries forever.** The provider is throwing `IntegrationException` when it should throw `PermanentIntegrationException`. Review the error taxonomy in [custom-providers.md](./custom-providers.md).
 - **Queue job dies with a lock error.** Two pushes on the same shipment are queuing at the same time. The per-shipment mutex on `applyTransition` serializes transitions, not pushes, the push itself doesn't need a lock, but your provider shouldn't assume the shipment state stays frozen during the request.
 
@@ -135,7 +129,7 @@ Before production:
 
 1. Point the integration at the vendor's **staging** environment, not production. Vendors usually expose separate endpoint URLs + separate credentials.
 2. Use a sandboxed webhook delivery tool (ngrok, webhook.site, Hookdeck) so you can inspect what the vendor sent and replay it.
-3. Run through every status transition the vendor can send. Each unmapped code surfaces to attention-needed, map them before production.
+3. Run through every status transition the vendor can send. Any code you haven't mapped is skipped silently, so map them all before production.
 4. Push a test shipment end-to-end, confirm the vendor sees it in their UI, confirm the callback webhook transitions it back.
 
 ## What to automate in CI

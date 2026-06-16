@@ -42,7 +42,7 @@ Pick the statuses that trigger each email at the bottom of the email edit page.
 
 **Shipments -> Settings -> Integrations.**
 
-An integration is a saved connection to a remote system (ShipStation, Veeqo, your ERP). It has a handle, an optional URL template for deep links, and the settings the provider needs (credentials, endpoint, webhook secret). Providers come from a separate plugin or your site module; the Shipments plugin ships no providers itself. See [custom providers](./dev-guide/custom-providers.md) for building one.
+An integration is a saved connection to a remote system (an ERP, a warehouse platform, a custom endpoint). It has a handle, an optional URL template for deep links, and the settings the provider needs (credentials, endpoint, webhook secret). Providers come from a separate plugin or your site module; the Shipments plugin ships no providers itself. See [custom providers](./dev-guide/custom-providers.md) for building one.
 
 Each integration works in two directions. Outbound, the plugin pushes shipments to the remote, queued from a status change, the per-shipment push button, or a custom trigger. Inbound, the remote pushes updates to the plugin via webhook, an export URL, or a poll run by your site module. See [integrations](./user-guide/integrations.md) for the admin-side walkthrough.
 

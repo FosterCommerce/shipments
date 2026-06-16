@@ -29,40 +29,17 @@ Each row shows:
 
 **Clearing a row:** stage shipments that cover the missing quantity. The row drops off on the next page load.
 
-## Unmapped integration statuses
-
-Every external code an integration sent (via inbound webhook or the carrier-events endpoint) that the plugin didn't recognize.
-
-Shows up when:
-
-- A new integration sent a code you haven't mapped.
-- An integration started using a code they hadn't before (carrier rollout, platform upgrade).
-- The vendor has a typo or misconfiguration.
-
-Each row shows:
-
-- **Integration**, the integration's name.
-- **Axis**, fulfillment or shipping.
-- **External code**, the raw string the integration sent.
-- **Occurrences**, how many times we've seen this exact row. Goes up on every re-sighting without duplicating the row.
-- **Last seen**, the most recent delivery timestamp.
-- **Map** button, links straight to the integration's status-mapping editor.
-
-**This matters.** The webhook that delivered the unmapped code did NOT update the shipment. The real world and the plugin's view of it have drifted. Either:
-
-1. Add a mapping. The plugin resolves the attention row as soon as you save, and future deliveries of that code update shipments correctly. You may need to fix any shipments that got stuck.
-2. Contact the vendor if the code looks wrong. Don't map a code you don't understand.
+When an inbound integration webhook sends a status code that isn't mapped, the shipment is left untouched and nothing is recorded. Add a mapping for any code you want to act on; see [integrations](./integrations.md).
 
 ## The subnav badge
 
-The Shipments subnav shows a count badge on **Attention needed** equal to the number of under-allocated orders. Unmapped statuses are *not* in the badge (they're a softer signal). The badge refreshes on every page load.
+The Shipments subnav shows a count badge on **Attention needed** equal to the number of under-allocated orders. The badge refreshes on every page load.
 
 ## Who sees it
 
-Any user with `shipments-viewShipments` can open the page. The **Map** button on an unmapped row goes to the mapping editor, which needs `shipments-manageIntegrations`. Viewers without that permission can see the row but can't fix it.
+Any user with `shipments-viewShipments` can open the page and the **Fix** buttons. Staging the missing shipment from the order's Shipments tab needs `shipments-editShipments`.
 
 ## Limits
 
 - No email alerts when rows appear. If you want push alerts, have your developer build a listener on the plugin's status-change event (see the [events reference](../reference/events.md)).
 - No auto-resolve for under-allocated orders. You stage the missing shipment by hand.
-- The unmapped list isn't filterable by integration. Scan by eye; most stores only have a few.
