@@ -261,7 +261,7 @@ return [
 
 	// settings.autoAdvance
 	'settings.autoAdvance.heading' => 'Automatic order status',
-	'settings.autoAdvance.help' => 'When every enabled shipment on an order reaches a shipped state (In transit, Out for delivery, Attempted delivery, Available for pickup, Delivered, or Exception), set the order to the status below. This runs once per order; later manual changes to shipment or order statuses are left alone.',
+	'settings.autoAdvance.help' => 'When every enabled shipment on an order reaches the Shipped status, set the order to the status below. This runs once per order; later manual changes to shipment or order statuses are left alone.',
 	'settings.autoAdvance.offOption' => 'Don’t change',
 	'settings.autoAdvance.targetLabel' => 'Order status to set',
 	'settings.autoAdvance.targetHelp' => 'Leave as “Don’t change” to turn the auto-advance off.',
