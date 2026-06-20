@@ -6,6 +6,7 @@ namespace fostercommerce\shipments\controllers;
 
 use Craft;
 use craft\helpers\Json;
+use craft\web\assets\admintable\AdminTableAsset;
 use craft\web\Controller;
 use fostercommerce\shipments\base\ControllerBodyParamsTrait;
 use fostercommerce\shipments\base\ProviderInterface;
@@ -32,9 +33,40 @@ class IntegrationsController extends Controller
 
 		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
+		$integrations = $plugin->integrations->getAllIntegrations();
+
+		$this->view->registerAssetBundle(AdminTableAsset::class);
+
+		$integrationTableData = [];
+		foreach ($integrations as $integration) {
+			$typeLabel = Craft::t(Plugin::HANDLE, 'settings.integrations.providerNone');
+
+			try {
+				$provider = $integration->getProvider();
+				if ($provider !== null) {
+					$typeLabel = $provider::displayName();
+				}
+			} catch (Throwable) {
+				$typeLabel = $integration->provider;
+			}
+
+			$integrationTableData[] = [
+				'id' => $integration->id,
+				'title' => (string) $integration,
+				'url' => $integration->getCpEditUrl(),
+				'type' => $typeLabel,
+				'enabled' => [
+					'status' => $integration->enabled,
+					'label' => $integration->enabled
+						? Craft::t(Plugin::HANDLE, 'settings.integrations.enabled')
+						: Craft::t(plugin::HANDLE, 'settings.integrations.disabled'),
+				],
+			];
+		}
 
 		return $this->renderTemplate(Plugin::HANDLE . '/settings/integrations/index', [
-			'integrations' => $plugin->integrations->getAllIntegrations(),
+			'integrations' => $integrations,
+			'integrationTableData' => $integrationTableData,
 		]);
 	}
 

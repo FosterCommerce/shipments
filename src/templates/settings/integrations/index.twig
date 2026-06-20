@@ -13,32 +13,28 @@
 {% endblock %}
 
 {% block content %}
-	{% if integrations|length %}
-		<table class="data fullwidth collapsible">
-			<thead>
-				<tr>
-					<th>{{ 'shipmentEdit.name'|t('shipments') }}</th>
-					<th>{{ 'settings.integrations.handle'|t('shipments') }}</th>
-					<th>{{ 'settings.integrations.urlTemplate'|t('shipments') }}</th>
-					<th></th>
-				</tr>
-			</thead>
-			<tbody>
-				{% for integration in integrations %}
-					<tr data-id="{{ integration.id }}">
-						<td>{{ integration.name }}</td>
-						<td><code>{{ integration.handle }}</code></td>
-						<td>
-							{% if integration.urlTemplate %}<code class="light">{{ integration.urlTemplate }}</code>{% endif %}
-						</td>
-						<td class="thin">
-							<a href="{{ integration.cpEditUrl }}" class="go" title="{{ 'common.edit'|t('shipments') }}"></a>
-						</td>
-					</tr>
-				{% endfor %}
-			</tbody>
-		</table>
-	{% else %}
-		<p>{{ 'integrations.emptyState.none'|t('shipments') }} <a href="{{ url('shipments/settings/integrations/new') }}">{{ 'emails.emptyState.createOne'|t('shipments') }}</a>.</p>
-	{% endif %}
+	<div id="shipments-integrations-admin-table"></div>
 {% endblock %}
+
+{% js %}
+	const shipmentsStatusCallback = function(value) {
+		const statusClass = value.status ? 'enabled' : 'disabled';
+
+		return '<span class="status ' + statusClass + '"></span> ' + Craft.escapeHtml(value.label);
+	};
+
+	new Craft.VueAdminTable({
+		columns: [
+			{ name: '__slot:title', title: {{ 'shipmentEdit.name'|t('shipments')|json_encode|raw }} },
+			{ name: 'type', title: {{ 'settings.integrations.type'|t('shipments')|json_encode|raw }} },
+			{ name: 'enabled', title: {{ 'settings.integrations.enabled'|t('shipments')|json_encode|raw }}, callback: shipmentsStatusCallback },
+		],
+		container: '#shipments-integrations-admin-table',
+		deleteAction: 'shipments/integrations/delete',
+		deleteConfirmationMessage: {{ 'settings.integrations.deleteConfirm'|t('shipments')|json_encode|raw }},
+		deleteFailMessage: {{ 'error.integrationNotDeleted'|t('shipments')|json_encode|raw }},
+		deleteSuccessMessage: {{ 'settings.integrations.deleted'|t('shipments')|json_encode|raw }},
+		emptyMessage: {{ 'integrations.emptyState.none'|t('shipments')|json_encode|raw }},
+		tableData: {{ integrationTableData|json_encode|raw }},
+	});
+{% endjs %}
