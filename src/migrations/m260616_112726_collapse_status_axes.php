@@ -59,11 +59,11 @@ class m260616_112726_collapse_status_axes extends Migration
 			'axis' => 'fulfillment',
 			'internalCode' => 'fulfilled',
 		]);
+		$this->createIndex(null, Table::INTEGRATION_STATUS_MAPS, ['integrationId', 'direction', 'externalCode'], true);
+		$this->createIndex(null, Table::INTEGRATION_STATUS_MAPS, ['integrationId', 'internalCode'], false);
 		$this->dropIndexIfExists(Table::INTEGRATION_STATUS_MAPS, ['integrationId', 'axis', 'direction', 'externalCode'], true);
 		$this->dropIndexIfExists(Table::INTEGRATION_STATUS_MAPS, ['integrationId', 'axis', 'internalCode'], false);
 		$this->dropColumn(Table::INTEGRATION_STATUS_MAPS, 'axis');
-		$this->createIndex(null, Table::INTEGRATION_STATUS_MAPS, ['integrationId', 'direction', 'externalCode'], true);
-		$this->createIndex(null, Table::INTEGRATION_STATUS_MAPS, ['integrationId', 'internalCode'], false);
 
 		// transition_emails: drop shipping triggers, remap fulfillment, rebuild key without axis.
 		$this->delete(Table::TRANSITION_EMAILS, [

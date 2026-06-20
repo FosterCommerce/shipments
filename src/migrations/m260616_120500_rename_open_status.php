@@ -21,6 +21,7 @@ class m260616_120500_rename_open_status extends Migration
 		], [
 			'status' => 'open',
 		]);
+		/** @phpstan-ignore-next-line alterColumn not annotated correctly */
 		$this->alterColumn(Table::SHIPMENTS, 'status', $this->string(32)->notNull()->defaultValue(Status::New->value));
 
 		$this->update(Table::SHIPMENT_STATUS_HISTORY, [
