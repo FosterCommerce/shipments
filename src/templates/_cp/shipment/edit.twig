@@ -112,27 +112,25 @@
 		{% endif %}
 	</div>
 
-	{% set pushableIntegrations = [] %}
-	{% for integration in integrations %}
-		{% if integration.enabled and integration.id %}
-			{% set pushableIntegrations = pushableIntegrations|merge([integration]) %}
-		{% endif %}
-	{% endfor %}
-
 	{% if pushableIntegrations|length and currentUser.can(constant('fostercommerce\\shipments\\Plugin::PERMISSION_PUSH')) %}
-		<div class="meta">
-			<h5 class="heading">{{ 'nav.integrations'|t('shipments') }}</h5>
+		<fieldset>
+			<legend class="h6">{{ 'nav.integrations'|t('shipments') }}</legend>
+			<div class="meta">
 			{% for integration in pushableIntegrations %}
-				<form method="post" accept-charset="UTF-8" class="shipments-push-form">
-					{{ csrfInput() }}
-					{{ actionInput('shipments/shipments/push') }}
-					{{ redirectInput(shipment.cpEditUrl) }}
-					<input type="hidden" name="id" value="{{ shipment.id }}">
-					<input type="hidden" name="integrationId" value="{{ integration.id }}">
-					<button type="submit" class="btn fullwidth">
-						{{ 'shipmentEdit.pushTo'|t('shipments', { name: integration.name }) }}
-					</button>
-				</form>
+				<div class="field">
+					<div class="input ltr">
+						<form method="post" accept-charset="UTF-8">
+							{{ csrfInput() }}
+							{{ actionInput('shipments/shipments/push') }}
+							{{ redirectInput(shipment.cpEditUrl) }}
+							<input type="hidden" name="id" value="{{ shipment.id }}">
+							<input type="hidden" name="integrationId" value="{{ integration.id }}">
+							<button type="submit" class="btn">
+								{{ 'shipmentEdit.pushTo'|t('shipments', { name: integration.name }) }}
+							</button>
+						</form>
+					</div>
+				</div>
 			{% endfor %}
 			{% if shipment.dateLastPushAttempt %}
 				<p class="light shipments-push-meta">
@@ -143,7 +141,8 @@
 					{% endif %}
 				</p>
 			{% endif %}
-		</div>
+			</div>
+		</fieldset>
 	{% endif %}
 {% endblock %}
 

@@ -15,21 +15,18 @@ The `Provider` abstract base (`src/base/Provider.php`) defines:
 ```php
 abstract public function sendShipment(Shipment $shipment, Order $order): void;
 public function cancelShipment(Shipment $shipment, Order $order): void;     // default throws; override to support cancel
-public function receiveShipmentUpdate(Request $request): ?Shipment;          // default throws; override to accept webhooks
-public function canReceiveUpdates(): bool;                                   // default false
-public function pull(): void;
-public function export(Request $request): Response;
+public function handleGatewayRequest(Request $request): Response;             // default throws; override for inbound gateway requests
 public function checkConnection(): bool;
 public function getSettingsHtml(): ?string;
 ```
 
 `sendShipmentWithEvents()` / `cancelShipmentWithEvents()` wrap the send/cancel with `EVENT_BEFORE_*` / `EVENT_AFTER_*`. A before-handler can set `$event->isValid = false` to skip.
 
-The webhook controller (`WebhooksController::actionHandle`) gates on `canReceiveUpdates()` (returns 405 when false), then delegates to `receiveShipmentUpdate()`. Today the provider parses, verifies the signature, and mutates the shipment itself, returning the touched `Shipment` (or null).
+The gateway controller (`GatewayController::actionHandle`) resolves the `integration` query param, then delegates to `handleGatewayRequest()`. Today the provider parses, verifies the signature, mutates the shipment itself when needed, and returns the response.
 
 ## Inbound webhook contract (Craft-defined)
 
-The plugin defines the inbound shape; the remote conforms to it. A provider POSTs to `shipments/webhooks/<integrationHandle>` with:
+The plugin defines the inbound shape; the remote conforms to it. A provider POSTs to `/actions/shipments/gateway/handle?integration=<integrationHandle>` with:
 
 ```json
 {
@@ -107,14 +104,13 @@ public ?array $rawPayload = null;       // full original event for audit
 ## Verification
 
 1. Run migrations; confirm `shipments_processed_deliveries` exists.
-2. Stand up a test provider in a site module that returns `true` from `canReceiveUpdates()`, implements `sendShipment()` and `cancelShipment()` against a mock, and verifies + parses the inbound contract in `receiveShipmentUpdate()`.
+2. Stand up a test provider in a site module that implements `sendShipment()`, `cancelShipment()`, and `handleGatewayRequest()` against a mock, and verifies + parses the inbound contract in `handleGatewayRequest()`.
 3. Save a test integration; configure status mappings for the codes the provider sends.
 4. Place an order; confirm a shipment is created and `PushShipmentJob` runs against the mock.
 5. POST a signed inbound body. Confirm 200, the status applied, a history row tagged with the integration + external code, and one `shipments_processed_deliveries` row.
 6. POST the same body again. Confirm 200, no new history row, no duplicate dedupe row.
 7. Cancel the shipment via the sidebar button. Confirm `CancelShipmentJob` runs and the mock received the cancel.
-8. POST to a provider whose `canReceiveUpdates()` is false. Confirm 405.
-9. Static analysis clean: PHPStan, ECS, Rector. No baselines.
+8. Static analysis clean: PHPStan, ECS, Rector. No baselines.
 
 ## Open items
 

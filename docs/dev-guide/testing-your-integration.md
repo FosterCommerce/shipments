@@ -5,14 +5,14 @@ How to verify a custom `Provider` subclass works end-to-end before handing it to
 ## The plan
 
 1. **Unit-test the provider in isolation.** Pure PHP. No Craft bootstrap.
-2. **Smoke-test the plugin's integration with it.** Stand up a local Craft install, wire in your site module, hit the CP and webhooks manually.
-3. **Integration-test the webhook path.** Post signed payloads, confirm the shipment transitions.
+2. **Smoke-test the plugin's integration with it.** Stand up a local Craft install, wire in your site module, hit the CP and integration gateway manually.
+3. **Integration-test the gateway path.** Post signed payloads, confirm the shipment transitions.
 4. **Integration-test the push path.** Queue a push, run the queue, confirm the remote received the expected payload.
 5. **Fuzz the mapping layer.** Send codes that aren't mapped, confirm the attention-needed page fills.
 
 ## 1. Unit tests
 
-Your `sendShipment(Shipment, Order): void`, `cancelShipment(Shipment, Order): void`, and `receiveShipmentUpdate(Request): ?Shipment` are pure-ish given mocked dependencies. Don't bootstrap Craft, mock what you need.
+Your `sendShipment(Shipment, Order): void`, `cancelShipment(Shipment, Order): void`, and `handleGatewayRequest(Request): Response` are pure-ish given mocked dependencies. Don't bootstrap Craft, mock what you need.
 
 Test cases:
 
@@ -21,7 +21,6 @@ Test cases:
 - **Send throws `PermanentIntegrationException` on misconfiguration** (missing credentials, missing endpoint URL). Don't let a bad config cause retries.
 - **Send throws `IntegrationException` on a 5xx or network error** (retryable).
 - **Cancel hits the expected endpoint and surfaces remote 4xx as `PermanentIntegrationException`.**
-- **`canReceiveUpdates()` returns `true`** if the provider is meant to accept inbound webhooks (otherwise the webhook controller 405s).
 - **Webhook rejects missing signature header.**
 - **Webhook rejects malformed JSON body.**
 
@@ -57,9 +56,9 @@ Save the integration. Open the status-mapping editor. Add a handful of inbound m
 
 Stage a shipment on a test order, confirm the shipment card shows up.
 
-## 3. Webhook path
+## 3. Gateway path
 
-Your webhook endpoint is at `https://your-site.test/shipments/webhooks/{handle}`. It's public, unauthenticated at the Craft layer, your provider is responsible for signature verification.
+Your integration endpoint is at `https://your-site.test/actions/shipments/gateway/handle?integration={handle}`. It's public, unauthenticated at the Craft layer, your provider is responsible for signature verification.
 
 **Generate a signed test request:**
 
@@ -68,7 +67,7 @@ BODY='{"event":"shipped","shipmentId":"EXT-123","status":"SHIPPED_TO_CARRIER"}'
 SECRET='your-webhook-secret'
 SIG=$(echo -n "$BODY" | openssl dgst -sha256 -hmac "$SECRET" | awk '{print $2}')
 
-curl -X POST https://your-site.test/shipments/webhooks/example-erp \
+curl -X POST 'https://your-site.test/actions/shipments/gateway/handle?integration=example-erp' \
      -H "Content-Type: application/json" \
      -H "X-Example-Signature: $SIG" \
      -d "$BODY"

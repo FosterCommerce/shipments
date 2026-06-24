@@ -9,6 +9,7 @@ use craft\base\MissingComponentInterface;
 use craft\base\MissingComponentTrait;
 use craft\commerce\elements\Order;
 use craft\web\Request;
+use craft\web\Response;
 use fostercommerce\shipments\base\Provider;
 use fostercommerce\shipments\elements\Shipment;
 use fostercommerce\shipments\errors\IntegrationException;
@@ -47,7 +48,7 @@ class MissingProvider extends Provider implements MissingComponentInterface
 		]));
 	}
 
-	public function receiveShipmentUpdate(Request $request): ?Shipment
+	public function handleGatewayRequest(Request $request): Response
 	{
 		throw new IntegrationException("The provider \"{$this->expectedType}\" is not available.");
 	}

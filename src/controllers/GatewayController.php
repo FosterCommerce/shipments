@@ -10,15 +10,10 @@ use craft\web\Response;
 use fostercommerce\shipments\errors\IntegrationException;
 use fostercommerce\shipments\errors\PermanentIntegrationException;
 use fostercommerce\shipments\Plugin;
-use Throwable;
 use yii\web\BadRequestHttpException;
 use yii\web\NotFoundHttpException;
 
-/**
- * Public entry point at `shipments/exports/<integrationHandle>`. Delegates to the
- * provider's `export()`; auth + format are the provider's job.
- */
-class ExportsController extends Controller
+class GatewayController extends Controller
 {
 	public $enableCsrfValidation = false;
 
@@ -28,16 +23,20 @@ class ExportsController extends Controller
 	 * @throws NotFoundHttpException
 	 * @throws BadRequestHttpException
 	 */
-	public function actionHandle(string $integrationHandle): Response
+	public function actionHandle(?string $integration = null): Response
 	{
+		if (! is_string($integration) || $integration === '') {
+			throw new BadRequestHttpException('Integration must be set.');
+		}
+
 		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		try {
-			$provider = $plugin->integrations->resolveEnabledProvider($integrationHandle);
+			$provider = $plugin->integrations->resolveEnabledProvider($integration);
 		} catch (PermanentIntegrationException $permanentIntegrationException) {
-			Craft::error(sprintf('[%s] cannot serve exports: %s', $integrationHandle, $permanentIntegrationException->getMessage()), Plugin::HANDLE);
-			$message = "{$permanentIntegrationException->getMessage()} Cannot serve exports.";
+			Craft::error(sprintf('[%s] cannot handle integration request: %s', $integration, $permanentIntegrationException->getMessage()), Plugin::HANDLE);
+			$message = "{$permanentIntegrationException->getMessage()} Cannot handle integration request.";
 			if ($permanentIntegrationException->getCode() === 404) {
 				throw new NotFoundHttpException($message, 0, $permanentIntegrationException);
 			}
@@ -46,13 +45,10 @@ class ExportsController extends Controller
 		}
 
 		try {
-			return $provider->export($this->request);
+			return $provider->handleGatewayRequest($this->request);
 		} catch (IntegrationException $integrationException) {
-			Craft::error(sprintf('[%s] export rejected: %s', $integrationHandle, $integrationException->getMessage()), Plugin::HANDLE);
+			Craft::error(sprintf('[%s] integration request rejected: %s', $integration, $integrationException->getMessage()), Plugin::HANDLE);
 			throw new BadRequestHttpException($integrationException->getMessage(), 0, $integrationException);
-		} catch (Throwable $throwable) {
-			Craft::error(sprintf('[%s] unexpected export error: %s', $integrationHandle, $throwable->getMessage()), Plugin::HANDLE);
-			throw new BadRequestHttpException('Export processing failed.', 0, $throwable);
 		}
 	}
 }

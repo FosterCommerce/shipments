@@ -20,7 +20,7 @@ use Throwable;
 /**
  * Abstract base for fulfillment-integration providers.
  *
- * Only `sendShipment()` is required. See docs/custom-providers.md.
+ * Providers send shipments and may handle remote-initiated requests through `handleGatewayRequest()`.
  */
 abstract class Provider extends SavableComponent implements ProviderInterface
 {
@@ -73,6 +73,11 @@ abstract class Provider extends SavableComponent implements ProviderInterface
 	 */
 	abstract public function sendShipment(Shipment $shipment, Order $order): void;
 
+	public function supportsPush(): bool
+	{
+		return false;
+	}
+
 	/**
 	 * Cancel the shipment on the remote system. Override to handle; the default throws.
 	 *
@@ -83,43 +88,9 @@ abstract class Provider extends SavableComponent implements ProviderInterface
 		throw new IntegrationException(Craft::t(Plugin::HANDLE, 'error.cancelNotImplemented'));
 	}
 
-	/**
-	 * Handle an inbound webhook at `shipments/webhooks/<handle>`.
-	 *
-	 * Providers that opt in via `canReceiveUpdates()` must override this; the default throws.
-	 *
-	 * @throws IntegrationException
-	 */
-	public function receiveShipmentUpdate(Request $request): ?Shipment
+	public function handleGatewayRequest(Request $request): Response
 	{
-		throw new IntegrationException('Provider does not accept inbound webhooks.');
-	}
-
-	/**
-	 * Whether this provider accepts inbound webhook updates. The webhook controller returns 405 when false.
-	 */
-	public function canReceiveUpdates(): bool
-	{
-		return false;
-	}
-
-	/**
-	 * Scheduled polling hook for remotes that won't webhook us. Default skips silently.
-	 *
-	 * @throws IntegrationException
-	 */
-	public function pull(): void
-	{
-	}
-
-	/**
-	 * Remote-initiated pull at `shipments/exports/<handle>`. Override to offer exports; the default throws.
-	 *
-	 * @throws IntegrationException
-	 */
-	public function export(Request $request): Response
-	{
-		throw new IntegrationException('Export not implemented by this provider.');
+		throw new IntegrationException('Requests are not implemented by this provider.');
 	}
 
 	public function checkConnection(): bool

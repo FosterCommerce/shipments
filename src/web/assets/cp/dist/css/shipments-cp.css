@@ -94,6 +94,23 @@
 	margin-top: 0.75em;
 }
 
+.shipments-gateway-url {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 0.5em;
+	padding: var(--s);
+}
+
+.shipments-gateway-url code {
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
+.shipments-gateway-url button {
+	align-self: flex-start;
+}
+
 /* Side-by-side field rows on the shipment edit page. Craft's `.flex` helper alone
    leaves children touching; this gives us predictable horizontal gap + vertical
    rhythm between rows. */

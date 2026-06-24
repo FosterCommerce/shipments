@@ -582,18 +582,6 @@ class Plugin extends \craft\base\Plugin
 			UrlManager::EVENT_REGISTER_CP_URL_RULES,
 			$this->registerCpUrlRulesHandler(...),
 		);
-
-		Event::on(
-			UrlManager::class,
-			UrlManager::EVENT_REGISTER_SITE_URL_RULES,
-			$this->registerSiteUrlRulesHandler(...),
-		);
-	}
-
-	private function registerSiteUrlRulesHandler(RegisterUrlRulesEvent $event): void
-	{
-		$event->rules['shipments/webhooks/<integrationHandle:[A-Za-z0-9_-]+>'] = self::HANDLE . '/webhooks/handle';
-		$event->rules['shipments/exports/<integrationHandle:[A-Za-z0-9_-]+>'] = self::HANDLE . '/exports/handle';
 	}
 
 	private function registerCpUrlRulesHandler(RegisterUrlRulesEvent $event): void

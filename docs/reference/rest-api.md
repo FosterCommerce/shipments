@@ -2,13 +2,12 @@
 
 > **Status: untested / WIP.** The endpoints below ship in the plugin and are documented here against the source, but they have not been exercised against a live integration. The shape, auth model, and error envelope are likely to change once real integration work begins. Don't build against this until it stabilizes.
 
-The plugin exposes three HTTP entry points:
+The plugin exposes two HTTP entry points:
 
 - `POST /shipments/api/shipments/{id}`, apply a partial update plus an optional status transition to one shipment.
-- `POST /shipments/webhooks/{integrationHandle}`, public webhook receiver. Delegates body parsing and signature checks to the integration's provider.
-- `GET /shipments/exports/{integrationHandle}`, public export endpoint. Delegates response shape and auth to the integration's provider.
+- `/actions/shipments/gateway/handle?integration={integrationHandle}`, public integration gateway. Delegates the request to the integration's provider.
 
-The `api/*` route lives under the CP URL rules. `webhooks/*` and `exports/*` live under the site URL rules and are anonymous.
+The `api/*` route lives under the CP URL rules. The gateway is a Craft action URL and is anonymous.
 
 ## Authentication
 
@@ -19,7 +18,7 @@ The `/shipments/api/...` endpoint is CP-routed and requires a logged-in CP user.
 
 CSRF validation is **disabled** on the API controller (`enableCsrfValidation = false`) so a bearer-style integration that posts JSON without a CSRF token still works.
 
-The `/shipments/webhooks/{integrationHandle}` and `/shipments/exports/{integrationHandle}` endpoints are anonymous at the framework level. Signature verification, bearer-token checks, and any other auth are the **provider's** responsibility, executed inside `Provider::receiveShipmentUpdate($request)` / `Provider::export($request)`. A provider that doesn't verify signatures is a provider that accepts forged events.
+The `/actions/shipments/gateway/handle?integration={integrationHandle}` endpoint is anonymous at the framework level. Signature verification, bearer-token checks, and any other auth are the **provider's** responsibility, executed inside `Provider::handleGatewayRequest($request)`. A provider that doesn't verify signatures is a provider that accepts forged events.
 
 ## `POST /shipments/api/shipments/{id}`
 
@@ -121,61 +120,17 @@ curl -X POST 'https://example.com/shipments/api/shipments/1234' \
   }'
 ```
 
-## `POST /shipments/webhooks/{integrationHandle}`
+## `/actions/shipments/gateway/handle?integration={integrationHandle}`
 
-Public webhook receiver. The plugin resolves the integration by handle, gates routing on the provider's `canReceiveUpdates()` capability flag, hands the request to `Provider::receiveShipmentUpdate($request)`, and returns a thin envelope. **All payload parsing, signature verification, and external-to-internal translation is the provider's job.** The plugin never inspects the body itself.
+Public integration gateway. The plugin resolves the integration by the `integration` query param and hands the request to `Provider::handleGatewayRequest($request)`. The provider returns a Craft `Response` directly. **All payload parsing, signature verification, external-to-internal translation, response format, pagination, and filtering are the provider's job.** The plugin never inspects the body itself.
 
 ### Behavior
 
 - Looks up the integration by handle.
 - Confirms the integration is enabled and has a provider class bound.
-- Confirms the provider's `canReceiveUpdates()` returns `true`. Returns `405 Method Not Allowed` if not.
-- Calls `$provider->receiveShipmentUpdate($this->request)`. The provider returns either a `Shipment` (the one it touched) or `null` (event acknowledged but didn't map to a single shipment).
+- Calls `$provider->handleGatewayRequest($this->request)` and returns its response unchanged on success.
 - Catches `IntegrationException` from the provider and converts it to a `400` with the original message; logs the rejection at `error` level.
-- Catches any other `Throwable` and converts it to a `400` with a generic `Webhook processing failed.` message; logs the original at `error` level.
-
-### Responses
-
-**`200 OK`**, provider handled the webhook.
-
-```json
-{
-  "success": true,
-  "shipmentId": 1234
-}
-```
-
-`shipmentId` is `null` when the provider acknowledges an event that doesn't correspond to a single shipment (heartbeat, batch ack, multi-shipment notification).
-
-**`404 Not Found`**, `Unknown integration: {handle}`.
-
-**`405 Method Not Allowed`**, the provider's `canReceiveUpdates()` returned `false`. The integration's provider class doesn't accept inbound webhooks.
-
-**`400 Bad Request`**, integration is disabled, has no provider bound, the provider raised `IntegrationException` (signature mismatch, unparseable payload, dropped event), or the provider threw anything else.
-
-### curl example
-
-```sh
-curl -X POST 'https://example.com/shipments/webhooks/shipstation' \
-  -H 'Content-Type: application/json' \
-  -H 'X-ShipStation-Signature: sha256=...' \
-  -d '{
-    "resource_url": "https://ssapi.shipstation.com/shipments?...",
-    "resource_type": "SHIP_NOTIFY"
-  }'
-```
-
-## `GET /shipments/exports/{integrationHandle}`
-
-Public export endpoint. The plugin resolves the integration by handle and delegates to `Provider::export($request)`. The provider returns a Craft `Response` directly; the plugin doesn't interpose. **Auth, format (CSV / JSON / XML), pagination, and any filtering are the provider's job.**
-
-### Behavior
-
-- Looks up the integration by handle.
-- Confirms the integration is enabled and has a provider class bound.
-- Calls `$provider->export($this->request)`; returns its response unchanged on success.
-- Catches `IntegrationException` and converts it to a `400`.
-- Catches any other `Throwable` and converts it to a `400` with `Export processing failed.`; logs the original.
+- Catches any other `Throwable` and converts it to a `400` with a generic `Integration request processing failed.` message; logs the original at `error` level.
 
 ### Responses
 
@@ -183,13 +138,18 @@ Public export endpoint. The plugin resolves the integration by handle and delega
 
 **`404 Not Found`**, `Unknown integration: {handle}`.
 
-**`400 Bad Request`**, integration disabled, no provider bound, or provider raised an exception.
+**`400 Bad Request`**, integration is disabled, has no provider bound, the provider raised `IntegrationException` (signature mismatch, unparseable payload, dropped event), or the provider threw anything else.
 
 ### curl example
 
 ```sh
-curl 'https://example.com/shipments/exports/erp?since=2026-04-25T00:00:00Z' \
-  -H 'Authorization: Bearer ...'
+curl -X POST 'https://example.com/actions/shipments/gateway/handle?integration=shipstation' \
+  -H 'Content-Type: application/json' \
+  -H 'X-ShipStation-Signature: sha256=...' \
+  -d '{
+    "resource_url": "https://ssapi.shipstation.com/shipments?...",
+    "resource_type": "SHIP_NOTIFY"
+  }'
 ```
 
 ## Error envelope

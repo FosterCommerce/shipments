@@ -6,6 +6,7 @@ namespace fostercommerce\shipments\controllers;
 
 use Craft;
 use craft\helpers\Json;
+use craft\helpers\UrlHelper;
 use craft\web\assets\admintable\AdminTableAsset;
 use craft\web\Controller;
 use fostercommerce\shipments\base\ControllerBodyParamsTrait;
@@ -114,9 +115,16 @@ class IntegrationsController extends Controller
 		}
 
 		$this->view->registerAssetBundle(ShipmentsCpAsset::class);
+		$actionTrigger = Craft::$app->getConfig()->getGeneral()->actionTrigger;
+		$gatewayEndpointUrl = $integration->handle !== null && $integration->handle !== ''
+			? UrlHelper::siteUrl("{$actionTrigger}/shipments/gateway/handle", [
+				'integration' => $integration->handle,
+			])
+			: null;
 
 		return $this->renderTemplate(Plugin::HANDLE . '/settings/integrations/_edit', [
 			'integration' => $integration,
+			'gatewayEndpointUrl' => $gatewayEndpointUrl,
 			'providerOptions' => $providerOptions,
 			'providerSettings' => $providerSettings,
 			'title' => $integration->id === null

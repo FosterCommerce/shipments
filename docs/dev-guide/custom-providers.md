@@ -8,16 +8,7 @@ Every provider extends `fostercommerce\shipments\base\Provider` and implements:
 
 - `sendShipment(Shipment, Order): void`: create/update the shipment on the remote system. Call `setIntegrationReference()` with the returned id. Required (abstract).
 - `cancelShipment(Shipment, Order): void`: cancel the shipment on the remote system. Default throws `IntegrationException('Cancel not implemented…')`; override when the remote supports cancellation.
-
-Inbound webhook updates come as a capability pair:
-
-- `canReceiveUpdates(): bool`: opt-in flag. Default `false`. `WebhooksController` returns `405 Method Not Allowed` when this is false, so a provider that doesn't accept inbound updates needs no further work.
-- `receiveShipmentUpdate(Request): ?Shipment`: parse an inbound POST at `shipments/webhooks/<integrationHandle>`. Verify the signature, resolve the local shipment, apply the update. Default throws; override (and have `canReceiveUpdates()` return `true`) when the remote pushes status updates back.
-
-Other optional hooks:
-
-- `pull(): void`: for remotes that won't webhook you. Your module schedules the call.
-- `export(Request): Response`: for remotes that pull from you at `shipments/exports/<integrationHandle>`. Pick your format (XML, JSON, whatever). Default throws.
+- `handleGatewayRequest(Request): Response`: handle remote-initiated requests at `/actions/shipments/gateway/handle?integration=<integrationHandle>`. Verify auth, parse the request, mutate local state if needed, and return the response your remote expects.
 
 Settings are plain typed properties on the class. The plugin saves/loads them as JSON on the integration row automatically.
 
@@ -37,6 +28,7 @@ use craft\commerce\elements\Order;
 use craft\helpers\App;
 use craft\helpers\Json;
 use craft\web\Request;
+use craft\web\Response;
 use craft\web\View;
 use fostercommerce\shipments\base\Provider;
 use fostercommerce\shipments\base\WebhookSigning;
@@ -131,12 +123,7 @@ class ExampleErpProvider extends Provider
         }
     }
 
-    public function canReceiveUpdates(): bool
-    {
-        return true;
-    }
-
-    public function receiveShipmentUpdate(Request $request): ?Shipment
+    public function handleGatewayRequest(Request $request): Response
     {
         $rawBody = $request->getRawBody();
 
@@ -152,7 +139,7 @@ class ExampleErpProvider extends Provider
 
         $payload = Json::decodeIfJson($rawBody);
         if (! is_array($payload) || $this->handle === null) {
-            return null;
+            return $this->asJson(['success' => true, 'shipmentId' => null]);
         }
 
         $plugin = ShipmentsPlugin::getInstance();
@@ -163,7 +150,7 @@ class ExampleErpProvider extends Provider
         );
 
         if (! $shipment instanceof Shipment) {
-            return null;
+            return $this->asJson(['success' => true, 'shipmentId' => null]);
         }
 
         // Translate Example ERP's status via the per-integration mapping table.
@@ -188,7 +175,15 @@ class ExampleErpProvider extends Provider
             }
         }
 
-        return $shipment;
+        return $this->asJson(['success' => true, 'shipmentId' => $shipment->id]);
+    }
+
+    private function asJson(array $data): Response
+    {
+        $response = Craft::$app->getResponse();
+        $response->format = Response::FORMAT_JSON;
+        $response->data = $data;
+        return $response;
     }
 
     public function getSettingsHtml(): ?string
@@ -295,40 +290,15 @@ Event::on(
 
 For a CP-initiated push, the **Push to {integration}** button in the sidebar of each shipment's edit page queues the same job for that shipment + integration.
 
-## Polling
-
-For remotes that won't webhook you, override `pull()` and trigger it from a console command you control:
-
-```php
-// modules/mystore/console/controllers/SyncController.php
-public function actionPull(): int
-{
-    foreach (ShipmentsPlugin::getInstance()->integrations->getAllIntegrations() as $integration) {
-        if (! $integration->enabled) {
-            continue;
-        }
-
-        $provider = $integration->getProvider();
-        if ($provider instanceof ExampleErpProvider) {
-            $provider->pull();
-        }
-    }
-
-    return ExitCode::OK;
-}
-```
-
-Point cron at `./craft mystore/sync/pull` on whatever interval you need.
-
 ## Exports
 
-When a remote pulls from us on a schedule, override `export(Request): Response`. The plugin provides the route (`shipments/exports/<integrationHandle>`) and the canonical shipment query; your provider picks the format.
+When a remote pulls from us on a schedule, handle it in `handleGatewayRequest(Request): Response`. The plugin provides the route (`/actions/shipments/gateway/handle?integration=<integrationHandle>`) and the canonical shipment query; your provider picks the format.
 
 ```php
 use fostercommerce\shipments\enums\Status;
 use fostercommerce\shipments\models\ShipmentExportQuery;
 
-public function export(Request $request): Response
+public function handleGatewayRequest(Request $request): Response
 {
     $this->assertAuthorized($request);
 
@@ -358,7 +328,7 @@ Every credential must be env-var-aware.
 
 ## Errors
 
-Throw `IntegrationException` for retryable domain errors (network blip, 5xx from the remote). Throw `PermanentIntegrationException` for hard failures that shouldn't be retried (bad config, 4xx, malformed payload, signature mismatch). The webhook and export controllers convert both to 400 with a log entry. `PushShipmentJob` classifies retries accordingly and records `dateLastPushAttempt` / `lastPushAttemptError` / `pushAttemptCount` on the shipment either way.
+Throw `IntegrationException` for retryable domain errors (network blip, 5xx from the remote). Throw `PermanentIntegrationException` for hard failures that shouldn't be retried (bad config, 4xx, malformed payload, signature mismatch). The gateway controller converts both to 400 with a log entry. `PushShipmentJob` classifies retries accordingly and records `dateLastPushAttempt` / `lastPushAttemptError` / `pushAttemptCount` on the shipment either way.
 
 ## Webhook idempotency
 
@@ -366,7 +336,7 @@ Webhook senders retry. The same delivery can arrive twice (sender-side retry, ne
 
 ### What's already covered
 
-If your `receiveShipmentUpdate()` routes the actual mutation through one of these, you get idempotency for free:
+If your `handleGatewayRequest()` implementation routes the actual mutation through one of these, you get idempotency for free:
 
 - **`Shipments::applyTransition`** short-circuits same-to-same transitions (skips silently when the status already equals the target) and serializes concurrent calls per shipment via `Craft::$app->getMutex()`. The mutex holds across read-current-state + write, so two parallel deliveries can't both decide to transition off the same pre-state.
 - **`Shipments::applyUpdate`** wraps `applyTransition` and applies fulfillment fields with null-skip semantics, so re-delivering the same payload settles to the same state.
@@ -420,7 +390,7 @@ Either pattern is fine; pick the one your sender supports. If you're unsure, ded
 2. **Shipments -> Settings -> Integrations -> New**: confirm your provider appears in the Provider dropdown.
 3. Save an integration pointing at a mock endpoint (e.g. webhook.site).
 4. Queue a push and run the queue, then check the request hit the mock.
-5. Craft a signed inbound body, POST it to `shipments/webhooks/<handle>`, confirm the target shipment updated.
+5. Craft a signed inbound body, POST it to `/actions/shipments/gateway/handle?integration=<handle>`, confirm the target shipment updated.
 
 ## Reference implementations
 

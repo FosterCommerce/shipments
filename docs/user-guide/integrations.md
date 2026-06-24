@@ -62,7 +62,7 @@ The usual flow:
 1. Configure the integration with test credentials.
 2. Map a handful of the vendor's most common codes.
 3. Create a test order and stage a shipment.
-4. Use the vendor's webhook tester (most platforms have one) to send a signed sample webhook to `https://your-site.test/shipments/webhooks/{your-integration-handle}`.
+4. Use the vendor's webhook tester (most platforms have one) to send a signed sample webhook to `https://your-site.test/actions/shipments/gateway/handle?integration={your-integration-handle}`.
 5. Check that the shipment changed. Check that the **Status history** tab shows the integration as the source and the original external code it sent.
 6. If nothing changed, the code probably isn't mapped. Add a mapping for it and resend.
 7. For outbound: open a shipment, click **Push to {name}** in the sidebar, and confirm the remote got your payload. Watch the last-push-attempt timestamp and any error message populate on the shipment as the queue runs.

@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace fostercommerce\shipments\base;
 
 use craft\base\SavableComponentInterface;
+use craft\web\Request;
+use craft\web\Response;
 
 /**
- * Marker interface for plugin integrations.
- *
- * The concrete contract lives on the `Provider` abstract base class, which drivers subclass.
+ * Contract for fulfillment integration providers.
  */
 interface ProviderInterface extends SavableComponentInterface
 {
+	public function supportsPush(): bool;
+
+	public function handleGatewayRequest(Request $request): Response;
 }

@@ -56,6 +56,14 @@ class ShipmentsController extends Controller
 		}
 
 		$integrations = $plugin->integrations->getAllIntegrations();
+		$pushableIntegrations = [];
+		foreach ($integrations as $integration) {
+			$provider = $integration->getProvider();
+			if ($integration->enabled && $integration->id !== null && $provider?->supportsPush()) {
+				$pushableIntegrations[] = $integration;
+			}
+		}
+
 		$statusHistory = $shipment->id !== null
 			? $plugin->shipments->getStatusHistoryForShipmentId($shipment->id)
 			: [];
@@ -67,6 +75,7 @@ class ShipmentsController extends Controller
 			'order' => $order,
 			'statusOptions' => Status::labelMap(),
 			'integrations' => $integrations,
+			'pushableIntegrations' => $pushableIntegrations,
 			'statusHistory' => $statusHistory,
 			'unallocatedPool' => $plugin->shipmentLineItems->remainingPoolFor($order),
 			'title' => Craft::t(Plugin::HANDLE, 'shipmentEdit.titleWithReference', [
@@ -328,6 +337,14 @@ class ShipmentsController extends Controller
 
 		if (! $integration->enabled) {
 			Craft::$app->getSession()->setError(Craft::t(Plugin::HANDLE, 'error.integrationDisabled', [
+				'name' => $integration->name ?? '',
+			]));
+			return $this->redirectToPostedUrl();
+		}
+
+		$provider = $integration->getProvider();
+		if ($provider?->supportsPush() !== true) {
+			Craft::$app->getSession()->setError(Craft::t(Plugin::HANDLE, 'error.integrationPushUnsupported', [
 				'name' => $integration->name ?? '',
 			]));
 			return $this->redirectToPostedUrl();
