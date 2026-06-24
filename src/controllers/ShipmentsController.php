@@ -59,7 +59,7 @@ class ShipmentsController extends Controller
 		$pushableIntegrations = [];
 		foreach ($integrations as $integration) {
 			$provider = $integration->getProvider();
-			if ($integration->enabled && $integration->id !== null && $provider?->supportsPush()) {
+			if ($integration->isEnabled() && $integration->id !== null && $provider?->supportsPush()) {
 				$pushableIntegrations[] = $integration;
 			}
 		}
@@ -335,7 +335,7 @@ class ShipmentsController extends Controller
 			throw new NotFoundHttpException(Craft::t(Plugin::HANDLE, 'error.integrationNotFound'));
 		}
 
-		if (! $integration->enabled) {
+		if (! $integration->isEnabled()) {
 			Craft::$app->getSession()->setError(Craft::t(Plugin::HANDLE, 'error.integrationDisabled', [
 				'name' => $integration->name ?? '',
 			]));

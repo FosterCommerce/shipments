@@ -57,8 +57,8 @@ class IntegrationsController extends Controller
 				'url' => $integration->getCpEditUrl(),
 				'type' => $typeLabel,
 				'enabled' => [
-					'status' => $integration->enabled,
-					'label' => $integration->enabled
+					'status' => $integration->isEnabled(),
+					'label' => $integration->isEnabled()
 						? Craft::t(Plugin::HANDLE, 'settings.integrations.enabled')
 						: Craft::t(plugin::HANDLE, 'settings.integrations.disabled'),
 				],
@@ -107,7 +107,7 @@ class IntegrationsController extends Controller
 				'type' => $providerClass,
 				'name' => $integration->name,
 				'handle' => $integration->handle,
-				'enabled' => $integration->enabled,
+				'enabled' => $integration->isEnabled(),
 				'settings' => $integration->provider === $providerClass ? $integration->settings : [],
 				'uid' => $integration->uid,
 			]);
@@ -163,7 +163,7 @@ class IntegrationsController extends Controller
 		$integration->handle = $this->bodyString('handle') ?? (string) $integration->handle;
 		$integration->urlTemplate = $this->bodyString('urlTemplate');
 		$integration->provider = $this->bodyString('provider');
-		$integration->enabled = (bool) $this->request->getBodyParam('enabled', $integration->enabled);
+		$integration->enabled = $this->normalizeEnabledConfig($this->request->getBodyParam('enabled', $integration->enabled));
 
 		$postedSettings = $this->request->getBodyParam('settings');
 		$integration->settings = is_array($postedSettings) ? $postedSettings : [];
@@ -331,5 +331,14 @@ class IntegrationsController extends Controller
 				$internalCode,
 			);
 		}
+	}
+
+	private function normalizeEnabledConfig(mixed $value): bool|string
+	{
+		if (is_string($value) && str_starts_with($value, '$')) {
+			return $value;
+		}
+
+		return (bool) $value;
 	}
 }

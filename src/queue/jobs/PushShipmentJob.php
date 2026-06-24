@@ -44,7 +44,7 @@ class PushShipmentJob extends BaseJob
 		}
 
 		$integration = $plugin->integrations->getIntegrationById($this->integrationId);
-		if (! $integration instanceof Integration || ! $integration->enabled) {
+		if (! $integration instanceof Integration || ! $integration->isEnabled()) {
 			Craft::warning("PushShipmentJob: integration {$this->integrationId} missing or disabled.", Plugin::HANDLE);
 			return;
 		}

@@ -6,6 +6,7 @@ namespace fostercommerce\shipments\models;
 
 use Craft;
 use craft\base\Model;
+use craft\helpers\App;
 use craft\helpers\UrlHelper;
 use craft\validators\HandleValidator;
 use craft\validators\UniqueValidator;
@@ -39,7 +40,7 @@ class Integration extends Model implements \Stringable
 	 */
 	public array $settings = [];
 
-	public bool $enabled = true;
+	public bool|string $enabled = true;
 
 	public ?int $sortOrder = null;
 
@@ -102,12 +103,17 @@ class Integration extends Model implements \Stringable
 			'type' => $this->provider,
 			'name' => $this->name,
 			'handle' => $this->handle,
-			'enabled' => $this->enabled,
+			'enabled' => $this->isEnabled(),
 			'settings' => $this->settings,
 			'uid' => $this->uid,
 		]);
 
 		return $this->resolvedProvider;
+	}
+
+	public function isEnabled(): bool
+	{
+		return App::parseBooleanEnv($this->enabled) ?? false;
 	}
 
 	/**

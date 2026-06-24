@@ -8,6 +8,7 @@ use Craft;
 use craft\db\Query;
 use craft\errors\MissingComponentException;
 use craft\events\ConfigEvent;
+use craft\helpers\App;
 use craft\helpers\Component as ComponentHelper;
 use craft\helpers\Db;
 use craft\helpers\Json;
@@ -216,7 +217,7 @@ class Integrations extends Component
 			throw new PermanentIntegrationException("Unknown integration: {$handle}", 404);
 		}
 
-		if (! $integration->enabled) {
+		if (! $integration->isEnabled()) {
 			throw new PermanentIntegrationException("Integration {$handle} is disabled.", 400);
 		}
 
@@ -298,7 +299,7 @@ class Integrations extends Component
 			$settings = $data['settings'] ?? null;
 			$integrationRecord->settings = is_array($settings) && $settings !== [] ? Json::encode($settings) : null;
 
-			$integrationRecord->enabled = (bool) ($data['enabled'] ?? true);
+			$integrationRecord->enabled = $this->parseEnabled($data['enabled'] ?? true);
 			$integrationRecord->sortOrder = (int) ($data['sortOrder'] ?? 99);
 			$integrationRecord->uid = $integrationUid;
 
@@ -388,8 +389,18 @@ class Integrations extends Component
 			$row['settings'] = [];
 		}
 
+		$enabledProjectConfig = is_string($row['uid'] ?? null)
+			? Craft::$app->getProjectConfig()->get(self::CONFIG_INTEGRATIONS_KEY . '.' . $row['uid'] . '.enabled')
+			: null;
+		$row['enabled'] = is_bool($enabledProjectConfig) || is_string($enabledProjectConfig) ? $enabledProjectConfig : (bool) $row['enabled'];
+
 		Typecast::properties(Integration::class, $row);
 		return new Integration($row);
+	}
+
+	private function parseEnabled(mixed $value): bool
+	{
+		return App::parseBooleanEnv($value) ?? false;
 	}
 
 	private function getIntegrationRecord(string $uid): IntegrationRecord

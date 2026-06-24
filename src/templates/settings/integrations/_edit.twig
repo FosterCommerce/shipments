@@ -58,6 +58,16 @@
 			errors: integration.getErrors('handle'),
 		}) }}
 
+		{{ forms.booleanMenuField({
+			label: 'shipmentEdit.enabled'|t('shipments'),
+			id: 'enabled',
+			name: 'enabled',
+			yesLabel: 'settings.integrations.enabled'|t('shipments'),
+			noLabel: 'settings.integrations.disabled'|t('shipments'),
+			includeEnvVars: true,
+			value: integration.enabled,
+		}) }}
+
 		{{ forms.textField({
 			label: 'settings.integrations.urlTemplate'|t('shipments'),
 			instructions: 'settings.integrations.urlTemplateHelp'|t('shipments'),
@@ -98,12 +108,6 @@
 			errors: integration.getErrors('provider'),
 		}) }}
 
-		{{ forms.lightswitchField({
-			label: 'shipmentEdit.enabled'|t('shipments'),
-			id: 'enabled',
-			name: 'enabled',
-			on: integration.enabled,
-		}) }}
 	</div>
 
 	{% if integration.provider %}
