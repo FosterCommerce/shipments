@@ -103,6 +103,14 @@
 					</div>
 				{% endfor %}
 			</fieldset>
+
+			{% for option in providerOptions %}
+				{% if providerUtilitySettings[option.value] ?? false %}
+					<div class="shipments-provider-panel{% if integration.provider != option.value %} hidden{% endif %}" data-provider="{{ option.value }}">
+						{{ providerUtilitySettings[option.value]|raw }}
+					</div>
+				{% endif %}
+			{% endfor %}
 		{% endif %}
 	</div>
 {% endblock %}

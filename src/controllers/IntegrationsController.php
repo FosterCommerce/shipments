@@ -96,6 +96,7 @@ class IntegrationsController extends Controller
 
 		$providerOptions = [];
 		$providerSettings = [];
+		$providerUtilitySettings = [];
 		foreach ($plugin->integrations->getSelectableProviderTypes() as $providerClass) {
 			/** @var class-string<ProviderInterface> $providerClass */
 			$providerOptions[] = [
@@ -112,6 +113,7 @@ class IntegrationsController extends Controller
 				'uid' => $integration->uid,
 			]);
 			$providerSettings[$providerClass] = $providerInstance->getSettingsHtml() ?? '';
+			$providerUtilitySettings[$providerClass] = $providerInstance->getSettingsUtilityHtml() ?? '';
 		}
 
 		$this->view->registerAssetBundle(ShipmentsCpAsset::class);
@@ -127,6 +129,7 @@ class IntegrationsController extends Controller
 			'gatewayEndpointUrl' => $gatewayEndpointUrl,
 			'providerOptions' => $providerOptions,
 			'providerSettings' => $providerSettings,
+			'providerUtilitySettings' => $providerUtilitySettings,
 			'title' => $integration->id === null
 				? Craft::t(Plugin::HANDLE, 'integrations.createNew')
 				: (string) $integration,

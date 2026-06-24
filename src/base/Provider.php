@@ -182,6 +182,11 @@ abstract class Provider extends SavableComponent implements ProviderInterface
 		return true;
 	}
 
+	public function getSettingsUtilityHtml(): ?string
+	{
+		return null;
+	}
+
 	public static function info(ProviderInterface $integration, string $message): void
 	{
 		Craft::info(sprintf('[%s] %s', $integration->handle ?? 'integration', $message), Plugin::HANDLE);
