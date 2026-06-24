@@ -11,7 +11,12 @@
 #}
 
 {% set selectedItem = 'integrations' %}
-{% set fullPageForm = true %}
+{% set readOnly = not craft.app.config.general.allowAdminChanges %}
+{% set fullPageForm = not readOnly %}
+
+{% if readOnly %}
+	{% set contentNotice = readOnlyNotice() %}
+{% endif %}
 
 {% set crumbs = [
 	{ label: 'nav.shipments'|t('shipments'), url: url('shipments/shipments') },
@@ -48,23 +53,27 @@
 } %}
 
 {% block content %}
-	{{ actionInput('shipments/integrations/status-maps') }}
-	{{ redirectInput('shipments/settings/integrations/' ~ integration.id ~ '/status-maps') }}
+	{% if not readOnly %}
+		{{ actionInput('shipments/integrations/status-maps') }}
+		{{ redirectInput('shipments/settings/integrations/' ~ integration.id ~ '/status-maps') }}
+	{% endif %}
 
 	<p class="light">{{ 'settings.integrations.statusMapIntro'|t('shipments') }}</p>
 
-	{{ forms.editableTableField({
-		label: 'settings.integrations.statusMappingsHeading'|t('shipments'),
-		id: 'statusMaps',
-		name: 'statusMaps',
-		cols: commonCols|merge({
-			internalCode: {
-				heading: 'settings.integrations.mapsToStatus'|t('shipments'),
-				type: 'select',
-				options: statusOptions|map((label, value) => ({ label: label, value: value }))|values,
-			},
-		}),
-		rows: statusRows,
-		addRowLabel: 'settings.integrations.addStatusMapping'|t('shipments'),
-	}) }}
+	<fieldset{% if readOnly %} disabled{% endif %}>
+		{{ forms.editableTableField({
+			label: 'settings.integrations.statusMappingsHeading'|t('shipments'),
+			id: 'statusMaps',
+			name: 'statusMaps',
+			cols: commonCols|merge({
+				internalCode: {
+					heading: 'settings.integrations.mapsToStatus'|t('shipments'),
+					type: 'select',
+					options: statusOptions|map((label, value) => ({ label: label, value: value }))|values,
+				},
+			}),
+			rows: statusRows,
+			addRowLabel: 'settings.integrations.addStatusMapping'|t('shipments'),
+		}) }}
+	</fieldset>
 {% endblock %}

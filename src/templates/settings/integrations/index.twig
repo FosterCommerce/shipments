@@ -2,14 +2,21 @@
 
 {% set selectedItem = 'integrations' %}
 {% set title = 'nav.integrations'|t('shipments') %}
+{% set readOnly = not craft.app.config.general.allowAdminChanges %}
 {% set crumbs = [
 	{ label: 'Settings'|t('app'), url: url('settings') },
 	{ label: 'Plugins'|t('app'), url: url('settings/plugins') },
 	{ label: 'nav.shipments'|t('shipments'), url: url('shipments/settings/general') },
 ] %}
 
+{% if readOnly %}
+	{% set contentNotice = readOnlyNotice() %}
+{% endif %}
+
 {% block actionButton %}
-	<a href="{{ url('shipments/settings/integrations/new') }}" class="btn submit add icon">{{ 'integrations.new'|t('shipments') }}</a>
+	{% if not readOnly %}
+		<a href="{{ url('shipments/settings/integrations/new') }}" class="btn submit add icon">{{ 'integrations.new'|t('shipments') }}</a>
+	{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -30,10 +37,12 @@
 			{ name: 'enabled', title: {{ 'settings.integrations.enabled'|t('shipments')|json_encode|raw }}, callback: shipmentsStatusCallback },
 		],
 		container: '#shipments-integrations-admin-table',
-		deleteAction: 'shipments/integrations/delete',
-		deleteConfirmationMessage: {{ 'settings.integrations.deleteConfirm'|t('shipments')|json_encode|raw }},
-		deleteFailMessage: {{ 'error.integrationNotDeleted'|t('shipments')|json_encode|raw }},
-		deleteSuccessMessage: {{ 'settings.integrations.deleted'|t('shipments')|json_encode|raw }},
+		{% if not readOnly %}
+			deleteAction: 'shipments/integrations/delete',
+			deleteConfirmationMessage: {{ 'settings.integrations.deleteConfirm'|t('shipments')|json_encode|raw }},
+			deleteFailMessage: {{ 'error.integrationNotDeleted'|t('shipments')|json_encode|raw }},
+			deleteSuccessMessage: {{ 'settings.integrations.deleted'|t('shipments')|json_encode|raw }},
+		{% endif %}
 		emptyMessage: {{ 'integrations.emptyState.none'|t('shipments')|json_encode|raw }},
 		tableData: {{ integrationTableData|json_encode|raw }},
 	});

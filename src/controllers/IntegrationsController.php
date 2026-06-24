@@ -139,7 +139,7 @@ class IntegrationsController extends Controller
 	public function actionSave(): ?Response
 	{
 		$this->requirePostRequest();
-		$this->requirePermission(Plugin::PERMISSION_MANAGE_INTEGRATIONS);
+		$this->requireAdmin();
 
 		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
@@ -187,7 +187,7 @@ class IntegrationsController extends Controller
 	{
 		$this->requirePostRequest();
 		$this->requireAcceptsJson();
-		$this->requirePermission(Plugin::PERMISSION_MANAGE_INTEGRATIONS);
+		$this->requireAdmin();
 
 		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
@@ -228,6 +228,8 @@ class IntegrationsController extends Controller
 		}
 
 		if ($this->request->getIsPost()) {
+			$this->requireAdmin();
+
 			$transaction = Craft::$app->getDb()->beginTransaction();
 
 			try {
@@ -270,7 +272,7 @@ class IntegrationsController extends Controller
 	{
 		$this->requirePostRequest();
 		$this->requireAcceptsJson();
-		$this->requirePermission(Plugin::PERMISSION_MANAGE_INTEGRATIONS);
+		$this->requireAdmin();
 
 		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();

@@ -15,7 +15,8 @@
 #}
 
 {% set selectedItem = 'integrations' %}
-{% set fullPageForm = true %}
+{% set readOnly = not craft.app.config.general.allowAdminChanges %}
+{% set fullPageForm = not readOnly %}
 {% set selectedTab = 'integration' %}
 {% set crumbs = [
 	{ label: 'Settings'|t('app'), url: url('settings') },
@@ -29,9 +30,15 @@
 	'provider-settings': { label: 'settings.integrations.provider'|t('shipments'), url: '#provider-settings' },
 } %}
 
+{% if readOnly %}
+	{% set contentNotice = readOnlyNotice() %}
+{% endif %}
+
 {% block content %}
-	{{ actionInput('shipments/integrations/save') }}
-	{{ redirectInput('shipments/settings/integrations') }}
+	{% if not readOnly %}
+		{{ actionInput('shipments/integrations/save') }}
+		{{ redirectInput('shipments/settings/integrations') }}
+	{% endif %}
 	{% if integration.id %}<input type="hidden" name="id" value="{{ integration.id }}">{% endif %}
 
 	{# Integration tab #}
@@ -45,6 +52,7 @@
 			value: integration.name,
 			errors: integration.getErrors('name'),
 			autofocus: true,
+			disabled: readOnly,
 		}) }}
 
 		{{ forms.textField({
@@ -56,6 +64,7 @@
 			class: 'code',
 			value: integration.handle,
 			errors: integration.getErrors('handle'),
+			disabled: readOnly,
 		}) }}
 
 		{{ forms.booleanMenuField({
@@ -66,6 +75,7 @@
 			noLabel: 'settings.integrations.disabled'|t('shipments'),
 			includeEnvVars: true,
 			value: integration.enabled,
+			disabled: readOnly,
 		}) }}
 
 		{{ forms.textField({
@@ -76,6 +86,7 @@
 			class: 'ltr',
 			value: integration.urlTemplate,
 			errors: integration.getErrors('urlTemplate'),
+			disabled: readOnly,
 		}) }}
 	</div>
 
@@ -85,11 +96,13 @@
 	   Provider select's id. #}
 	<div id="provider-settings" class="hidden">
 		{% if providerOptions|length %}
-			{% for option in providerOptions %}
-				<div class="shipments-provider-panel{% if integration.provider != option.value %} hidden{% endif %}" data-provider="{{ option.value }}">
-					{{ providerSettings[option.value]|raw }}
-				</div>
-			{% endfor %}
+			<fieldset{% if readOnly %} disabled{% endif %}>
+				{% for option in providerOptions %}
+					<div class="shipments-provider-panel{% if integration.provider != option.value %} hidden{% endif %}" data-provider="{{ option.value }}">
+						{{ providerSettings[option.value]|raw }}
+					</div>
+				{% endfor %}
+			</fieldset>
 		{% endif %}
 	</div>
 {% endblock %}
@@ -106,6 +119,7 @@
 			value: integration.provider,
 			options: providerSelectOptions,
 			errors: integration.getErrors('provider'),
+			disabled: readOnly,
 		}) }}
 
 	</div>
