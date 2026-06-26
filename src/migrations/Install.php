@@ -75,6 +75,7 @@ class Install extends Migration
 			'shipmentId' => $this->integer()->notNull(),
 			'lineItemId' => $this->integer()->notNull(),
 			'qty' => $this->integer()->notNull(),
+			'lineItemData' => $this->json(),
 			'dateCreated' => $this->dateTime()->notNull(),
 			'dateUpdated' => $this->dateTime()->notNull(),
 			'uid' => $this->uid(),

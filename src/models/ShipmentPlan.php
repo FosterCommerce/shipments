@@ -25,6 +25,13 @@ class ShipmentPlan extends Model
 	public array $lineItemQtys = [];
 
 	/**
+	 * Optional data to persist with shipment line item allocations, keyed by Commerce line item id.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	public array $lineItemData = [];
+
+	/**
 	 * Optional shipment status handle suggested by the rule. Null defers to the plugin default.
 	 */
 	public ?string $suggestedStatusHandle = null;

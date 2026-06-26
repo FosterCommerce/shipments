@@ -98,7 +98,7 @@ abstract class Provider extends SavableComponent implements ProviderInterface
 
 	public function getSourceIntegration(): ?Integration
 	{
-		if ($this->sourceIntegration !== null) {
+		if ($this->sourceIntegration instanceof Integration) {
 			return $this->sourceIntegration;
 		}
 

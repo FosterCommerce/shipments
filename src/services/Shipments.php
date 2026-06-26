@@ -637,6 +637,7 @@ class Shipments extends Component
 					}
 
 					$record->qty = $qty;
+					$record->lineItemData = null;
 					if (! $record->save()) {
 						$errors = $record->getFirstErrors();
 						throw new Exception(Craft::t(Plugin::HANDLE, 'error.couldNotSaveShipmentLineItem', [
@@ -940,6 +941,7 @@ class Shipments extends Component
 					$lineItemRecord->shipmentId = (int) $shipment->id;
 					$lineItemRecord->lineItemId = $lineItemId;
 					$lineItemRecord->qty = $qty;
+					$lineItemRecord->lineItemData = $plan->lineItemData[$lineItemId] ?? null;
 					if (! $lineItemRecord->save()) {
 						$errors = $lineItemRecord->getFirstErrors();
 						throw new Exception(Craft::t(Plugin::HANDLE, 'error.couldNotSaveShipmentLineItem', [

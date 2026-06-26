@@ -17,6 +17,11 @@ class ShipmentLineItem extends Model
 
 	public int $qty;
 
+	/**
+	 * @var array<string, mixed>|null
+	 */
+	public ?array $lineItemData = null;
+
 	public ?DateTime $dateCreated = null;
 
 	public ?DateTime $dateUpdated = null;
@@ -34,6 +39,7 @@ class ShipmentLineItem extends Model
 			[['qty'],
 				'integer',
 				'min' => 1],
+			[['lineItemData'], 'safe'],
 		];
 	}
 }

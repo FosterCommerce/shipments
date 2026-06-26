@@ -12,6 +12,7 @@ use fostercommerce\shipments\db\Table;
  * @property int $shipmentId
  * @property int $lineItemId
  * @property int $qty
+ * @property ?array $lineItemData
  * @property string $dateCreated
  * @property string $dateUpdated
  * @property string $uid

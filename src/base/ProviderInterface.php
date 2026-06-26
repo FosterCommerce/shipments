@@ -15,5 +15,7 @@ interface ProviderInterface extends SavableComponentInterface
 {
 	public function supportsPush(): bool;
 
+	public function getSettingsUtilityHtml(): ?string;
+
 	public function handleGatewayRequest(Request $request): Response;
 }

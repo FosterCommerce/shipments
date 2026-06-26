@@ -10,6 +10,7 @@ use craft\commerce\models\LineItem;
 use craft\commerce\models\LineItemStatus;
 use craft\db\Query;
 use craft\db\Table as CraftTable;
+use craft\helpers\Json;
 use craft\helpers\Typecast;
 use fostercommerce\shipments\db\Table;
 use fostercommerce\shipments\enums\TrackedOrderShippable;
@@ -337,6 +338,10 @@ class ShipmentLineItems extends Component
 			$shipmentIdRaw = $row['shipmentId'] ?? null;
 			if (! is_numeric($shipmentIdRaw)) {
 				continue;
+			}
+
+			if (is_string($row['lineItemData'] ?? null)) {
+				$row['lineItemData'] = Json::decodeIfJson($row['lineItemData']);
 			}
 
 			Typecast::properties(ShipmentLineItem::class, $row);
