@@ -14,6 +14,7 @@ use fostercommerce\shipments\errors\IntegrationException;
 use fostercommerce\shipments\events\CancelIntegrationPayloadEvent;
 use fostercommerce\shipments\events\IntegrationConnectionEvent;
 use fostercommerce\shipments\events\SendIntegrationPayloadEvent;
+use fostercommerce\shipments\models\Integration;
 use fostercommerce\shipments\Plugin;
 use Throwable;
 
@@ -66,6 +67,8 @@ abstract class Provider extends SavableComponent implements ProviderInterface
 
 	public bool $enabled = true;
 
+	private ?Integration $sourceIntegration = null;
+
 	/**
 	 * Create or update the shipment on the remote system.
 	 *
@@ -91,6 +94,23 @@ abstract class Provider extends SavableComponent implements ProviderInterface
 	public function handleGatewayRequest(Request $request): Response
 	{
 		throw new IntegrationException('Requests are not implemented by this provider.');
+	}
+
+	public function getSourceIntegration(): ?Integration
+	{
+		if ($this->sourceIntegration !== null) {
+			return $this->sourceIntegration;
+		}
+
+		if ($this->handle === null || $this->handle === '') {
+			return null;
+		}
+
+		/** @var Plugin $plugin */
+		$plugin = Plugin::getInstance();
+		$this->sourceIntegration = $plugin->integrations->getIntegrationByHandle($this->handle);
+
+		return $this->sourceIntegration;
 	}
 
 	public function checkConnection(): bool
