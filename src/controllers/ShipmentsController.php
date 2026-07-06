@@ -128,10 +128,13 @@ class ShipmentsController extends Controller
 			: null;
 
 		$integrationReferences = $this->parseIntegrationReferences();
+		$statusInput = $this->bodyString('status') ?? '';
+		$target = $statusInput !== '' ? Status::tryFrom($statusInput) : null;
+		$willTransition = $target instanceof Status && $statusInput !== $shipment->status;
 		$outerTransaction = Craft::$app->getDb()->beginTransaction();
 
 		try {
-			$saved = $plugin->shipments->saveManual($shipment, $order);
+			$saved = $plugin->shipments->saveManual($shipment, $order, ! $willTransition);
 			$plugin->integrationReferences->saveReferencesForShipment($saved, $integrationReferences);
 			$outerTransaction->commit();
 		} catch (Throwable $throwable) {
@@ -146,22 +149,18 @@ class ShipmentsController extends Controller
 
 		$user = Craft::$app->getUser()->getIdentity();
 		$statusMessage = $this->bodyString('statusMessage');
-		$statusInput = $this->bodyString('status') ?? '';
 
-		if ($statusInput !== '' && $statusInput !== $saved->status) {
+		if ($target instanceof Status && $statusInput !== $saved->status) {
 			$this->requirePermission(Plugin::PERMISSION_TRANSITION);
 
-			$target = Status::tryFrom($statusInput);
-			if ($target instanceof Status) {
-				try {
-					$transitioned = $plugin->shipments->applyTransition($saved, $target, $user, $statusMessage);
-					if ($transitioned instanceof Shipment) {
-						$saved = $transitioned;
-					}
-				} catch (Throwable $throwable) {
-					Craft::$app->getSession()->setError($throwable->getMessage());
-					return null;
+			try {
+				$transitioned = $plugin->shipments->applyTransition($saved, $target, $user, $statusMessage);
+				if ($transitioned instanceof Shipment) {
+					$saved = $transitioned;
 				}
+			} catch (Throwable $throwable) {
+				Craft::$app->getSession()->setError($throwable->getMessage());
+				return null;
 			}
 		}
 

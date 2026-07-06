@@ -32,6 +32,7 @@ use fostercommerce\shipments\models\ShipmentPlan;
 use fostercommerce\shipments\models\ShipmentStatusHistoryEntry;
 use fostercommerce\shipments\models\ShipmentUpdatePayload;
 use fostercommerce\shipments\Plugin;
+use fostercommerce\shipments\queue\jobs\PushShipmentJob;
 use fostercommerce\shipments\records\ShipmentLineItem as ShipmentLineItemRecord;
 use fostercommerce\shipments\records\ShipmentStatusHistory;
 use Throwable;
@@ -386,6 +387,10 @@ class Shipments extends Component
 			$afterEvent->shipments = $saved;
 			$this->trigger(self::EVENT_AFTER_CREATE_SHIPMENTS, $afterEvent);
 
+			foreach ($saved as $shipment) {
+				$this->queueAutoPushes($shipment, true);
+			}
+
 			return $saved;
 		} finally {
 			$mutex->release($lockName);
@@ -519,7 +524,12 @@ class Shipments extends Component
 			return [];
 		}
 
-		return $this->persistPlans($order, $plans);
+		$shipments = $this->persistPlans($order, $plans);
+		foreach ($shipments as $shipment) {
+			$this->queueAutoPushes($shipment, true);
+		}
+
+		return $shipments;
 	}
 
 	/**
@@ -529,7 +539,7 @@ class Shipments extends Component
 	 *
 	 * @throws Throwable
 	 */
-	public function saveManual(Shipment $shipment, Order $order): Shipment
+	public function saveManual(Shipment $shipment, Order $order, bool $queueAutoPushes = true): Shipment
 	{
 		if ($shipment->id === null) {
 			throw new InvalidArgumentException('Cannot save a shipment without an id.');
@@ -552,6 +562,10 @@ class Shipments extends Component
 		$updated = $this->findById($shipment->id, includeTrashed: true);
 		if (! $updated instanceof Shipment) {
 			throw new Exception('Lost track of shipment after save.');
+		}
+
+		if ($queueAutoPushes) {
+			$this->queueAutoPushes($updated, false);
 		}
 
 		return $updated;
@@ -684,6 +698,8 @@ class Shipments extends Component
 			throw new Exception('Lost track of shipment after saving line items.');
 		}
 
+		$this->queueAutoPushes($updated, false);
+
 		return $updated;
 	}
 
@@ -767,17 +783,20 @@ class Shipments extends Component
 			}
 		}
 
+		$updated = false;
 		$outerTransaction = Craft::$app->getDb()->beginTransaction();
 
 		try {
 			if ($fulfillmentDirty) {
-				$shipment = $this->saveManual($shipment, $order);
+				$shipment = $this->saveManual($shipment, $order, false);
+				$updated = true;
 			}
 
 			if ($targetStatus instanceof Status && $shipment->status !== $targetStatus->value) {
-				$transitioned = $this->applyTransition($shipment, $targetStatus, $user, $payload->statusMessage, $source, $externalCode);
+				$transitioned = $this->applyTransition($shipment, $targetStatus, $user, $payload->statusMessage, $source, $externalCode, false);
 				if ($transitioned instanceof Shipment) {
 					$shipment = $transitioned;
+					$updated = true;
 				}
 			}
 
@@ -785,6 +804,10 @@ class Shipments extends Component
 		} catch (Throwable $throwable) {
 			$outerTransaction->rollBack();
 			throw $throwable;
+		}
+
+		if ($updated) {
+			$this->queueAutoPushes($shipment, false);
 		}
 
 		return $shipment;
@@ -805,6 +828,7 @@ class Shipments extends Component
 		?string $message = null,
 		?Integration $source = null,
 		?string $externalCode = null,
+		bool $queueAutoPushes = true,
 	): ?Shipment {
 		if ($shipment->id === null) {
 			return null;
@@ -877,9 +901,47 @@ class Shipments extends Component
 				throw $throwable;
 			}
 
-			return $this->findById($shipmentId, includeTrashed: true);
+			$updated = $this->findById($shipmentId, includeTrashed: true);
+			if ($updated instanceof Shipment && $queueAutoPushes) {
+				$this->queueAutoPushes($updated, false);
+			}
+
+			return $updated;
 		} finally {
 			$mutex->release($lockName);
+		}
+	}
+
+	private function queueAutoPushes(Shipment $shipment, bool $isNew): void
+	{
+		if ($shipment->id === null) {
+			return;
+		}
+
+		/** @var Plugin $plugin */
+		$plugin = Plugin::getInstance();
+		foreach ($plugin->integrations->getAllIntegrations() as $integration) {
+			if (! $integration instanceof Integration || $integration->id === null || ! $integration->isEnabled()) {
+				continue;
+			}
+
+			$provider = $integration->getProvider();
+			if ($provider?->supportsPush() !== true) {
+				continue;
+			}
+
+			if ($isNew && ! $provider->autoPushNewShipments()) {
+				continue;
+			}
+
+			if (! $isNew && ! $provider->autoPushUpdatedShipments()) {
+				continue;
+			}
+
+			Craft::$app->getQueue()->push(new PushShipmentJob([
+				'shipmentId' => $shipment->id,
+				'integrationId' => $integration->id,
+			]));
 		}
 	}
 

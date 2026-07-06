@@ -81,6 +81,16 @@ abstract class Provider extends SavableComponent implements ProviderInterface
 		return false;
 	}
 
+	public function autoPushNewShipments(): bool
+	{
+		return true;
+	}
+
+	public function autoPushUpdatedShipments(): bool
+	{
+		return true;
+	}
+
 	/**
 	 * Cancel the shipment on the remote system. Override to handle; the default throws.
 	 *
