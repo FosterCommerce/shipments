@@ -36,13 +36,13 @@ The order tab now shows:
 
 - A **NEW** badge (the shipment status) next to the reference.
 - The line items on the shipment, an optional tracking pill, and integration reference pills.
-- **Edit details** and **Delete** buttons.
+- **Manage shipment** and **Delete** buttons.
 
 The reference is `{orderReference}-s001`. It's stable, so you can match shipments to outside systems.
 
 ## 5. Change a status
 
-Click **Edit details**. The sidebar shows an Enabled lightswitch and creation/update dates. The main area has a single **Status** dropdown (`new -> in_progress -> fulfilled -> shipped`, plus `on_hold` and `cancelled`).
+Click **Manage shipment**. The sidebar shows an Enabled lightswitch and creation/update dates. The main area has a single **Status** dropdown (`new -> in_progress -> fulfilled -> shipped`, plus `on_hold` and `cancelled`).
 
 Try this:
 

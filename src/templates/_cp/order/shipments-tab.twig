@@ -122,7 +122,7 @@
 						<span class="status-label {{ statusEnum.color() }}"><span class="status {{ statusEnum.color() }}"></span><span class="status-label-text">{{ statusEnum.label() }}</span></span>
 					</h3>
 					<div>
-						<a href="{{ shipment.cpEditUrl }}" class="btn">{{ 'shipmentEdit.editDetails'|t('shipments') }}</a>
+						<a href="{{ shipment.cpEditUrl }}" class="btn">{{ 'shipmentEdit.manageShipment'|t('shipments') }}</a>
 						<button type="button" class="btn shipments-remove-shipment" data-shipment-id="{{ shipment.id }}" data-reference="{{ shipment.reference }}">{{ 'common.delete'|t('shipments') }}</button>
 					</div>
 				</div>

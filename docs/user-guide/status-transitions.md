@@ -27,7 +27,7 @@ Pick a new value in **Status**. Add an optional **Status change message** (saved
 
 **From the order's Shipments tab:**
 
-Click **Edit details** on the shipment card.
+Click **Manage shipment** on the shipment card.
 
 **Many shipments at once:**
 

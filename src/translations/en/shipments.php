@@ -361,7 +361,7 @@ return [
 	'shipmentEdit.deleteConfirmWithReference' => 'Delete shipment {reference}? Its line items will go back to the unallocated pool.',
 	'shipmentEdit.deleted' => 'Shipment deleted.',
 	'shipmentEdit.disableReturnsLineItems' => 'Disabling returns this shipment’s line items to the order’s unallocated pool.',
-	'shipmentEdit.editDetails' => 'Edit details',
+	'shipmentEdit.manageShipment' => 'Manage shipment',
 	'shipmentEdit.enabled' => 'Enabled',
 	'shipmentEdit.fulfillmentNoteHelp' => 'Persistent fulfillment note. Editable any time.',
 	'shipmentEdit.name' => 'Name',
