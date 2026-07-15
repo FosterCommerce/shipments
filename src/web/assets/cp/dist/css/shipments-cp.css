@@ -111,6 +111,11 @@
 	align-self: flex-start;
 }
 
+.shipments-gateway-url button svg {
+	vertical-align: -2px;
+	margin-right: 4px;
+}
+
 /* Side-by-side field rows on the shipment edit page. Craft's `.flex` helper alone
    leaves children touching; this gives us predictable horizontal gap + vertical
    rhythm between rows. */
