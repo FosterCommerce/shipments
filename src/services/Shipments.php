@@ -757,7 +757,15 @@ class Shipments extends Component
 		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		foreach ($plugin->integrations->getAllIntegrations() as $integration) {
-			if (! $integration instanceof Integration || $integration->id === null || ! $integration->isEnabled()) {
+			if (! $integration instanceof Integration) {
+				continue;
+			}
+
+			if ($integration->id === null) {
+				continue;
+			}
+
+			if (! $integration->isEnabled()) {
 				continue;
 			}
 
