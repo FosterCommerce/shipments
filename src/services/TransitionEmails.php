@@ -17,8 +17,7 @@ use Throwable;
 use yii\base\Component;
 
 /**
- * Binds emails to status transitions. A shipment transitioning into a given
- * `toCode` queues every bound email via `SendShipmentEmailJob`.
+ * Binds emails to status transitions.
  */
 class TransitionEmails extends Component
 {

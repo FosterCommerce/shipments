@@ -11,9 +11,6 @@ use yii\console\ExitCode;
 
 /**
  * Console commands for building and rebuilding shipments.
- *
- * Routes:
- *   shipments/shipments/rebuild <orderId>
  */
 class ShipmentsController extends Controller
 {

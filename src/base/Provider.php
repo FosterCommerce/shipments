@@ -20,8 +20,6 @@ use Throwable;
 
 /**
  * Abstract base for fulfillment-integration providers.
- *
- * Providers send shipments and may handle remote-initiated requests through `handleGatewayRequest()`.
  */
 abstract class Provider extends SavableComponent implements ProviderInterface
 {

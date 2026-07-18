@@ -27,8 +27,7 @@ use yii\base\Component;
 use yii\base\Exception;
 
 /**
- * Shipment email CRUD + send. Writes go through project config; sends are
- * synchronous calls from `SendShipmentEmailJob` or direct service use.
+ * Shipment email CRUD + send. Writes go through project config.
  */
 class Emails extends Component
 {

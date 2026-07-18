@@ -25,10 +25,6 @@ use yii\base\InvalidArgumentException;
 
 /**
  * Tracked-orders service.
- *
- * Manages the `shipments_tracked_orders` table: which completed orders are watched for
- * fulfillment, their cached shippability verdict, and the per-order admin toggle. Orders
- * without a row are invisible to the Attention page (it filters `state=active AND shippable=yes`).
  */
 class TrackedOrders extends Component
 {
@@ -58,8 +54,7 @@ class TrackedOrders extends Component
 					continue;
 				}
 			} catch (Throwable) {
-				// A missing purchasable etc. throws from Commerce; treat this line item
-				// as non-shippable rather than poisoning the whole verdict.
+				// missing purchasable etc. throws from Commerce; skip this item, don't abort the whole order check
 				continue;
 			}
 

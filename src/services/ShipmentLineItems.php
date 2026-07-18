@@ -34,9 +34,7 @@ class ShipmentLineItems extends Component
 
 	private const ATTENTION_COUNT_CACHE_TTL = 300;
 
-	/**
-	 * @var array<int, array<int, int>> resolved maps keyed by order id (caches the resolve event per order per request)
-	 */
+	/** @var array<int, array<int, int>> */
 	private array $shippableUnitsByOrderId = [];
 
 	/**
@@ -69,6 +67,7 @@ class ShipmentLineItems extends Component
 		$this->trigger(self::EVENT_RESOLVE_SHIPPABLE_UNITS, $event);
 
 		if ($orderId !== null) {
+			// memoize per request; the resolve event can be expensive for integrators
 			$this->shippableUnitsByOrderId[$orderId] = $event->shippableUnits;
 		}
 

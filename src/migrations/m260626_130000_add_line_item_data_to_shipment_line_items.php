@@ -16,11 +16,4 @@ class m260626_130000_add_line_item_data_to_shipment_line_items extends Migration
 
 		return true;
 	}
-
-	public function safeDown(): bool
-	{
-		$this->dropColumn(Table::SHIPMENT_LINE_ITEMS, 'lineItemData');
-
-		return true;
-	}
 }

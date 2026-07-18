@@ -20,8 +20,7 @@ use yii\base\InvalidArgumentException;
 use yii\base\InvalidConfigException;
 
 /**
- * Per-shipment integration-reference rows. Upsert via `setIntegrationReference`, resolve back
- * from a webhook via `findByIntegrationReference`.
+ * Per-shipment integration-reference rows.
  */
 class IntegrationReferences extends Component
 {

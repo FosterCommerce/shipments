@@ -12,8 +12,7 @@ namespace fostercommerce\shipments\base;
 trait ControllerBodyParamsTrait
 {
 	/**
-	 * Reads a body param, scalar-narrows it to a string, trims it, and returns `null` for an
-	 * empty string. Non-scalar values (arrays, objects) resolve to `null`.
+	 * Body param as a trimmed string, or `null` if empty or non-scalar.
 	 */
 	private function bodyString(string $name): ?string
 	{

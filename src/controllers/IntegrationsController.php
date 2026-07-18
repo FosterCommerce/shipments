@@ -60,7 +60,7 @@ class IntegrationsController extends Controller
 					'status' => $integration->isEnabled(),
 					'label' => $integration->isEnabled()
 						? Craft::t(Plugin::HANDLE, 'settings.integrations.enabled')
-						: Craft::t(plugin::HANDLE, 'settings.integrations.disabled'),
+						: Craft::t(Plugin::HANDLE, 'settings.integrations.disabled'),
 				],
 			];
 		}

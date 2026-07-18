@@ -83,12 +83,7 @@ class Shipment extends Element
 
 	private bool $_dateShippedLoaded = false;
 
-	/**
-	 * Cache of `orderId => isUnderAllocated` across per-request element renders so the
-	 * index doesn't recompute the pool for each row when multiple rows share an order.
-	 *
-	 * @var array<int, bool>
-	 */
+	/** @var array<int, bool> */
 	private static array $_orderAllocationCache = [];
 
 	public function __toString(): string
@@ -763,6 +758,7 @@ class Shipment extends Element
 			return false;
 		}
 
+		// static cache: index rows sharing an order don't each recompute the pool
 		if (! array_key_exists($this->orderId, self::$_orderAllocationCache)) {
 			$order = $this->getOrder();
 			if (! $order instanceof Order) {

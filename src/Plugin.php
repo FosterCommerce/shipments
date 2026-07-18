@@ -680,9 +680,8 @@ class Plugin extends \craft\base\Plugin
 		$suggestedGroups = $this->suggestedStagingGroups($order, $shipments, $unallocatedPool);
 
 		$trackedOrderRecord = $this->trackedOrders->findForOrderId($order->id);
-		// Self-heal: if shipments exist but no tracked-orders row does, the order was tracked
-		// at some point and the row got out of sync. Insert one now (state='active'), so the
-		// switch reflects the obvious reality rather than reading the absent row as 'ignored'.
+		// self-heal: shipments exist but the tracked-orders row is missing (out of sync).
+		// insert one now (state='active') so an absent row isn't read as 'ignored'.
 		if ($trackedOrderRecord === null && $shipments !== []) {
 			$trackedOrderRecord = $this->trackedOrders->evaluateAndUpsert($order);
 		}

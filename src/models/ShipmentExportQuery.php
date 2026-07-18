@@ -11,8 +11,7 @@ use DateTime;
 use DateTimeInterface;
 
 /**
- * Query shape for `Shipments::findForExport()`. Build one of these however you like: from a
- * request, or by hand.
+ * Query shape for `Shipments::findForExport()`. Populate via `fromRequest()` or set fields directly.
  */
 class ShipmentExportQuery extends Model
 {
@@ -42,8 +41,7 @@ class ShipmentExportQuery extends Model
 	public ?int $storeId = null;
 
 	/**
-	 * Reads `start_date` / `end_date` (snake_case) and `page` / `pageSize` / `status` /
-	 * `storeId` (camelCase). Build the DTO by hand for any other convention.
+	 * Reads `start_date` / `end_date` (snake_case) and `page` / `pageSize` / `status` / `storeId` (camelCase).
 	 */
 	public static function fromRequest(Request $request): self
 	{

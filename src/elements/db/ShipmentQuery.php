@@ -66,8 +66,7 @@ class ShipmentQuery extends ElementQuery
 	}
 
 	/**
-	 * Filter to shipments that have at least one integration reference for the given
-	 * integration id. Useful for "show me shipments pushed to ShipStation."
+	 * Filter to shipments with at least one integration reference for the given integration id.
 	 */
 	public function integrationId(mixed $value): static
 	{
