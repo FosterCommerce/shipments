@@ -7,7 +7,7 @@ namespace fostercommerce\shipments\models;
 use craft\base\Model;
 use fostercommerce\shipments\elements\Shipment;
 
-/** Page of shipments + pagination metadata from `Shipments::findForExport()`. */
+/** Page of shipments + pagination metadata from `ShipmentExports::findForExport()`. */
 class ShipmentExportResult extends Model
 {
 	/**

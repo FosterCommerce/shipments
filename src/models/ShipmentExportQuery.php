@@ -11,7 +11,7 @@ use DateTime;
 use DateTimeInterface;
 
 /**
- * Query shape for `Shipments::findForExport()`. Populate via `fromRequest()` or set fields directly.
+ * Query shape for `ShipmentExports::findForExport()`. Populate via `fromRequest()` or set fields directly.
  */
 class ShipmentExportQuery extends Model
 {

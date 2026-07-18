@@ -5,16 +5,10 @@ declare(strict_types=1);
 namespace fostercommerce\shipments\services;
 
 use Craft;
-use craft\commerce\db\Table as CommerceTable;
 use craft\commerce\elements\Order;
 use craft\commerce\Plugin as Commerce;
-use craft\db\Query;
 use craft\elements\User;
-use craft\helpers\DateTimeHelper;
 use DateTime;
-use DateTimeInterface;
-use DateTimeZone;
-use fostercommerce\shipments\db\Table;
 use fostercommerce\shipments\elements\db\ShipmentQuery;
 use fostercommerce\shipments\elements\Shipment;
 use fostercommerce\shipments\enums\Status;
@@ -26,10 +20,7 @@ use fostercommerce\shipments\events\CreateShipmentsEvent;
 use fostercommerce\shipments\events\ShipmentLineItemsChangedEvent;
 use fostercommerce\shipments\events\ShipmentStatusChangedEvent;
 use fostercommerce\shipments\models\Integration;
-use fostercommerce\shipments\models\ShipmentExportQuery;
-use fostercommerce\shipments\models\ShipmentExportResult;
 use fostercommerce\shipments\models\ShipmentPlan;
-use fostercommerce\shipments\models\ShipmentStatusHistoryEntry;
 use fostercommerce\shipments\models\ShipmentUpdatePayload;
 use fostercommerce\shipments\Plugin;
 use fostercommerce\shipments\queue\jobs\PushShipmentJob;
@@ -145,174 +136,6 @@ class Shipments extends Component
 		/** @var Commerce $commerce */
 		$commerce = Commerce::getInstance();
 		return $commerce->getOrders()->getOrderById($orderId);
-	}
-
-	/**
-	 * Returns a shipment's status-change history, newest first.
-	 *
-	 * @return list<ShipmentStatusHistoryEntry>
-	 */
-	public function getStatusHistoryForShipmentId(int $shipmentId): array
-	{
-		/** @var list<array<string, mixed>> $rows */
-		$rows = (new Query())
-			->from(Table::SHIPMENT_STATUS_HISTORY)
-			->where([
-				'shipmentId' => $shipmentId,
-			])
-			->orderBy([
-				'dateCreated' => SORT_DESC,
-				'id' => SORT_DESC,
-			])
-			->all();
-
-		if ($rows === []) {
-			return [];
-		}
-
-		/** @var Plugin $plugin */
-		$plugin = Plugin::getInstance();
-
-		// Batch-fetch users + integrations referenced across all rows so we don't
-		// issue one lookup per history entry.
-		$userIds = [];
-		$integrationIds = [];
-		foreach ($rows as $row) {
-			if (is_numeric($row['userId'] ?? null)) {
-				$userIds[(int) $row['userId']] = true;
-			}
-
-			if (is_numeric($row['sourceIntegrationId'] ?? null)) {
-				$integrationIds[(int) $row['sourceIntegrationId']] = true;
-			}
-		}
-
-		$usersById = [];
-		if ($userIds !== []) {
-			$userIdList = array_keys($userIds);
-			$users = User::find()->id($userIdList)->status(null)->all();
-			foreach ($users as $user) {
-				if ($user->id !== null) {
-					$usersById[$user->id] = $user;
-				}
-			}
-		}
-
-		$integrationsById = [];
-		foreach (array_keys($integrationIds) as $integrationId) {
-			$integration = $plugin->integrations->getIntegrationById($integrationId);
-			if ($integration !== null) {
-				$integrationsById[$integrationId] = $integration;
-			}
-		}
-
-		$entries = [];
-		foreach ($rows as $row) {
-			$toCodeRaw = $row['toCode'] ?? null;
-			$toCode = is_string($toCodeRaw) ? Status::tryFrom($toCodeRaw) : null;
-
-			$fromCodeRaw = $row['fromCode'] ?? null;
-			$fromCode = is_string($fromCodeRaw) && $fromCodeRaw !== '' ? Status::tryFrom($fromCodeRaw) : null;
-
-			$user = null;
-			if (is_numeric($row['userId'] ?? null)) {
-				$user = $usersById[(int) $row['userId']] ?? null;
-			}
-
-			$dateCreatedRaw = $row['dateCreated'] ?? null;
-			$dateCreated = null;
-			if (is_string($dateCreatedRaw) || is_int($dateCreatedRaw) || is_array($dateCreatedRaw) || $dateCreatedRaw instanceof DateTimeInterface) {
-				$dateCreated = DateTimeHelper::toDateTime($dateCreatedRaw) ?: null;
-			}
-
-			$messageRaw = $row['message'] ?? null;
-			$message = is_scalar($messageRaw) ? (string) $messageRaw : null;
-
-			$sourceIntegration = null;
-			if (is_numeric($row['sourceIntegrationId'] ?? null)) {
-				$sourceIntegration = $integrationsById[(int) $row['sourceIntegrationId']] ?? null;
-			}
-
-			$sourceExternalCodeRaw = $row['sourceExternalCode'] ?? null;
-			$sourceExternalCode = is_string($sourceExternalCodeRaw) && $sourceExternalCodeRaw !== '' ? $sourceExternalCodeRaw : null;
-
-			$entries[] = new ShipmentStatusHistoryEntry(
-				fromCode: $fromCode,
-				toCode: $toCode,
-				user: $user,
-				date: $dateCreated,
-				message: $message,
-				sourceIntegration: $sourceIntegration,
-				sourceExternalCode: $sourceExternalCode,
-			);
-		}
-
-		return $entries;
-	}
-
-	/**
-	 * Returns a paginated page of non-trashed shipments within the query's `dateUpdated` range.
-	 */
-	public function findForExport(ShipmentExportQuery $exportQuery): ShipmentExportResult
-	{
-		$pageSize = max(1, min($exportQuery->pageSize, ShipmentExportQuery::MAX_PAGE_SIZE));
-		$page = max(1, $exportQuery->page);
-
-		/** @var ShipmentQuery $query */
-		$query = Shipment::find();
-		$query->orderBy([
-			'[[elements.dateUpdated]]' => SORT_ASC,
-			'[[elements.id]]' => SORT_ASC,
-		]);
-
-		// `dateUpdated` is stored UTC; normalize bounds to UTC so a caller passing a non-UTC
-		// offset (e.g. `2026-04-25T00:00:00-05:00`) doesn't shift the window by their offset.
-		$utc = new DateTimeZone('UTC');
-
-		if ($exportQuery->startDate instanceof DateTime) {
-			$startUtc = (clone $exportQuery->startDate)->setTimezone($utc);
-			$query->dateUpdated('>=' . $startUtc->format('Y-m-d H:i:s'));
-		}
-
-		if ($exportQuery->endDate instanceof DateTime) {
-			$endUtc = (clone $exportQuery->endDate)->setTimezone($utc);
-			$query->andWhere(['<=', '[[elements.dateUpdated]]', $endUtc->format('Y-m-d H:i:s')]);
-		}
-
-		if ($exportQuery->statusHandle !== null && $exportQuery->statusHandle !== '') {
-			$query->status($exportQuery->statusHandle);
-		}
-
-		if ($exportQuery->storeId !== null) {
-			$orderIdsInStore = (new Query())
-				->select(['id'])
-				->from(CommerceTable::ORDERS)
-				->where([
-					'storeId' => $exportQuery->storeId,
-				]);
-			$query->orderId($orderIdsInStore);
-		}
-
-		$total = (int) (clone $query)->count();
-		$pageCount = $total > 0 ? (int) ceil($total / $pageSize) : 0;
-
-		if ($pageCount > 0) {
-			$page = min($page, $pageCount);
-		}
-
-		/** @var list<Shipment> $shipments */
-		$shipments = (clone $query)
-			->limit($pageSize)
-			->offset(($page - 1) * $pageSize)
-			->all();
-
-		$result = new ShipmentExportResult();
-		$result->shipments = $shipments;
-		$result->page = $page;
-		$result->pageCount = $pageCount;
-		$result->total = $total;
-		$result->pageSize = $pageSize;
-		return $result;
 	}
 
 	/**
@@ -912,6 +735,19 @@ class Shipments extends Component
 		}
 	}
 
+	/**
+	 * Soft-deletes a shipment. Returns false if the shipment doesn't exist.
+	 */
+	public function softDeleteById(int $shipmentId): bool
+	{
+		$shipment = $this->findById($shipmentId);
+		if (! $shipment instanceof Shipment) {
+			return false;
+		}
+
+		return Craft::$app->getElements()->deleteElement($shipment);
+	}
+
 	private function queueAutoPushes(Shipment $shipment, bool $isNew): void
 	{
 		if ($shipment->id === null) {
@@ -943,19 +779,6 @@ class Shipments extends Component
 				'integrationId' => $integration->id,
 			]));
 		}
-	}
-
-	/**
-	 * Soft-deletes a shipment. Returns false if the shipment doesn't exist.
-	 */
-	public function softDeleteById(int $shipmentId): bool
-	{
-		$shipment = $this->findById($shipmentId);
-		if (! $shipment instanceof Shipment) {
-			return false;
-		}
-
-		return Craft::$app->getElements()->deleteElement($shipment);
 	}
 
 	/**

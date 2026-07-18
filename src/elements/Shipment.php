@@ -83,7 +83,9 @@ class Shipment extends Element
 
 	private bool $_dateShippedLoaded = false;
 
-	/** @var array<int, bool> */
+	/**
+	 * @var array<int, bool>
+	 */
 	private static array $_orderAllocationCache = [];
 
 	public function __toString(): string

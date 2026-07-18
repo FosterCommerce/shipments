@@ -34,7 +34,9 @@ class ShipmentLineItems extends Component
 
 	private const ATTENTION_COUNT_CACHE_TTL = 300;
 
-	/** @var array<int, array<int, int>> */
+	/**
+	 * @var array<int, array<int, int>>
+	 */
 	private array $shippableUnitsByOrderId = [];
 
 	/**

@@ -43,10 +43,12 @@ use fostercommerce\shipments\services\IntegrationReferences;
 use fostercommerce\shipments\services\Integrations;
 use fostercommerce\shipments\services\IntegrationStatusMaps;
 use fostercommerce\shipments\services\Rules;
+use fostercommerce\shipments\services\ShipmentExports;
 use fostercommerce\shipments\services\ShipmentFieldLayouts;
 use fostercommerce\shipments\services\ShipmentLineItems;
 use fostercommerce\shipments\services\ShipmentReferences;
 use fostercommerce\shipments\services\Shipments;
+use fostercommerce\shipments\services\ShipmentStatusHistories;
 use fostercommerce\shipments\services\TrackedOrders;
 use fostercommerce\shipments\services\TransitionEmails;
 use fostercommerce\shipments\web\assets\cp\ShipmentsCpAsset;
@@ -59,6 +61,8 @@ use yii\base\Event;
  * @property-read Shipments $shipments
  * @property-read ShipmentLineItems $shipmentLineItems
  * @property-read ShipmentReferences $shipmentReferences
+ * @property-read ShipmentStatusHistories $shipmentStatusHistories
+ * @property-read ShipmentExports $shipmentExports
  * @property-read Integrations $integrations
  * @property-read IntegrationReferences $integrationReferences
  * @property-read IntegrationStatusMaps $integrationStatusMaps
@@ -102,6 +106,8 @@ class Plugin extends \craft\base\Plugin
 			'shipments' => Shipments::class,
 			'shipmentLineItems' => ShipmentLineItems::class,
 			'shipmentReferences' => ShipmentReferences::class,
+			'shipmentStatusHistories' => ShipmentStatusHistories::class,
+			'shipmentExports' => ShipmentExports::class,
 			'integrations' => Integrations::class,
 			'integrationReferences' => IntegrationReferences::class,
 			'integrationStatusMaps' => IntegrationStatusMaps::class,
@@ -187,6 +193,20 @@ class Plugin extends \craft\base\Plugin
 		/** @var ShipmentReferences $shipmentReferences */
 		$shipmentReferences = $this->get('shipmentReferences');
 		return $shipmentReferences;
+	}
+
+	public function getShipmentStatusHistories(): ShipmentStatusHistories
+	{
+		/** @var ShipmentStatusHistories $shipmentStatusHistories */
+		$shipmentStatusHistories = $this->get('shipmentStatusHistories');
+		return $shipmentStatusHistories;
+	}
+
+	public function getShipmentExports(): ShipmentExports
+	{
+		/** @var ShipmentExports $shipmentExports */
+		$shipmentExports = $this->get('shipmentExports');
+		return $shipmentExports;
 	}
 
 	public function getIntegrations(): Integrations

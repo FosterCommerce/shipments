@@ -65,7 +65,7 @@ class ShipmentsController extends Controller
 		}
 
 		$statusHistory = $shipment->id !== null
-			? $plugin->shipments->getStatusHistoryForShipmentId($shipment->id)
+			? $plugin->shipmentStatusHistories->getForShipmentId($shipment->id)
 			: [];
 
 		$this->view->registerAssetBundle(ShipmentsCpAsset::class);
