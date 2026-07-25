@@ -440,4 +440,8 @@ return [
 	'status.new' => 'New',
 	'status.onHold' => 'On hold',
 	'status.shipped' => 'Shipped',
+
+	// Plugin footer
+	'footer.supportBy' => 'Support by',
+	'footer.supportTitle' => 'Foster Commerce Support',
 ];

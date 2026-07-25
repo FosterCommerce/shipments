@@ -41,4 +41,5 @@
 	{% else %}
 		<p>{{ 'emails.emptyState.none'|t('shipments') }} <a href="{{ url('shipments/settings/emails/new') }}">{{ 'emails.emptyState.createOne'|t('shipments') }}</a>.</p>
 	{% endif %}
+	{% include 'shipments/_includes/plugin-footer' %}
 {% endblock %}
