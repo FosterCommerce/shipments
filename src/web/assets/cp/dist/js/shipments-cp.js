@@ -26,10 +26,33 @@
 		initRemoveShipmentButtons();
 		initStagingGroups();
 		initLineItemsEditor();
+		initPushIntegrationButtons();
 		initIntegrationReferencesRepeater();
 		initIntegrationProviderPanels();
 		initSettingsAddRuleButtons();
 	});
+
+	function initPushIntegrationButtons() {
+		document.querySelectorAll('.shipments-push-integration').forEach(function (pushButton) {
+			pushButton.addEventListener('click', function () {
+				pushButton.disabled = true;
+
+				Craft.sendActionRequest('POST', 'shipments/shipments/push', {
+					data: {
+						id: pushButton.getAttribute('data-shipment-id'),
+						integrationId: pushButton.getAttribute('data-integration-id'),
+					},
+				}).then(function () {
+					markMainFormClean();
+					window.location.reload();
+				}).catch(function (error) {
+					pushButton.disabled = false;
+					const errorBody = error?.response?.data ?? {};
+					Craft.cp.displayError(errorBody.message || errorBody.error || 'Unable to push shipment.');
+				});
+			});
+		});
+	}
 
 	// Line-items editor on the shipment edit page: posts the current quantities so the service
 	// can split or rebalance the shipment in place. Reloads on success so the freed pool, the

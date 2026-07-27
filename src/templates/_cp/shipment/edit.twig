@@ -119,16 +119,9 @@
 			{% for integration in pushableIntegrations %}
 				<div class="field">
 					<div class="input ltr">
-						<form method="post" accept-charset="UTF-8">
-							{{ csrfInput() }}
-							{{ actionInput('shipments/shipments/push') }}
-							{{ redirectInput(shipment.cpEditUrl) }}
-							<input type="hidden" name="id" value="{{ shipment.id }}">
-							<input type="hidden" name="integrationId" value="{{ integration.id }}">
-							<button type="submit" class="btn">
-								{{ 'shipmentEdit.pushTo'|t('shipments', { name: integration.name }) }}
-							</button>
-						</form>
+						<button type="button" class="btn shipments-push-integration" data-shipment-id="{{ shipment.id }}" data-integration-id="{{ integration.id }}">
+							{{ 'shipmentEdit.pushTo'|t('shipments', { name: integration.name }) }}
+						</button>
 					</div>
 				</div>
 			{% endfor %}

@@ -335,18 +335,18 @@ class ShipmentsController extends Controller
 		}
 
 		if (! $integration->isEnabled()) {
-			Craft::$app->getSession()->setError(Craft::t(Plugin::HANDLE, 'error.integrationDisabled', [
+			$message = Craft::t(Plugin::HANDLE, 'error.integrationDisabled', [
 				'name' => $integration->name ?? '',
-			]));
-			return $this->redirectToPostedUrl();
+			]);
+			return $this->asFailure($message);
 		}
 
 		$provider = $integration->getProvider();
 		if ($provider?->supportsPush() !== true) {
-			Craft::$app->getSession()->setError(Craft::t(Plugin::HANDLE, 'error.integrationPushUnsupported', [
+			$message = Craft::t(Plugin::HANDLE, 'error.integrationPushUnsupported', [
 				'name' => $integration->name ?? '',
-			]));
-			return $this->redirectToPostedUrl();
+			]);
+			return $this->asFailure($message);
 		}
 
 		Craft::$app->getQueue()->push(new PushShipmentJob([
@@ -354,10 +354,10 @@ class ShipmentsController extends Controller
 			'integrationId' => $integration->id,
 		]));
 
-		Craft::$app->getSession()->setNotice(Craft::t(Plugin::HANDLE, 'shipmentEdit.pushToQueued', [
+		$message = Craft::t(Plugin::HANDLE, 'shipmentEdit.pushToQueued', [
 			'name' => $integration->name ?? '',
-		]));
-		return $this->redirectToPostedUrl();
+		]);
+		return $this->asSuccess($message);
 	}
 
 	/**
