@@ -2,7 +2,7 @@
 
 A Craft CMS plugin that adds first-class **shipments** to Craft Commerce, splitting each completed order into one or more shipments via an extensible rules engine.
 
-## What it does
+## Overview
 
 - Splits completed orders into one or more shipments based on configurable rules
   (e.g., backordered items get their own shipment automatically).

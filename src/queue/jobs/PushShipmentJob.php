@@ -16,6 +16,7 @@ use fostercommerce\shipments\errors\PermanentIntegrationException;
 use fostercommerce\shipments\models\Integration;
 use fostercommerce\shipments\Plugin;
 use RuntimeException;
+use Throwable;
 use yii\db\Expression;
 
 /**
@@ -73,6 +74,9 @@ class PushShipmentJob extends BaseJob
 		} catch (IntegrationException $integrationException) {
 			$this->recordAttempt($shipment, $integrationException->getMessage());
 			throw $integrationException;
+		} catch (Throwable $throwable) {
+			$this->recordAttempt($shipment, $throwable->getMessage());
+			throw $throwable;
 		}
 	}
 
