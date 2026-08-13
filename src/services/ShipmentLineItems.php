@@ -6,6 +6,8 @@ namespace fostercommerce\shipments\services;
 
 use Craft;
 use craft\commerce\elements\Order;
+use craft\commerce\elements\Variant;
+use craft\commerce\enums\LineItemType;
 use craft\commerce\models\LineItem;
 use craft\commerce\models\LineItemStatus;
 use craft\db\Query;
@@ -20,6 +22,7 @@ use fostercommerce\shipments\errors\IncompleteCoverageException;
 use fostercommerce\shipments\events\ResolveShippableUnitsEvent;
 use fostercommerce\shipments\models\ShipmentLineItem;
 use fostercommerce\shipments\Plugin;
+use Throwable;
 use yii\base\Component;
 use yii\caching\CacheInterface;
 
@@ -77,6 +80,33 @@ class ShipmentLineItems extends Component
 	}
 
 	/**
+	 * Whether a line item is shipping work: shippable in Commerce, and in neither the
+	 * `lineItemStatusesToIgnore` nor the `productTypesToIgnore` list.
+	 */
+	public function isShippingWork(LineItem $lineItem): bool
+	{
+		/** @var Plugin $plugin */
+		$plugin = Plugin::getInstance();
+		$settings = $plugin->getSettings();
+
+		if ($this->isIgnored($lineItem, $settings->lineItemStatusesToIgnore)) {
+			return false;
+		}
+
+		try {
+			if (! $lineItem->getIsShippable()) {
+				return false;
+			}
+		} catch (Throwable) {
+			// Commerce throws when a line item's purchasable has been deleted; drop the line
+			// instead of failing the read for the whole order.
+			return false;
+		}
+
+		return ! $this->isIgnoredProductType($lineItem, $settings->productTypesToIgnore);
+	}
+
+	/**
 	 * Returns the unallocated qty per non-ignored line item, keyed by Commerce line item id.
 	 *
 	 * Line items matching the plugin's `lineItemStatusesToIgnore` list are omitted.
@@ -85,24 +115,11 @@ class ShipmentLineItems extends Component
 	 */
 	public function remainingPoolFor(Order $order): array
 	{
-		/** @var Plugin $plugin */
-		$plugin = Plugin::getInstance();
-		$ignoredStatuses = $plugin->getSettings()->lineItemStatusesToIgnore;
 		$shippableUnits = $this->shippableUnitsFor($order);
 
 		$pool = [];
 		foreach ($order->getLineItems() as $lineItem) {
-			if ($this->isIgnored($lineItem, $ignoredStatuses)) {
-				continue;
-			}
-
-			try {
-				if (! $lineItem->getIsShippable()) {
-					continue;
-				}
-			} catch (\Throwable) {
-				// Missing purchasable etc. throws from Commerce; skip the line item rather
-				// than letting the pool read fail for the whole order.
+			if (! $this->isShippingWork($lineItem)) {
 				continue;
 			}
 
@@ -411,5 +428,23 @@ class ShipmentLineItems extends Component
 		}
 
 		return in_array($status->handle, $ignoredStatuses, true);
+	}
+
+	/**
+	 * @param list<string> $ignoredProductTypes
+	 */
+	private function isIgnoredProductType(LineItem $lineItem, array $ignoredProductTypes): bool
+	{
+		// `getPurchasable()` throws on a custom line item, which has no product type either way.
+		if ($ignoredProductTypes === [] || $lineItem->type !== LineItemType::Purchasable) {
+			return false;
+		}
+
+		$purchasable = $lineItem->getPurchasable();
+		if (! $purchasable instanceof Variant) {
+			return false;
+		}
+
+		return in_array($purchasable->getProductTypeHandle(), $ignoredProductTypes, true);
 	}
 }

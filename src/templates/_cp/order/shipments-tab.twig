@@ -29,11 +29,20 @@
 {% set stagingGroups = suggestedGroups|default([])|length ? suggestedGroups : [{}] %}
 {% set groupLetters = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] %}
 
-{% set switchIsOn = trackedState == 'active' %}
-{% set switchIsLocked = isOrderStatusIgnored %}
+{% set nothingToShip = trackedShippable == 'no' %}
+{% set switchIsOn = trackedState == 'active' and not nothingToShip %}
+{% set switchIsLocked = isOrderStatusIgnored or nothingToShip %}
 {% set isUnderAllocated = order.isCompleted and unallocated|length > 0 %}
-{% set showNoShippableNotice = trackedShippable == 'no' and not isOrderStatusIgnored %}
 {% set showSwitchOffNotice = isTracked and not isOrderStatusIgnored %}
+
+{% set switchInstructions = 'orderTab.requiresShippingOnHelp' %}
+{% if isOrderStatusIgnored %}
+	{% set switchInstructions = 'orderTab.statusIgnoredSwitchLocked' %}
+{% elseif nothingToShip %}
+	{% set switchInstructions = 'orderTab.nothingToShipSwitchLocked' %}
+{% elseif switchIsOn %}
+	{% set switchInstructions = 'orderTab.requiresShippingOffHelp' %}
+{% endif %}
 
 <div id="orderShipmentsTab" class="hidden">
 
@@ -52,11 +61,7 @@
 	>
 		{{ forms.lightswitchField({
 			label: 'orderTab.requiresShippingLabel'|t('shipments'),
-			instructions: switchIsLocked
-				? 'orderTab.statusIgnoredSwitchLocked'|t('shipments')
-				: (switchIsOn
-					? 'orderTab.requiresShippingOffHelp'|t('shipments')
-					: 'orderTab.requiresShippingOnHelp'|t('shipments')),
+			instructions: switchInstructions|t('shipments'),
 			id: 'shipments-requires-shipping-lightswitch',
 			name: 'requiresShipping',
 			on: switchIsOn,
@@ -67,13 +72,6 @@
 			reverseToggle: '.shipments-show-when-off',
 		}) }}
 	</div>
-
-	{% if showNoShippableNotice %}
-		<div class="pane shipments-no-shippable-notice shipments-show-when-on{% if not switchIsOn %} hidden{% endif %}">
-			<p>{{ 'error.noShippableLineItems'|t('shipments') }}</p>
-		</div>
-	{% endif %}
-
 
 	{# Under-allocation notice #}
 	{# Server truth only: reflects what's actually saved. Staging-form activity doesn't

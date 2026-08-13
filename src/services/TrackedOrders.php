@@ -39,31 +39,16 @@ class TrackedOrders extends Component
 
 	/**
 	 * Resolve whether the order still has shipping work.
-	 *
-	 * Intersects Commerce's `LineItem::getIsShippable()` with the `lineItemStatusesToIgnore` setting.
 	 */
 	public function resolveShippable(Order $order): TrackedOrderShippable
 	{
 		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
-		$ignoredStatuses = $plugin->getSettings()->lineItemStatusesToIgnore;
 
 		foreach ($order->getLineItems() as $lineItem) {
-			try {
-				if (! $lineItem->getIsShippable()) {
-					continue;
-				}
-			} catch (Throwable) {
-				// missing purchasable etc. throws from Commerce; skip this item, don't abort the whole order check
-				continue;
+			if ($plugin->shipmentLineItems->isShippingWork($lineItem)) {
+				return TrackedOrderShippable::Yes;
 			}
-
-			$status = $lineItem->getLineItemStatus();
-			if ($status !== null && $ignoredStatuses !== [] && in_array($status->handle, $ignoredStatuses, true)) {
-				continue;
-			}
-
-			return TrackedOrderShippable::Yes;
 		}
 
 		return TrackedOrderShippable::No;

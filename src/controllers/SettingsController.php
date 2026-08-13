@@ -185,6 +185,18 @@ class SettingsController extends Controller
 			];
 		}
 
+		$productTypeOptions = [];
+		foreach ($commerce->getProductTypes()->getAllProductTypes() as $productType) {
+			if ($productType->handle === null) {
+				continue;
+			}
+
+			$productTypeOptions[] = [
+				'value' => $productType->handle,
+				'label' => ($productType->name ?? $productType->handle) . ' (' . $productType->handle . ')',
+			];
+		}
+
 		$shippingCategoryOptions = [];
 		foreach ($commerce->getShippingCategories()->getAllShippingCategories() as $shippingCategory) {
 			if (! $shippingCategory instanceof ShippingCategory) {
@@ -209,6 +221,7 @@ class SettingsController extends Controller
 			'lineItemStatusOptions' => $lineItemStatusOptions,
 			'lineItemStatuses' => $lineItemStatuses,
 			'orderStatusOptions' => $orderStatusOptions,
+			'productTypeOptions' => $productTypeOptions,
 			'shippingCategoryOptions' => $shippingCategoryOptions,
 		]);
 	}

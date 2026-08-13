@@ -8,6 +8,7 @@ use Craft;
 use craft\commerce\elements\Order;
 use craft\commerce\Plugin as Commerce;
 use craft\web\Controller;
+use fostercommerce\shipments\enums\TrackedOrderShippable;
 use fostercommerce\shipments\Plugin;
 use yii\web\BadRequestHttpException;
 use yii\web\NotFoundHttpException;
@@ -31,6 +32,13 @@ class TrackedOrdersController extends Controller
 			return $this->asFailure(Craft::t(
 				Plugin::HANDLE,
 				'orderTab.statusIgnoredNotice',
+			));
+		}
+
+		if ($plugin->trackedOrders->resolveShippable($order) === TrackedOrderShippable::No) {
+			return $this->asFailure(Craft::t(
+				Plugin::HANDLE,
+				'orderTab.nothingToShipNotice',
 			));
 		}
 

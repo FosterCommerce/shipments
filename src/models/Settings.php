@@ -50,6 +50,14 @@ class Settings extends Model
 	public array $orderStatusesToIgnore = [];
 
 	/**
+	 * Commerce product type handles whose variants never ship (e.g. services, downloads).
+	 * Their line items are excluded from the rules engine and don't count toward coverage.
+	 *
+	 * @var list<string>
+	 */
+	public array $productTypesToIgnore = [];
+
+	/**
 	 * Registered rule handle, or `'none'` for single-shipment-per-order.
 	 */
 	public string $groupingSource = self::GROUPING_SOURCE_NONE;
@@ -285,6 +293,9 @@ class Settings extends Model
 			[['orderStatusesToIgnore'],
 				'each',
 				'rule' => ['string']],
+			[['productTypesToIgnore'],
+				'each',
+				'rule' => ['string']],
 			[['qtySplitMode'],
 				'in',
 				'range' => [self::QTY_SPLIT_MODE_SPLIT, self::QTY_SPLIT_MODE_ATOMIC]],
@@ -298,6 +309,7 @@ class Settings extends Model
 				'enforceCoverage',
 				'lineItemStatusesToIgnore',
 				'orderStatusesToIgnore',
+				'productTypesToIgnore',
 				'qtySplitMode',
 				'groupingSource',
 				'autoAdvanceOrderStatusHandle',

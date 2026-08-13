@@ -35,6 +35,7 @@ Define shipment groups in settings, keyed by Commerce **Shipping category**. Eac
 ### Guardrails
 
 - Line items matching **Line item statuses to ignore** are skipped by every rule and left out of the coverage check.
+- Line items of a product type in **Product types to ignore** are skipped the same way. Use it for products that never ship, such as services or downloads.
 - **Enforce full coverage** (on by default) blocks saves until every non-ignored line item is fully accounted for across the order's shipments.
 - Auto-creation runs on every completed order while **Create shipments automatically on order completion** is on. To stop auto-creation for orders in a hold or fraud-review status, add those statuses to **Order statuses to ignore**. Matching orders get no new shipments, and any shipments they already have stay as they are.
 
@@ -83,6 +84,8 @@ The switch flips on automatically the first time the plugin creates shipments fo
 Flipping the switch off asks you to confirm first. It only changes whether the plugin tracks the order; the order's shipments are left untouched either way.
 
 If the order's Commerce status is in the plugin's **Order statuses to ignore** setting, the switch is locked off. Change the order's status or remove the handle from the setting to re-enable fulfillment for this order.
+
+The switch is also locked off when none of the order's line items need shipping, which happens when they all sit in an ignored line item status or an ignored product type. An order of services alone lands here, and there is nothing to allocate to a shipment even with the switch on. To ship something on that order, add a line item the plugin doesn't skip.
 
 ### Disabling a shipment
 

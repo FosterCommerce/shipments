@@ -271,6 +271,17 @@
 			errors: settings.getErrors('lineItemStatusesToIgnore'),
 		}) }}
 
+		{{ forms.checkboxSelectField({
+			label: 'settings.validation.productTypesToIgnore'|t('shipments'),
+			instructions: 'settings.validation.productTypesToIgnoreHelp'|t('shipments'),
+			id: 'shipments_product_types_to_ignore',
+			disabled: readOnly,
+			name: 'settings[productTypesToIgnore]',
+			values: settings.productTypesToIgnore,
+			options: productTypeOptions,
+			errors: settings.getErrors('productTypesToIgnore'),
+		}) }}
+
 		<hr>
 
 		<h2>{{ 'settings.tracking.orderStatusesToIgnore'|t('shipments') }}</h2>

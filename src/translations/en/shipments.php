@@ -111,7 +111,6 @@ return [
 	'error.noCustomerEmail' => 'No customer email on order “{order}”.',
 	'error.noProviderForType' => 'No integration provider registered for type “{type}”.',
 	'error.noShipmentsRestored' => 'No shipments could be restored. They may over-allocate the order’s line items.',
-	'error.noShippableLineItems' => 'The plugin couldn’t find any shippable line items on this order. Flip the switch off if that’s correct.',
 	'error.orderIdMustBeNumber' => 'orderId must be a number.',
 	'error.orderIncompleteCoverage' => 'Order {orderId} has line items without full shipment coverage.',
 	'error.orderNotCompleted' => 'Order {orderId} is not completed; shipments can only be created for completed orders.',
@@ -181,6 +180,8 @@ return [
 	'orderTab.missing' => 'Missing',
 	'orderTab.noAttentionNeeded' => 'No orders currently need attention.',
 	'orderTab.noTrackedOrders' => 'No completed orders tracked yet. Orders appear here automatically after the plugin creates or edits shipments on them. To bring an older order in, open it and flip the **Order requires shipping** switch on.',
+	'orderTab.nothingToShipNotice' => 'None of this order’s line items need shipping, so it can’t be turned on.',
+	'orderTab.nothingToShipSwitchLocked' => 'None of this order’s line items need shipping, so the switch is locked off. Check the plugin’s ignored line item statuses and ignored product types.',
 	'orderTab.notFullyAllocated' => 'This order is not fully allocated',
 	'orderTab.orderTracked' => 'Order is now tracked for fulfillment.',
 	'orderTab.orderUntracked' => 'Order is no longer tracked. Its shipments are left intact.',
@@ -360,6 +361,8 @@ return [
 	'settings.validation.intro' => 'Rules that apply whenever a shipment is saved from the control panel (and whenever shipments are rebuilt).',
 	'settings.validation.lineItemStatusesToIgnore' => 'Line item statuses to ignore',
 	'settings.validation.lineItemStatusesToIgnoreHelp' => 'Line items with any of these statuses (e.g. refunded, cancelled) are skipped entirely: they won’t appear in any shipment and they won’t count toward the coverage check.',
+	'settings.validation.productTypesToIgnore' => 'Product types to ignore',
+	'settings.validation.productTypesToIgnoreHelp' => 'Line items for these product types (e.g. services, downloads) are skipped entirely: they won’t appear in any shipment and they won’t count toward the coverage check. An order containing nothing else gets no shipment at all.',
 
 	// shipmentEdit
 	'shipmentEdit.created' => 'Shipment created.',

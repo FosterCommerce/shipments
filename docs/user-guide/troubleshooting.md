@@ -9,7 +9,7 @@ Check:
 1. **Shipments -> Settings -> General -> Automatic shipment creation** is on.
 2. The order is actually *completed*, not a cart. An order is complete when Commerce has flipped it past checkout.
 3. The order's status is the Commerce default for its store. Orders that complete into a non-default status (held, fraud review) don't auto-create, on purpose.
-4. The order has line items that aren't ignored. If every line item matches **Line item statuses to ignore**, the rules engine has nothing to work with.
+4. The order has line items that aren't ignored. If every line item matches **Line item statuses to ignore** or **Product types to ignore**, the rules engine has nothing to work with. For an order of services or downloads only, that's the intended outcome.
 5. Nothing in your project broke the creation. Check the Craft log for exceptions in the `shipments` category; a custom extension listening for new shipments can throw and block creation.
 
 Workaround: stage from the order tab by hand, or run `./craft shipments/shipments/rebuild 1234`.
@@ -22,7 +22,7 @@ Check:
 
 1. Disabled shipments don't count. If you disabled one, its quantity went back to the pool. Re-enable it (Shipment detail page -> sidebar -> Enabled lightswitch) or stage a new shipment for the remaining quantity.
 2. Trashed shipments don't count either. Restore from Craft's trash, or stage a fresh one.
-3. If the math looks wrong, check **Shipments -> Settings -> General -> Line item statuses to ignore**. Line items with those statuses are left out of the coverage check.
+3. If the math looks wrong, check **Shipments -> Settings -> General -> Line item statuses to ignore** and **Product types to ignore**. Line items matching either are left out of the coverage check.
 
 ## Save button stuck disabled on the staging form
 
@@ -104,9 +104,12 @@ The order's status moved into one listed under **Shipments -> Settings -> Genera
 
 To bring the order back, either change its status to one that isn't on the ignore list, or remove the status from the setting, then turn **Order requires shipping** back on.
 
-## Order's lightswitch is greyed out
+## Order's lightswitch is grayed out
 
-The order's current Commerce status is in **Shipments -> Settings -> General -> Order statuses to ignore**. While the order sits in that status, the plugin refuses to track it. Change the order's status, or remove the handle from the setting.
+Two settings lock it off:
+
+- The order's current Commerce status is in **Shipments -> Settings -> General -> Order statuses to ignore**. Change the order's status, or remove the handle from the setting.
+- None of the order's line items need shipping, because each one sits in an ignored line item status or an ignored product type. Both lists are under **Shipments -> Settings -> General**. An order of services alone lands here; see [Order requires shipping](./creating-shipments.md#order-requires-shipping).
 
 ## An inbound webhook says it updated my shipment but nothing changed
 
@@ -117,7 +120,7 @@ The plugin saves the incoming event but won't change the shipment's status in tw
 
 Your developer can see the details in the Craft log under the `shipments` category. To fix:
 
-1. If the shipment is disabled, turn it back on from its edit page. If the order is marked as not requiring shipping, turn **Order requires shipping** back on (or change the order's status off the ignore list).
+1. If the shipment is disabled, turn it back on from its edit page. If the order is marked as not requiring shipping, turn **Order requires shipping** back on (or change the order's status off the ignore list). When that switch is grayed out, see [Order's lightswitch is grayed out](#orders-lightswitch-is-grayed-out).
 2. Ask the carrier or service to re-send the latest update, or set the status by hand.
 
 ## Nothing here matches

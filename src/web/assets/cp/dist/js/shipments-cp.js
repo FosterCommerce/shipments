@@ -421,6 +421,17 @@
 	if (requiresShippingPane) {
 		const lightswitchEl = requiresShippingPane.querySelector('.lightswitch');
 		if (lightswitchEl) {
+			// Craft's turnOn/turnOff skip their change event when passed `true`. Reverting with
+			// `toggle()` fires one, which re-enters this handler and prompts again.
+			const revertSwitchTo = function (wasOn) {
+				const lightswitch = $(lightswitchEl).data('lightswitch');
+				if (wasOn) {
+					lightswitch.turnOn(true);
+				} else {
+					lightswitch.turnOff(true);
+				}
+			};
+
 			// Craft's `Craft.LightSwitch.onChange()` triggers `change` on the lightswitch
 			// element itself (jQuery event), not on the hidden input. Bind via jQuery to match.
 			$(lightswitchEl).on('change', function () {
@@ -429,16 +440,10 @@
 				}
 
 				const wasOn = requiresShippingPane.getAttribute('data-switch-on') === '1';
-				const revertToggle = function () {
-					const instance = $(lightswitchEl).data('lightswitch');
-					if (instance && typeof instance.toggle === 'function') {
-						instance.toggle();
-					}
-				};
 
 				if (wasOn) {
 					if (!window.confirm(Craft.t('shipments', 'orderTab.requiresShippingOffConfirm'))) {
-						revertToggle();
+						revertSwitchTo(wasOn);
 						return;
 					}
 				}
@@ -458,7 +463,7 @@
 						Craft.cp.displayNotice(responseBody.message);
 					}
 				}).catch(function (error) {
-					revertToggle();
+					revertSwitchTo(wasOn);
 					const errorBody = error?.response?.data ?? {};
 					Craft.cp.displayError(errorBody.message || Craft.t('shipments', 'error.couldNotUpdateOrder'));
 				});
