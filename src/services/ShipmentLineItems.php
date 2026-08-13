@@ -347,7 +347,10 @@ class ShipmentLineItems extends Component
 				'shipmentId' => $shipmentIds,
 			])
 			->orderBy([
-				'id' => SORT_ASC,
+				// We have a unique constraint on shipmentId + lineItemId, and mysql chooses that index for sorting,
+				// which causes a filesort when sorting by any other column, so we sort by the actual Commerce lineItemId
+				// to prevent unoptimal sorts.
+				'lineItemId' => SORT_ASC,
 			])
 			->all();
 
