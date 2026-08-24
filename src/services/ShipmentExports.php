@@ -38,14 +38,20 @@ class ShipmentExports extends Component
 		// offset (e.g. `2026-04-25T00:00:00-05:00`) doesn't shift the window by their offset.
 		$utc = new DateTimeZone('UTC');
 
+		$dateUpdated = ['and'];
+
 		if ($exportQuery->startDate instanceof DateTime) {
 			$startUtc = (clone $exportQuery->startDate)->setTimezone($utc);
-			$query->dateUpdated('>=' . $startUtc->format('Y-m-d H:i:s'));
+			$dateUpdated[] = '>= ' . $startUtc->format(DATE_ATOM);
 		}
 
 		if ($exportQuery->endDate instanceof DateTime) {
 			$endUtc = (clone $exportQuery->endDate)->setTimezone($utc);
-			$query->andWhere(['<=', '[[elements.dateUpdated]]', $endUtc->format('Y-m-d H:i:s')]);
+			$dateUpdated[] = '<= ' . $endUtc->format(DATE_ATOM);
+		}
+
+		if (count($dateUpdated) > 1) {
+			$query->dateUpdated($dateUpdated);
 		}
 
 		if ($exportQuery->statusHandle !== null && $exportQuery->statusHandle !== '') {

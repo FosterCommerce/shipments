@@ -33,6 +33,7 @@
 - Status history records the source integration handle and the external code it sent on every transition, with batched user/integration lookups to avoid N+1s.
 
 ### Fixed
+- Fixed shipment export date windows applying the start bound in the site timezone and the end bound in UTC.
 - Fixed a bug where canceling the “Order requires shipping” confirmation reprompted without end.
 - Fixed concurrent staging saves being able to double-allocate line-item quantities; the pool is now validated under a per-order mutex.
 - Fixed an issue where a failed push could leave no reason on the shipment.
