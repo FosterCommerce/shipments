@@ -10,6 +10,7 @@ use verbb\postie\events\PackOrderEvent;
 use verbb\postie\models\PackedBoxes;
 use yii\base\Component;
 use yii\base\Event;
+use yii\caching\CacheInterface;
 
 /** Stores Postie pack results for PostiePackingRule. */
 class PostiePacking extends Component
@@ -32,15 +33,24 @@ class PostiePacking extends Component
 		Event::on(
 			Provider::class,
 			Provider::EVENT_AFTER_PACK_ORDER,
-			[$this, 'handleAfterPackOrder'],
+			$this->handleAfterPackOrder(...),
 		);
 	}
 
 	public function handleAfterPackOrder(PackOrderEvent $event): void
 	{
+		/** @var \craft\commerce\elements\Order $order */
+		$order = $event->order;
+		/** @var PackedBoxes $packedBoxes */
+		$packedBoxes = $event->packedBoxes;
+
+		if ($order->number === null) {
+			return;
+		}
+
 		$this->storeBoxAllocations(
-			$event->order->number,
-			$this->parsePackedBoxes($event->packedBoxes),
+			$order->number,
+			$this->parsePackedBoxes($packedBoxes),
 		);
 	}
 
@@ -49,7 +59,9 @@ class PostiePacking extends Component
 	 */
 	public function getBoxAllocations(string $orderNumber): array
 	{
-		$cached = Craft::$app->getCache()->get($this->cacheKey($orderNumber));
+		$cache = Craft::$app->getCache();
+		/** @var CacheInterface $cache */
+		$cached = $cache->get($this->cacheKey($orderNumber));
 		if (! is_array($cached)) {
 			return [];
 		}
@@ -63,7 +75,9 @@ class PostiePacking extends Component
 	 */
 	public function storeBoxAllocations(string $orderNumber, array $boxes): void
 	{
-		Craft::$app->getCache()->set(
+		$cache = Craft::$app->getCache();
+		/** @var CacheInterface $cache */
+		$cache->set(
 			$this->cacheKey($orderNumber),
 			$boxes,
 			self::CACHE_DURATION,
@@ -79,7 +93,7 @@ class PostiePacking extends Component
 		foreach ($packedBoxes->getPackedBoxList() as $packedBox) {
 			$lineItemQtys = [];
 			foreach ($packedBox->getItems() as $packedItem) {
-				if (preg_match('/^Item (\d+)$/', $packedItem->getItem()->getDescription(), $matches) !== 1) {
+				if (preg_match('/^Item (\d+)$/', (string) $packedItem->getItem()->getDescription(), $matches) !== 1) {
 					continue;
 				}
 

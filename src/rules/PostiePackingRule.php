@@ -35,7 +35,12 @@ class PostiePackingRule implements ShipmentRuleInterface
 		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
-		$boxes = $plugin->postiePacking->getBoxAllocations($order->number);
+		$orderNumber = $order->number;
+		if ($orderNumber === null) {
+			return [];
+		}
+
+		$boxes = $plugin->postiePacking->getBoxAllocations($orderNumber);
 		$pool = $remainingQtyByLineItemId;
 		$plans = [];
 
@@ -54,7 +59,7 @@ class PostiePackingRule implements ShipmentRuleInterface
 
 			if ($allocations !== []) {
 				$plan = new ShipmentPlan();
-				$plan->ruleHandle = self::HANDLE . ':box-' . (string) $boxIndex;
+				$plan->ruleHandle = self::HANDLE . ':box-' . $boxIndex;
 				$plan->lineItemQtys = $allocations;
 				$plans[] = $plan;
 			}
