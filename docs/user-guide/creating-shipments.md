@@ -32,6 +32,10 @@ Define shipment groups in settings. Each group has a name, a mode (ship together
 
 Define shipment groups in settings, keyed by Commerce **Shipping category**. Each group has a mode (ship together or one per line item) and a list of shipping-category handles. Use this when physical shipping constraints drive the split, for example LTL freight items that can't mix with parcel, hazmat items that need a dedicated carrier, or oversized goods that go via a different service. Line items whose category isn't in any group fall through to the single-shipment rule.
 
+### Grouping source: Postie box packing
+
+Available when [Verbb Postie](https://verbb.io/craft-plugins/postie) is installed. Creates **one shipment per box** from Postie's checkout packing.
+
 ### Guardrails
 
 - Line items matching **Line item statuses to ignore** are skipped by every rule and left out of the coverage check.

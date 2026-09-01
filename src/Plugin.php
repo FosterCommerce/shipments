@@ -33,15 +33,18 @@ use craft\web\View;
 use fostercommerce\shipments\db\Table;
 use fostercommerce\shipments\elements\Shipment;
 use fostercommerce\shipments\enums\Status;
+use fostercommerce\shipments\events\RegisterShipmentRulesEvent;
 use fostercommerce\shipments\events\ShipmentStatusChangedEvent;
 use fostercommerce\shipments\gql\interfaces\elements\Shipment as ShipmentGqlInterface;
 use fostercommerce\shipments\gql\queries\Shipment as ShipmentGqlQuery;
 use fostercommerce\shipments\models\Settings;
 use fostercommerce\shipments\queue\jobs\AdvanceOrderStatusJob;
+use fostercommerce\shipments\rules\PostiePackingRule;
 use fostercommerce\shipments\services\Emails;
 use fostercommerce\shipments\services\IntegrationReferences;
 use fostercommerce\shipments\services\Integrations;
 use fostercommerce\shipments\services\IntegrationStatusMaps;
+use fostercommerce\shipments\services\PostiePacking;
 use fostercommerce\shipments\services\Rules;
 use fostercommerce\shipments\services\ShipmentExports;
 use fostercommerce\shipments\services\ShipmentFieldLayouts;
@@ -70,6 +73,7 @@ use yii\base\Event;
  * @property-read TransitionEmails $transitionEmails
  * @property-read ShipmentFieldLayouts $shipmentFieldLayouts
  * @property-read TrackedOrders $trackedOrders
+ * @property-read PostiePacking $postiePacking
  */
 class Plugin extends \craft\base\Plugin
 {
@@ -115,6 +119,7 @@ class Plugin extends \craft\base\Plugin
 			'transitionEmails' => TransitionEmails::class,
 			'shipmentFieldLayouts' => ShipmentFieldLayouts::class,
 			'trackedOrders' => TrackedOrders::class,
+			'postiePacking' => PostiePacking::class,
 		]);
 
 		if (Craft::$app instanceof ConsoleApplication) {
@@ -128,6 +133,7 @@ class Plugin extends \craft\base\Plugin
 		$this->registerOrderEagerLoadingMap();
 		$this->registerGraphQl();
 		$this->registerPermissions();
+		$this->registerPostiePacking();
 
 		Event::on(
 			Order::class,
@@ -256,6 +262,13 @@ class Plugin extends \craft\base\Plugin
 		/** @var TrackedOrders $trackedOrders */
 		$trackedOrders = $this->get('trackedOrders');
 		return $trackedOrders;
+	}
+
+	public function getPostiePacking(): PostiePacking
+	{
+		/** @var PostiePacking $postiePacking */
+		$postiePacking = $this->get('postiePacking');
+		return $postiePacking;
 	}
 
 	public function getSettingsResponse(): mixed
@@ -407,6 +420,23 @@ class Plugin extends \craft\base\Plugin
 				self::HANDLE,
 			);
 		}
+	}
+
+	private function registerPostiePacking(): void
+	{
+		$this->postiePacking->registerListeners();
+
+		Event::on(
+			Rules::class,
+			Rules::EVENT_REGISTER_RULES,
+			function (RegisterShipmentRulesEvent $event): void {
+				if (! $this->postiePacking->isAvailable()) {
+					return;
+				}
+
+				$event->rules[] = new PostiePackingRule();
+			},
+		);
 	}
 
 	private function registerPermissions(): void
