@@ -21,7 +21,7 @@ class PostiePacking extends Component
 
 	public function isAvailable(): bool
 	{
-		return class_exists(Provider::class);
+		return Craft::$app->getPlugins()->isPluginInstalled('postie');
 	}
 
 	public function registerListeners(): void
