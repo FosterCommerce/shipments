@@ -30,6 +30,7 @@ composer require fostercommerce/shipments
 - **Quantity split mode** (Grouping source = Craft Commerce inventory state): how to handle line items that are partly in stock. `split` lets the line item appear in both buckets with partial quantities; `atomic` keeps the whole line item in the backorder bucket if any of it is. Default: `split`.
 - **Line item status groups** (Grouping source = Commerce line-item status): admin-defined groups, each with a mode (ship together or one per line item) and a list of Commerce line-item status handles. Line items whose status isn't in any group fall through to the single-shipment fallback. Default: empty.
 - **Shipping category groups** (Grouping source = Commerce shipping category): admin-defined groups, each with a mode and a list of Commerce shipping-category handles. Use for physical-shipping splits like LTL, hazmat, or oversized. Line items whose category isn't in any group fall through to the single-shipment fallback. Default: empty.
+- **Postie box packing** (Grouping source): one shipment per box from Postie's checkout packing. Default: not selected.
 
 ## Emails
 

@@ -1,6 +1,6 @@
 # Custom rules
 
-Shipments decides how to split one completed order into one or more shipments by running a single "grouping source" rule plus a catch-all. The plugin ships four built-in rules (`SingleShipmentRule`, `InventoryStatusRule`, `LineItemStatusRule`, `ShippingCategoryRule`); your site module can register additional ones. Each registered rule becomes an option in **Shipments -> Settings -> General -> Grouping source**.
+Shipments decides how to split one completed order into one or more shipments by running a single "grouping source" rule plus a catch-all. The plugin ships four built-in rules (`SingleShipmentRule`, `InventoryStatusRule`, `LineItemStatusRule`, `ShippingCategoryRule`), plus `PostiePackingRule` when Verbb Postie is installed; your site module can register additional ones. Each registered rule becomes an option in **Shipments -> Settings -> General -> Grouping source**.
 
 ## The contract
 
@@ -537,5 +537,6 @@ public function testHeavyItemRulePlansOnePerUnit(): void
 - `InventoryStatusRule`, splits in-stock vs backordered buckets via Commerce's `Purchasable::hasStock()` / `getStock()`. Per-bucket "ship together" vs "one per line item". Quantity split mode controls whether partially-stocked line items split or stay atomic.
 - `LineItemStatusRule`, explicit admin-defined groups keyed by Commerce line-item status handle. Each group ships together or one per line item. Unassigned statuses fall through to `SingleShipmentRule`.
 - `ShippingCategoryRule`, explicit admin-defined groups keyed by Commerce shipping-category handle (LTL, hazmat, oversized, etc.). Same group-editor UI as `LineItemStatusRule`; unassigned categories fall through to `SingleShipmentRule`.
+- `PostiePackingRule`, one shipment per Postie packed box when Verbb Postie is installed. Missing pack data falls through to `SingleShipmentRule`.
 
 Read their source in `src/rules/` for patterns.

@@ -253,6 +253,10 @@ return [
 	'rules.shippingCategory.description' => 'Groups items into shipments using explicit store-defined groups. Each group declares a mode (ship together or one shipment per line item) and the set of Commerce shipping-category handles whose items belong to it. Line items whose shipping category isn’t assigned to any group fall through to the fallback shipment.',
 	'rules.shippingCategory.name' => 'Shipping category',
 
+	// rules.postiePacking
+	'rules.postiePacking.description' => 'Creates one shipment for each box packed by Postie. If Postie does not pack the order, it is sent as one shipment.',
+	'rules.postiePacking.name' => 'Postie box packing',
+
 	// settings
 	'settings.saved' => 'Settings saved.',
 	'settings.savedWithSweep' => 'Settings saved. {orders} order(s) were untracked because their status is now in the ignore list. Their shipments were left intact.',
