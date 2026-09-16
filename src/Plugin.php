@@ -164,6 +164,12 @@ class Plugin extends \craft\base\Plugin
 			OrderHistories::EVENT_ORDER_STATUS_CHANGE,
 			$this->onOrderStatusChange(...),
 		);
+
+		Event::on(
+			OrderHistories::class,
+			OrderHistories::EVENT_ORDER_STATUS_CHANGE,
+			$this->cascadeShipmentCancellation(...),
+		);
 	}
 
 	public function getSettings(): Settings
@@ -389,6 +395,38 @@ class Plugin extends \craft\base\Plugin
 		Craft::$app->getQueue()->push(new AdvanceOrderStatusJob([
 			'orderId' => $orderId,
 		]));
+	}
+
+	/**
+	 * Mirrors an order's move in or out of `orderStatusesToCancelShipments` onto its shipments.
+	 * Failures here are logged, not thrown: cancelling shipments must never roll back the
+	 * admin's status change.
+	 */
+	private function cascadeShipmentCancellation(OrderStatusEvent $event): void
+	{
+		$cancellingStatuses = $this->getSettings()->orderStatusesToCancelShipments;
+		if ($cancellingStatuses === []) {
+			return;
+		}
+
+		$wasCancelling = in_array($event->orderHistory->getPrevStatus()?->handle, $cancellingStatuses, true);
+		$isCancelling = in_array($event->orderHistory->getNewStatus()?->handle, $cancellingStatuses, true);
+		if ($wasCancelling === $isCancelling) {
+			return;
+		}
+
+		try {
+			if ($isCancelling) {
+				$this->shipments->cancelAllForOrder($event->order);
+			} else {
+				$this->shipments->restoreCancelledForOrder($event->order);
+			}
+		} catch (Throwable $throwable) {
+			Craft::error(
+				"Shipment cancellation cascade failed for order {$event->order->id}: " . $throwable->getMessage(),
+				self::HANDLE,
+			);
+		}
 	}
 
 	/**

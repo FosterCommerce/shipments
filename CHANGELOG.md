@@ -6,6 +6,7 @@
 
 ### Added
 - Added a `productTypesToIgnore` setting, so line items of product types that never ship (services, downloads) are left out of shipments and the coverage check.
+- Added an `orderStatusesToCancelShipments` setting (UI: **Order statuses that cancel shipments**). An order moving into one of these Commerce statuses cancels every shipment on it that hasn't shipped; moving back out restores each of those shipments to the status it held before. A shipment cancelled any other way stays cancelled.
 - Added a `postie-packing` grouping source, available when Verbb Postie is installed. Creates one shipment for each box packed by Postie, or one shipment for the whole order if no packing data is available.
 
 - First-class `Shipment` element with its own status sources, element index, bulk actions, field layouts, and GraphQL type.

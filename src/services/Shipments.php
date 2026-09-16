@@ -7,8 +7,10 @@ namespace fostercommerce\shipments\services;
 use Craft;
 use craft\commerce\elements\Order;
 use craft\commerce\Plugin as Commerce;
+use craft\db\Query;
 use craft\elements\User;
 use DateTime;
+use fostercommerce\shipments\db\Table;
 use fostercommerce\shipments\elements\db\ShipmentQuery;
 use fostercommerce\shipments\elements\Shipment;
 use fostercommerce\shipments\enums\Status;
@@ -45,6 +47,14 @@ class Shipments extends Component
 	public const EVENT_SHIPMENT_STATUS_CHANGED = 'shipmentStatusChanged';
 
 	public const EVENT_SHIPMENT_LINE_ITEMS_CHANGED = 'shipmentLineItemsChanged';
+
+	/**
+	 * Distinguishes a cancellation written for the order's status from every other cancellation,
+	 * since only the first is restored.
+	 */
+	public const ORDER_CANCELLED_CODE = 'order-cancelled';
+
+	public const ORDER_REOPENED_CODE = 'order-reopened';
 
 	/**
 	 * Seconds to wait when acquiring the per-shipment transition lock.
@@ -736,6 +746,55 @@ class Shipments extends Component
 	}
 
 	/**
+	 * Cancels every shipment on the order that hasn't shipped.
+	 */
+	public function cancelAllForOrder(Order $order): void
+	{
+		if ($order->id === null) {
+			throw new InvalidArgumentException('Cannot cancel shipments for an order without an id.');
+		}
+
+		foreach ($this->findByOrderId($order->id) as $shipment) {
+			$status = $shipment->getStatusEnum();
+			// A shipped shipment has no units left to cancel
+			if ($status === Status::Shipped) {
+				continue;
+			}
+
+			if ($status === Status::Cancelled) {
+				continue;
+			}
+
+			$this->cancelWithOrder($shipment);
+		}
+	}
+
+	/**
+	 * Restores each shipment this order's cancellation cancelled to the status it held beforehand.
+	 */
+	public function restoreCancelledForOrder(Order $order): void
+	{
+		if ($order->id === null) {
+			throw new InvalidArgumentException('Cannot restore shipments for an order without an id.');
+		}
+
+		foreach ($this->findByOrderId($order->id) as $shipment) {
+			if ($shipment->getStatusEnum() !== Status::Cancelled) {
+				continue;
+			}
+
+			/** @var int $shipmentId */
+			$shipmentId = $shipment->id;
+			$previousStatus = $this->statusBeforeOrderCancellation($shipmentId);
+			if (! $previousStatus instanceof Status) {
+				continue;
+			}
+
+			$this->restoreWithOrder($shipment, $previousStatus);
+		}
+	}
+
+	/**
 	 * Soft-deletes a shipment. Returns false if the shipment doesn't exist.
 	 */
 	public function softDeleteById(int $shipmentId): bool
@@ -746,6 +805,82 @@ class Shipments extends Component
 		}
 
 		return Craft::$app->getElements()->deleteElement($shipment);
+	}
+
+	/**
+	 * One shipment failing must not skip the rest of the order's, so each transition is logged and
+	 * the loop carries on.
+	 */
+	private function cancelWithOrder(Shipment $shipment): void
+	{
+		try {
+			$this->applyTransition(
+				$shipment,
+				Status::Cancelled,
+				message: Craft::t(Plugin::HANDLE, 'history.orderCancelled'),
+				externalCode: self::ORDER_CANCELLED_CODE,
+			);
+		} catch (Throwable $throwable) {
+			Craft::error(
+				"Could not cancel shipment {$shipment->id} with its order: " . $throwable->getMessage(),
+				Plugin::HANDLE,
+			);
+		}
+	}
+
+	private function restoreWithOrder(Shipment $shipment, Status $previousStatus): void
+	{
+		try {
+			$this->applyTransition(
+				$shipment,
+				$previousStatus,
+				message: Craft::t(Plugin::HANDLE, 'history.orderReopened'),
+				externalCode: self::ORDER_REOPENED_CODE,
+			);
+		} catch (Throwable $throwable) {
+			Craft::error(
+				"Could not restore shipment {$shipment->id} with its order: " . $throwable->getMessage(),
+				Plugin::HANDLE,
+			);
+		}
+	}
+
+	/**
+	 * Returns the status to restore a cancelled shipment to, given its latest history row, or null
+	 * when anything but an order cancellation wrote that row.
+	 *
+	 * @param array{fromCode: string|null, toCode: string, sourceExternalCode: string|null, sourceIntegrationId: int|string|null} $historyRow
+	 */
+	private function restorableStatus(array $historyRow): ?Status
+	{
+		if ($historyRow['toCode'] !== Status::Cancelled->value) {
+			return null;
+		}
+
+		// Only restore what this cascade cancelled
+		if ($historyRow['sourceExternalCode'] !== self::ORDER_CANCELLED_CODE || $historyRow['sourceIntegrationId'] !== null) {
+			return null;
+		}
+
+		// A shipment created cancelled has no earlier status, and `fromCode` is null
+		return Status::tryFrom((string) $historyRow['fromCode']);
+	}
+
+	private function statusBeforeOrderCancellation(int $shipmentId): ?Status
+	{
+		/** @var array{fromCode: string|null, toCode: string, sourceExternalCode: string|null, sourceIntegrationId: int|string|null}|false $latest */
+		$latest = (new Query())
+			->select(['fromCode', 'toCode', 'sourceExternalCode', 'sourceIntegrationId'])
+			->from(Table::SHIPMENT_STATUS_HISTORY)
+			->where([
+				'shipmentId' => $shipmentId,
+			])
+			->orderBy([
+				'id' => SORT_DESC,
+			])
+			->one();
+
+		return $latest === false ? null : $this->restorableStatus($latest);
 	}
 
 	private function queueAutoPushes(Shipment $shipment, bool $isNew): void

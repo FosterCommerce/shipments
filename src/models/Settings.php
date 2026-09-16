@@ -41,7 +41,15 @@ class Settings extends Model
 	public array $lineItemStatusesToIgnore = [];
 
 	/**
-	 * Order-status handles that mean "nothing to ship here" (e.g. `cancelled`, `refunded`).
+	 * Order-status handles whose shipments are cancelled when an order enters one. Moving the
+	 * order back out restores each shipment to the status it held before.
+	 *
+	 * @var list<string>
+	 */
+	public array $orderStatusesToCancelShipments = [];
+
+	/**
+	 * Order-status handles that mean the order has no units left to ship (e.g. `cancelled`, `refunded`).
 	 * Orders entering one leave the plugin's active fulfillment scope and can't be re-tracked
 	 * while there.
 	 *
@@ -291,6 +299,9 @@ class Settings extends Model
 				'each',
 				'rule' => ['string']],
 			[['orderStatusesToIgnore'],
+				'each',
+				'rule' => ['string']],
+			[['orderStatusesToCancelShipments'],
 				'each',
 				'rule' => ['string']],
 			[['productTypesToIgnore'],
