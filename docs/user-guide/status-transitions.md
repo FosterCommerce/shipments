@@ -76,7 +76,7 @@ Admins attach any email to any status-change trigger under **Shipments -> Settin
 
 ## Cancelled vs disabled vs deleted
 
-- **`cancelled` status**: the shipment exists and is visible, but won't ship. Its quantity stays allocated (doesn't return to the pool).
+- **`cancelled` status**: the shipment exists and is visible, but won't ship. Its quantity returns to the pool, so another shipment can claim the same line items.
 - **Disabled**: the shipment is paused. Quantity returns to the pool. Re-enabling checks the math.
 - **Deleted / trashed**: hidden from normal views. Quantity returns to the pool. Restore checks the math.
 
