@@ -35,6 +35,7 @@
 - Status history records the source integration handle and the external code it sent on every transition, with batched user/integration lookups to avoid N+1s.
 
 ### Fixed
+- Fixed cancelled shipments counting toward an order's allocated quantities, which blocked a replacement shipment from claiming the same line items.
 - Fixed shipment export date windows applying the start bound in the site timezone and the end bound in UTC.
 - Fixed a bug where canceling the “Order requires shipping” confirmation reprompted without end.
 - Fixed concurrent staging saves being able to double-allocate line-item quantities; the pool is now validated under a per-order mutex.
