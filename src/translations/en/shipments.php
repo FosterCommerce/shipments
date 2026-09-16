@@ -140,8 +140,8 @@ return [
 	'gql.queryShipments' => 'Query shipments',
 
 	// history
-	'history.orderCancelled' => 'Order cancelled.',
-	'history.orderReopened' => 'Order reopened.',
+	'history.orderCancelled' => 'Cancelled with the order.',
+	'history.orderReopened' => 'Restored with the order.',
 
 	// index.column
 	'index.column.dateCreated' => 'Date created',
