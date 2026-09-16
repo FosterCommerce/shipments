@@ -25,11 +25,13 @@ The "typical use" column is a suggestion, not a rule. Your store chooses how to 
 
 The plugin does not track detailed carrier events (there is no `delivered`, `in_transit`, `out_for_delivery`, and so on). It models the merchant's side of fulfillment, so the last status you set is often the final word on a shipment. If you need carrier-level tracking detail, that is the job of the carrier's own tracking page, not this plugin.
 
-The one fixed behavior is `shipped` advancing the order, described next. Everything else is yours to define.
+Two statuses carry behavior of their own, described next: `shipped` advances the order, and `cancelled` is written for you when an order enters a status that cancels its shipments. Everything else is yours to define.
 
-## The one status with built-in behavior
+## The statuses with built-in behavior
 
-`shipped` is the single exception. When a shipment reaches `shipped`, the plugin advances its Commerce order to the order status you configure under **Shipments -> Settings** (the auto-advance target). This is one-way: moving the shipment back out of `shipped` does not move the order back. Leave the target empty to disable it.
+When a shipment reaches `shipped`, the plugin advances its Commerce order to the order status you configure under **Shipments -> Settings** (the auto-advance target). This is one-way: moving the shipment back out of `shipped` does not move the order back. Leave the target empty to disable it.
+
+`cancelled` is written for you when an order enters a status listed under **Shipments -> Settings -> General -> Order statuses that cancel shipments**. Moving the order back out restores those shipments; see [what the order's status does to shipments](./status-transitions.md#what-the-orders-status-does-to-shipments).
 
 No status requires any field. You can move a shipment to `shipped` with or without a tracking number; tracking, carrier, and service are always optional.
 

@@ -6,6 +6,7 @@
 
 ### Added
 - Added a `productTypesToIgnore` setting, so line items of product types that never ship (services, downloads) are left out of shipments and the coverage check.
+- Added an `orderStatusesToCancelShipments` setting (UI: **Order statuses that cancel shipments**). An order moving into one of these Commerce statuses cancels every shipment on it that hasn't shipped; moving back out restores each of those shipments to the status it held before. A shipment cancelled any other way stays cancelled.
 - Added a `postie-packing` grouping source, available when Verbb Postie is installed. Creates one shipment for each box packed by Postie, or one shipment for the whole order if no packing data is available.
 
 - First-class `Shipment` element with its own status sources, element index, bulk actions, field layouts, and GraphQL type.
@@ -23,7 +24,7 @@
 - CSV export via `Shipments::findForExport(ShipmentExportQuery)`.
 - Tracked orders: a `shipments_tracked_orders` table records which orders the plugin is actively watching for fulfillment. Orders without a row are invisible to the Attention page, so historical pre-install orders no longer flood it.
 - Per-order **Order requires shipping** lightswitch on the order's Shipments tab. Turning it off cascade-disables every enabled shipment on the order and drops it off the Attention page.
-- `orderStatusesToIgnore` plugin setting (UI: **Order statuses to ignore**). Orders whose Commerce status is in this list are auto-untracked on status change, and their shipments are cascade-disabled. Adding a handle to the setting runs a one-time retroactive sweep of orders currently in that status.
+- `orderStatusesToIgnore` plugin setting (UI: **Order statuses to ignore**). Orders whose Commerce status is in this list are auto-untracked on status change. Existing shipments are left intact. Adding a handle to the setting runs a one-time retroactive sweep of orders currently in that status.
 
 ### Changed
 - The “Order requires shipping” switch is locked off on an order whose line items are all skipped, and turning it on is rejected.

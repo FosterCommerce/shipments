@@ -139,6 +139,10 @@ return [
 	// gql
 	'gql.queryShipments' => 'Query shipments',
 
+	// history
+	'history.orderCancelled' => 'Order cancelled.',
+	'history.orderReopened' => 'Order reopened.',
+
 	// index.column
 	'index.column.dateCreated' => 'Date created',
 	'index.column.dateUpdated' => 'Date updated',
@@ -355,6 +359,8 @@ return [
 
 	// settings.tracking
 	'settings.tracking.noOrderStatuses' => 'No Commerce order statuses are defined. Configure at least one under Commerce -> Settings -> Order Statuses.',
+	'settings.tracking.orderStatusesToCancelShipments' => 'Order statuses that cancel shipments',
+	'settings.tracking.orderStatusesToCancelShipmentsHelp' => 'When an order moves into one of these Commerce statuses, every shipment on it that hasn’t shipped is cancelled. Moving the order back out restores those shipments to the status each held before; a shipment cancelled any other way stays cancelled.',
 	'settings.tracking.orderStatusesToIgnore' => 'Order statuses to ignore',
 	'settings.tracking.orderStatusesToIgnoreHelp' => 'Orders in these Commerce statuses are automatically marked as not requiring shipping and drop off the Attention page. Existing shipments are left intact, but new shipments can’t be staged as long as the order sits in one of these statuses. Adding a handle here runs a one-time sweep over orders currently in that status on save.',
 

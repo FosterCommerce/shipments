@@ -24,7 +24,7 @@ class CreateShipmentsEvent extends Event
 	public array $plans = [];
 
 	/**
-	 * Empty on the BEFORE fire (nothing has been persisted yet); populated with the saved
+	 * Empty on the BEFORE fire (no shipments have been persisted yet); populated with the saved
 	 * `Shipment` elements on the AFTER fire, in plan order.
 	 *
 	 * @var list<Shipment>

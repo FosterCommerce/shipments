@@ -105,7 +105,7 @@ class SettingsController extends Controller
 	/**
 	 * Returns the `orderStatusesToIgnore` handles new to the incoming payload versus the previous value.
 	 *
-	 * Scopes the retroactive sweep so re-saving with no changes triggers nothing.
+	 * Only these are swept, so a re-save can't untrack orders an admin has since re-tracked.
 	 *
 	 * @param array<string, mixed> $incomingSettings
 	 * @param list<string> $previouslyIgnored

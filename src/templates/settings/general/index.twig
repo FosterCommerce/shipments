@@ -301,6 +301,23 @@
 			<p class="light">{{ 'settings.tracking.noOrderStatuses'|t('shipments') }}</p>
 		{% endif %}
 
+		<h2>{{ 'settings.tracking.orderStatusesToCancelShipments'|t('shipments') }}</h2>
+		<p>{{ 'settings.tracking.orderStatusesToCancelShipmentsHelp'|t('shipments') }}</p>
+
+		{% if orderStatusOptions|length %}
+			{{ forms.checkboxSelectField({
+				label: 'settings.tracking.orderStatusesToCancelShipments'|t('shipments'),
+				id: 'shipments_order_statuses_to_cancel_shipments',
+				disabled: readOnly,
+				name: 'settings[orderStatusesToCancelShipments]',
+				values: settings.orderStatusesToCancelShipments,
+				options: orderStatusOptions,
+				errors: settings.getErrors('orderStatusesToCancelShipments'),
+			}) }}
+		{% else %}
+			<p class="light">{{ 'settings.tracking.noOrderStatuses'|t('shipments') }}</p>
+		{% endif %}
+
 		<hr>
 
 		<h2>{{ 'settings.autoAdvance.heading'|t('shipments') }}</h2>

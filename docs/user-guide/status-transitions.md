@@ -45,7 +45,15 @@ No field is ever required to reach a status. A shipment can become `shipped` wit
 
 ## What `shipped` does to the order
 
-Reaching `shipped` advances the shipment's Commerce order to the order status configured under **Shipments -> Settings**. One-way: moving back out of `shipped` does not move the order back. No other status touches the order. See the [status vocabulary](./status-vocabulary.md#the-one-status-with-built-in-behavior).
+Reaching `shipped` advances the shipment's Commerce order to the order status configured under **Shipments -> Settings**. One-way: moving back out of `shipped` does not move the order back. No other status touches the order. See the [status vocabulary](./status-vocabulary.md#the-statuses-with-built-in-behavior).
+
+## What the order's status does to shipments
+
+List Commerce order statuses under **Shipments -> Settings -> General -> Order statuses that cancel shipments**, and an order moving into one of them cancels every shipment on it that hasn't reached `shipped`. Each cancellation records the order as its cause in the shipment's history.
+
+Moving the order back out of those statuses restores each of those shipments to the status it held immediately before. A shipment cancelled any other way, by an admin or by an integration, stays cancelled. A shipment already at `shipped` is left alone in both directions.
+
+Emails bound to the `cancelled` transition send when this runs, and emails bound to the restored status send when the order moves back out. Check your triggers under **Shipments -> Settings -> Emails** before adding a status here.
 
 ## Derived ship date
 
@@ -68,7 +76,7 @@ Admins attach any email to any status-change trigger under **Shipments -> Settin
 
 ## Cancelled vs disabled vs deleted
 
-- **`cancelled` status**: the shipment exists and is visible, but won't ship. Its quantity stays allocated (doesn't return to the pool).
+- **`cancelled` status**: the shipment exists and is visible, but won't ship. Its quantity returns to the pool, so another shipment can claim the same line items.
 - **Disabled**: the shipment is paused. Quantity returns to the pool. Re-enabling checks the math.
 - **Deleted / trashed**: hidden from normal views. Quantity returns to the pool. Restore checks the math.
 

@@ -59,7 +59,7 @@ Same pattern for `Shipments::createFromStagingPost` (per-order mutex instead; po
 
 | Service                      | Responsibility                                                                                                              |
 |------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
-| `Shipments`                  | Lifecycle orchestrator. `applyTransition`, `createFromStagingPost`, `saveManual`, `applyUpdate`, history hydration, export. |
+| `Shipments`                  | Lifecycle orchestrator. `applyTransition`, `createFromStagingPost`, `saveManual`, `applyUpdate`, `cancelAllForOrder`, `restoreCancelledForOrder`, history hydration, export. |
 | `ShipmentLineItems`          | Allocation math. `remainingPoolFor`, `overflowIfCounted`, `isOrderUnderAllocated`, `findUnderAllocatedOrderIds`.             |
 | `ShipmentReferences`         | `{orderRef}-sNNN` allocation with collision retry.                                                                           |
 | `Rules`                      | Rules-engine registry + `planFor` orchestration.                                                                            |
