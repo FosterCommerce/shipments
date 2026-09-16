@@ -15,6 +15,7 @@ use craft\db\Table as CraftTable;
 use craft\helpers\Json;
 use craft\helpers\Typecast;
 use fostercommerce\shipments\db\Table;
+use fostercommerce\shipments\enums\Status;
 use fostercommerce\shipments\enums\TrackedOrderShippable;
 use fostercommerce\shipments\enums\TrackedOrderState;
 use fostercommerce\shipments\enums\TrackedOrderUnderAllocated;
@@ -174,6 +175,7 @@ class ShipmentLineItems extends Component
 				'[[e.dateDeleted]]' => null,
 				'[[e.enabled]]' => true,
 			])
+			->andWhere(['!=', '[[s.status]]', Status::Cancelled->value])
 			->groupBy(['[[sli.lineItemId]]'])
 			->all();
 
@@ -262,6 +264,10 @@ class ShipmentLineItems extends Component
 			return [];
 		}
 
+		if ($this->isCancelled($shipmentId)) {
+			return [];
+		}
+
 		$orderedQtys = $this->shippableUnitsFor($order);
 
 		$otherAllocations = $this->allocatedQtysFor($order->id);
@@ -291,6 +297,10 @@ class ShipmentLineItems extends Component
 	public function overflowForProposedAllocation(int $shipmentId, Order $order, array $proposedQtys): array
 	{
 		if ($order->id === null) {
+			return [];
+		}
+
+		if ($this->isCancelled($shipmentId)) {
 			return [];
 		}
 
@@ -414,6 +424,17 @@ class ShipmentLineItems extends Component
 		$cache = Craft::$app->getCache();
 		/** @var CacheInterface $cache */
 		$cache->delete(self::ATTENTION_COUNT_CACHE_KEY);
+	}
+
+	private function isCancelled(int $shipmentId): bool
+	{
+		return (new Query())
+			->from(Table::SHIPMENTS)
+			->where([
+				'id' => $shipmentId,
+				'status' => Status::Cancelled->value,
+			])
+			->exists();
 	}
 
 	/**
