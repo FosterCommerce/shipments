@@ -109,6 +109,7 @@ class ShipmentQuery extends ElementQuery
 			'[[shipments_shipments.number]]',
 			'[[shipments_shipments.trackingNumber]]',
 			'[[shipments_shipments.trackingUrl]]',
+			'[[shipments_shipments.transitDays]]',
 			'[[shipments_shipments.carrier]]',
 			'[[shipments_shipments.service]]',
 			'[[shipments_shipments.fulfillmentNotes]]',
@@ -116,6 +117,11 @@ class ShipmentQuery extends ElementQuery
 			'[[shipments_shipments.dateLastPushAttempt]]',
 			'[[shipments_shipments.lastPushAttemptError]]',
 			'[[shipments_shipments.pushAttemptCount]]',
+			'[[shipments_shipments.shippingMethodHandle]]',
+			'[[shipments_shipments.shippingMethodName]]',
+			'shippingAmountMinor' => '[[shipments_shipments.shippingAmount]]',
+			'[[shipments_shipments.shippingCurrency]]',
+			'shippingSnapshotData' => '[[shipments_shipments.shippingSnapshot]]',
 		]);
 
 		$this->applyNumericFilter('[[shipments_shipments.orderId]]', $this->orderId);

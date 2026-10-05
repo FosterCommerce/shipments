@@ -7,18 +7,24 @@ namespace fostercommerce\shipments\controllers;
 use Craft;
 use craft\helpers\DateTimeHelper;
 use craft\helpers\Json;
+use craft\helpers\MoneyHelper;
 use craft\web\Controller;
+use DateTimeImmutable;
 use DateTimeInterface;
 use fostercommerce\shipments\base\ControllerBodyParamsTrait;
+use fostercommerce\shipments\base\DeliveryProviderInterface;
 use fostercommerce\shipments\elements\Shipment;
 use fostercommerce\shipments\enums\Status;
 use fostercommerce\shipments\errors\AllocationMismatchException;
 use fostercommerce\shipments\errors\AllocationOverflowException;
 use fostercommerce\shipments\errors\OrderNotCompletedException;
+use fostercommerce\shipments\models\Delivery;
 use fostercommerce\shipments\models\Integration;
+use fostercommerce\shipments\models\ShippingQuote;
 use fostercommerce\shipments\Plugin;
 use fostercommerce\shipments\queue\jobs\PushShipmentJob;
 use fostercommerce\shipments\web\assets\cp\ShipmentsCpAsset;
+use Money\Money;
 use Throwable;
 use yii\web\BadRequestHttpException;
 use yii\web\NotFoundHttpException;
@@ -38,7 +44,6 @@ class ShipmentsController extends Controller
 	{
 		$this->requirePermission(Plugin::PERMISSION_VIEW);
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		if (! $shipment instanceof Shipment) {
@@ -77,11 +82,68 @@ class ShipmentsController extends Controller
 			'integrations' => $integrations,
 			'pushableIntegrations' => $pushableIntegrations,
 			'statusHistory' => $statusHistory,
+			'deliveryTab' => $this->deliveryVariables($shipment, $plugin),
 			'unallocatedPool' => $plugin->shipmentLineItems->remainingPoolFor($order),
 			'title' => Craft::t(Plugin::HANDLE, 'shipmentEdit.titleWithReference', [
 				'reference' => $shipment->reference,
 			]),
 		]);
+	}
+
+	public function actionSaveShipDate(): ?Response
+	{
+		$this->requirePostRequest();
+		$this->requireAcceptsJson();
+		$this->requirePermission(Plugin::PERMISSION_EDIT);
+
+		$idInput = $this->request->getRequiredBodyParam('id');
+		if (! is_numeric($idInput)) {
+			throw new BadRequestHttpException(Craft::t(Plugin::HANDLE, 'error.invalidShipmentId'));
+		}
+
+		$plugin = Plugin::getInstance();
+		$shipment = $plugin->shipments->findById((int) $idInput, includeTrashed: true);
+		if (! $shipment instanceof Shipment) {
+			throw new NotFoundHttpException(Craft::t(Plugin::HANDLE, 'error.shipmentNotFound'));
+		}
+
+		if ($shipment->trashed || $shipment->getStatusEnum() === Status::Cancelled) {
+			return $this->asFailure(Craft::t(Plugin::HANDLE, 'shipmentEdit.shipDateReadOnly'));
+		}
+
+		$dateInput = $this->request->getRequiredBodyParam('dateScheduledShip');
+		if (! is_array($dateInput) || ! is_string($dateInput['date'] ?? null)) {
+			return $this->asFailure(Craft::t(Plugin::HANDLE, 'shipmentEdit.invalidShipDate'));
+		}
+
+		$order = $plugin->shipments->loadOrder($shipment->orderId);
+		if ($order === null) {
+			throw new NotFoundHttpException(Craft::t(Plugin::HANDLE, 'error.orderNotFound'));
+		}
+
+		$transaction = Craft::$app->getDb()->beginTransaction();
+		try {
+			$date = DateTimeHelper::toDateTime($dateInput);
+			if ($date === false && $dateInput['date'] !== '') {
+				$transaction->rollBack();
+				return $this->asFailure(Craft::t(Plugin::HANDLE, 'shipmentEdit.invalidShipDate'));
+			}
+
+			$shipment->dateScheduledShip = $date ?: null;
+			$shipment = $plugin->shipments->saveManual($shipment, $order);
+			$response = $this->asJson([
+				'deliveryHtml' => $this->view->renderTemplate(Plugin::HANDLE . '/_cp/shipment/_delivery', [
+					...$this->deliveryVariables($shipment, $plugin),
+					'shipment' => $shipment,
+					'order' => $order,
+				]),
+			]);
+			$transaction->commit();
+			return $response;
+		} catch (Throwable $throwable) {
+			$transaction->rollBack();
+			return $this->asFailure($throwable->getMessage());
+		}
 	}
 
 	/**
@@ -94,7 +156,6 @@ class ShipmentsController extends Controller
 		$this->requirePostRequest();
 		$this->requirePermission(Plugin::PERMISSION_EDIT);
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$idInput = $this->request->getRequiredBodyParam('id');
@@ -115,6 +176,17 @@ class ShipmentsController extends Controller
 
 		$shipment->trackingNumber = $this->bodyString('trackingNumber');
 		$shipment->trackingUrl = $this->bodyString('trackingUrl');
+		$transitDays = $this->bodyString('transitDays');
+		$parsedTransitDays = $transitDays === null ? null : filter_var($transitDays, FILTER_VALIDATE_INT, [
+			'options' => [
+				'min_range' => 0,
+			],
+		]);
+		if ($parsedTransitDays === false) {
+			throw new BadRequestHttpException(Craft::t('shipments', 'shipmentEdit.invalidTransitDays'));
+		}
+
+		$shipment->transitDays = $parsedTransitDays;
 		$shipment->carrier = $this->bodyString('carrier');
 		$shipment->service = $this->bodyString('service');
 		$shipment->fulfillmentNotes = $this->bodyString('fulfillmentNotes');
@@ -183,7 +255,6 @@ class ShipmentsController extends Controller
 		$this->requireAcceptsJson();
 		$this->requirePermission(Plugin::PERMISSION_EDIT);
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$idInput = $this->request->getRequiredBodyParam('id');
@@ -232,7 +303,6 @@ class ShipmentsController extends Controller
 		$this->requirePostRequest();
 		$this->requirePermission(Plugin::PERMISSION_DELETE);
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$idInput = $this->request->getRequiredBodyParam('id');
@@ -273,7 +343,6 @@ class ShipmentsController extends Controller
 		$this->requirePostRequest();
 		$this->requirePermission(Plugin::PERMISSION_EDIT);
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$orderIdInput = $this->request->getRequiredBodyParam('orderId');
@@ -311,7 +380,6 @@ class ShipmentsController extends Controller
 		$this->requirePostRequest();
 		$this->requirePermission(Plugin::PERMISSION_PUSH);
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$shipmentIdInput = $this->request->getRequiredBodyParam('id');
@@ -373,7 +441,6 @@ class ShipmentsController extends Controller
 		$this->requirePostRequest();
 		$this->requirePermission(Plugin::PERMISSION_EDIT);
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$orderIdInput = $this->request->getRequiredBodyParam('orderId');
@@ -421,6 +488,40 @@ class ShipmentsController extends Controller
 				'count' => $createdCount,
 			]);
 		return $this->asSuccess($message);
+	}
+
+	/**
+	 * @return array<string, mixed>
+	 */
+	private function deliveryVariables(Shipment $shipment, Plugin $plugin): array
+	{
+		$quotes = collect($plugin->shipping->getQuotes($shipment))
+			->filter(static fn (ShippingQuote $quote): bool => $plugin->deliveries->getAvailableIntegrations($quote) !== [])
+			->values()->all();
+		$selectedQuote = collect($quotes)->firstWhere('handle', $shipment->shippingMethodHandle);
+		$deliveries = $plugin->deliveries->getForShipment((int) $shipment->id);
+		$activeDelivery = collect($deliveries)->first(static fn (Delivery $delivery): bool => $delivery->getIsActive());
+		$stale = $selectedQuote instanceof ShippingQuote && (
+			! $selectedQuote->expiresAt instanceof DateTimeImmutable || $selectedQuote->expiresAt < new DateTimeImmutable()
+			|| $selectedQuote->fingerprint !== $plugin->shipping->fingerprint($shipment)
+		);
+
+		return [
+			'hasDeliveryProviders' => $plugin->integrations->getAllIntegrations()->contains(
+				static fn (Integration $integration): bool => $integration->isEnabled() && $integration->getProvider() instanceof DeliveryProviderInterface,
+			),
+			'quotes' => $quotes,
+			'providerNames' => $plugin->integrations->getAllIntegrations()->pluck('name', 'uid')->all(),
+			'quoteCosts' => collect($quotes)->mapWithKeys(static fn (ShippingQuote $quote): array => [
+				$quote->handle => $quote->carrierCost instanceof Money ? MoneyHelper::toString($quote->carrierCost) : null,
+			])->all(),
+			'selectedQuote' => $selectedQuote,
+			'staleQuote' => $stale,
+			'shipDateInPast' => $plugin->shipping->isShipDateInPast($shipment),
+			'integrations' => $selectedQuote instanceof ShippingQuote ? $plugin->deliveries->getAvailableIntegrations($selectedQuote) : [],
+			'deliveries' => $deliveries,
+			'activeDelivery' => $activeDelivery,
+		];
 	}
 
 	/**

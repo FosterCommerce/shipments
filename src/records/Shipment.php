@@ -12,6 +12,8 @@ use fostercommerce\shipments\db\Table;
 use yii\db\ActiveQueryInterface;
 
 /**
+ * Shipment record.
+ *
  * @property int $id
  * @property int $orderId
  * @property string $reference
@@ -20,9 +22,15 @@ use yii\db\ActiveQueryInterface;
  * @property ?DateTime $dateScheduledShip
  * @property ?string $trackingNumber
  * @property ?string $trackingUrl
+ * @property ?int $transitDays
  * @property ?string $carrier
  * @property ?string $service
  * @property ?string $fulfillmentNotes
+ * @property ?string $shippingMethodHandle
+ * @property ?string $shippingMethodName
+ * @property ?string $shippingAmount
+ * @property ?string $shippingCurrency
+ * @property ?string $shippingSnapshot
  * @property ?string $shippingNotes
  * @property ?DateTime $dateLastPushAttempt
  * @property ?string $lastPushAttemptError

@@ -1,0 +1,52 @@
+{% extends '_layouts/cp' %}
+
+{% set crumbs = [ {
+	label: 'nav.shipments'|t('shipments'),
+	url: url('shipments/shipments')
+}, {
+	label: order.reference ?: order.number,
+	url: order.cpEditUrl
+}, ] %}
+
+{% set selectedTab = selectedTab ?? 'shipmentDetails' %}
+{% set fieldLayout = shipment.getFieldLayout() %}
+{% set fieldLayoutForm = fieldLayout ? fieldLayout.createForm(shipment) : null %}
+{% set customFieldTabs = [] %}
+{% if fieldLayoutForm %}
+	{% for layoutTab in fieldLayoutForm.tabs %}
+		{% if layoutTab.getContent() is not empty %}
+			{% set customFieldTabs = customFieldTabs|merge([layoutTab]) %}
+		{% endif %}
+	{% endfor %}
+{% endif %}
+
+{% set tabs = {
+	shipmentDetails: {
+		label: 'nav.details'|t('shipments'),
+		url: '#shipment-details'
+	},
+	delivery: {
+		label: 'delivery.delivery'|t('shipments'),
+		url: '#delivery'
+	},
+	lineItems: {
+		label: 'shipmentEdit.lineItems.heading'|t('shipments'),
+		url: '#line-items'
+	},
+	integrationReferences: {
+		label: 'shipmentEdit.references.heading'|t('shipments'),
+		url: '#integration-references'
+	},
+	statusHistory: {
+		label: 'shipmentEdit.statusHistory.heading'|t('shipments'),
+		url: '#status-history'
+	},
+} %}
+{% for layoutTab in customFieldTabs %}
+	{% set tabs = tabs|merge({
+		(layoutTab.getId()): {
+			label: layoutTab.getName(),
+			url: '#' ~ layoutTab.getId()
+		},
+	}) %}
+{% endfor %}

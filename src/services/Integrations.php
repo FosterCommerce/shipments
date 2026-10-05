@@ -14,6 +14,7 @@ use craft\helpers\Db;
 use craft\helpers\Json;
 use craft\helpers\StringHelper;
 use craft\helpers\Typecast;
+use fostercommerce\shipments\base\CarrierProvider;
 use fostercommerce\shipments\base\Provider;
 use fostercommerce\shipments\base\ProviderInterface;
 use fostercommerce\shipments\db\Table;
@@ -245,21 +246,39 @@ class Integrations extends Component
 		}
 
 		$integrationUid = $isNew
-			? StringHelper::UUID()
+			? ($integration->uid ?? StringHelper::UUID())
 			: Db::uidById(Table::INTEGRATIONS, (int) $integration->id);
 
 		if ($integrationUid === null) {
 			throw new Exception("No integration exists with id {$integration->id}.");
 		}
 
-		Craft::$app->getProjectConfig()->set(
-			self::CONFIG_INTEGRATIONS_KEY . '.' . $integrationUid,
-			$integration->getConfig(),
-		);
+		$provider = $integration->getProvider();
+		if ($provider instanceof Provider) {
+			$provider->uid = $integrationUid;
+		}
 
-		if ($isNew) {
-			$integration->id = Db::idByUid(Table::INTEGRATIONS, $integrationUid);
-			$integration->uid = $integrationUid;
+		$transaction = Craft::$app->getDb()->beginTransaction();
+		try {
+			if ($provider instanceof CarrierProvider) {
+				$integration->settings = $provider->getSettings();
+			}
+
+			Craft::$app->getProjectConfig()->set(
+				self::CONFIG_INTEGRATIONS_KEY . '.' . $integrationUid,
+				$integration->getConfig(),
+			);
+
+			if ($isNew) {
+				$integration->id = Db::idByUid(Table::INTEGRATIONS, $integrationUid);
+				$integration->uid = $integrationUid;
+			}
+
+
+			$transaction->commit();
+		} catch (Throwable $throwable) {
+			$transaction->rollBack();
+			throw $throwable;
 		}
 
 		$this->allIntegrations = null;
@@ -344,7 +363,10 @@ class Integrations extends Component
 				return;
 			}
 
-			$integrationRecord->delete();
+			if ($integrationRecord->delete() === false) {
+				throw new Exception(Craft::t(Plugin::HANDLE, 'error.integrationNotDeleted'));
+			}
+
 			$transaction->commit();
 		} catch (Throwable $throwable) {
 			$transaction->rollBack();

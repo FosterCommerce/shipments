@@ -27,6 +27,8 @@ class Settings extends Model
 
 	public bool $autoCreateOnComplete = false;
 
+	public string $deliveryDocumentVolumeUid = '';
+
 	/**
 	 * When true, shipment saves reject unless every non-ignored line item qty is accounted for.
 	 */
@@ -294,6 +296,7 @@ class Settings extends Model
 	protected function defineRules(): array
 	{
 		return [
+			[['deliveryDocumentVolumeUid'], 'string'],
 			[['autoCreateOnComplete', 'enforceCoverage'], 'boolean'],
 			[['lineItemStatusesToIgnore'],
 				'each',

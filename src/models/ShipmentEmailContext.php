@@ -10,7 +10,9 @@ use fostercommerce\shipments\elements\Shipment;
 use fostercommerce\shipments\enums\Status;
 use fostercommerce\shipments\records\ShipmentStatusHistory;
 
-/** Render-context bundle for a shipment email send. */
+/**
+ * Render-context bundle for a shipment email send.
+ */
 final readonly class ShipmentEmailContext
 {
 	public function __construct(
@@ -21,6 +23,7 @@ final readonly class ShipmentEmailContext
 		public ?ShipmentStatusHistory $history = null,
 		public ?User $user = null,
 		public ?string $message = null,
+		public ?Delivery $delivery = null,
 	) {
 	}
 }

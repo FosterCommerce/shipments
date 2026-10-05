@@ -36,6 +36,7 @@ class Shipment extends ElementType
 
 		return match ($fieldName) {
 			'orderReference' => $source->getOrder()?->reference,
+			'deliveryStatus' => $source->getDelivery()?->status,
 			default => parent::resolve($source, $arguments, $context, $resolveInfo),
 		};
 	}

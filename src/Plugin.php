@@ -40,18 +40,23 @@ use fostercommerce\shipments\gql\queries\Shipment as ShipmentGqlQuery;
 use fostercommerce\shipments\models\Settings;
 use fostercommerce\shipments\queue\jobs\AdvanceOrderStatusJob;
 use fostercommerce\shipments\rules\PostiePackingRule;
+use fostercommerce\shipments\services\CarrierMappings;
+use fostercommerce\shipments\services\Deliveries;
+use fostercommerce\shipments\services\DeliveryPreparation;
 use fostercommerce\shipments\services\Emails;
 use fostercommerce\shipments\services\IntegrationReferences;
 use fostercommerce\shipments\services\Integrations;
 use fostercommerce\shipments\services\IntegrationStatusMaps;
 use fostercommerce\shipments\services\PostiePacking;
 use fostercommerce\shipments\services\Rules;
+use fostercommerce\shipments\services\ShipmentCalculation;
 use fostercommerce\shipments\services\ShipmentExports;
 use fostercommerce\shipments\services\ShipmentFieldLayouts;
 use fostercommerce\shipments\services\ShipmentLineItems;
 use fostercommerce\shipments\services\ShipmentReferences;
 use fostercommerce\shipments\services\Shipments;
 use fostercommerce\shipments\services\ShipmentStatusHistories;
+use fostercommerce\shipments\services\Shipping;
 use fostercommerce\shipments\services\TrackedOrders;
 use fostercommerce\shipments\services\TransitionEmails;
 use fostercommerce\shipments\web\assets\cp\ShipmentsCpAsset;
@@ -74,6 +79,11 @@ use yii\base\Event;
  * @property-read ShipmentFieldLayouts $shipmentFieldLayouts
  * @property-read TrackedOrders $trackedOrders
  * @property-read PostiePacking $postiePacking
+ * @property-read Deliveries $deliveries
+ * @property-read Shipping $shipping
+ * @property-read ShipmentCalculation $shipmentCalculation
+ * @property-read DeliveryPreparation $deliveryPreparation
+ * @property-read CarrierMappings $carrierMappings
  */
 class Plugin extends \craft\base\Plugin
 {
@@ -89,6 +99,12 @@ class Plugin extends \craft\base\Plugin
 
 	public const PERMISSION_PUSH = 'shipments-pushShipments';
 
+	public const PERMISSION_CREATE_DELIVERY = 'shipments-createDelivery';
+
+	public const PERMISSION_VOID_DELIVERY = 'shipments-voidDelivery';
+
+	public const PERMISSION_DOWNLOAD_DOCUMENTS = 'shipments-downloadDocuments';
+
 	public const PERMISSION_MANAGE_INTEGRATIONS = 'shipments-manageIntegrations';
 
 	public const PERMISSION_MANAGE_EMAILS = 'shipments-manageEmails';
@@ -99,7 +115,14 @@ class Plugin extends \craft\base\Plugin
 
 	public bool $hasCpSection = true;
 
-	public string $schemaVersion = '1.0.1';
+	public string $schemaVersion = '1.2.0';
+
+	public static function getInstance(): static
+	{
+		/** @var static $plugin */
+		$plugin = parent::getInstance();
+		return $plugin;
+	}
 
 	public function init(): void
 	{
@@ -120,6 +143,11 @@ class Plugin extends \craft\base\Plugin
 			'shipmentFieldLayouts' => ShipmentFieldLayouts::class,
 			'trackedOrders' => TrackedOrders::class,
 			'postiePacking' => PostiePacking::class,
+			'deliveries' => Deliveries::class,
+			'shipping' => Shipping::class,
+			'shipmentCalculation' => ShipmentCalculation::class,
+			'deliveryPreparation' => DeliveryPreparation::class,
+			'carrierMappings' => CarrierMappings::class,
 		]);
 
 		if (Craft::$app instanceof ConsoleApplication) {
@@ -177,6 +205,41 @@ class Plugin extends \craft\base\Plugin
 		/** @var Settings $settings */
 		$settings = parent::getSettings();
 		return $settings;
+	}
+
+	public function getCarrierMappings(): CarrierMappings
+	{
+		/** @var CarrierMappings $service */
+		$service = $this->get('carrierMappings');
+		return $service;
+	}
+
+	public function getDeliveries(): Deliveries
+	{
+		/** @var Deliveries $service */
+		$service = $this->get('deliveries');
+		return $service;
+	}
+
+	public function getShipping(): Shipping
+	{
+		/** @var Shipping $service */
+		$service = $this->get('shipping');
+		return $service;
+	}
+
+	public function getDeliveryPreparation(): DeliveryPreparation
+	{
+		/** @var DeliveryPreparation $service */
+		$service = $this->get('deliveryPreparation');
+		return $service;
+	}
+
+	public function getShipmentCalculation(): ShipmentCalculation
+	{
+		/** @var ShipmentCalculation $service */
+		$service = $this->get('shipmentCalculation');
+		return $service;
 	}
 
 	public function getRules(): Rules
@@ -489,6 +552,15 @@ class Plugin extends \craft\base\Plugin
 						self::PERMISSION_VIEW => [
 							'label' => Craft::t(self::HANDLE, 'permission.viewShipments'),
 							'nested' => [
+								self::PERMISSION_CREATE_DELIVERY => [
+									'label' => Craft::t('shipments', 'permission.createCarrierDeliveries'),
+								],
+								self::PERMISSION_VOID_DELIVERY => [
+									'label' => Craft::t('shipments', 'permission.voidCarrierDeliveries'),
+								],
+								self::PERMISSION_DOWNLOAD_DOCUMENTS => [
+									'label' => Craft::t('shipments', 'permission.downloadCarrierDocuments'),
+								],
 								self::PERMISSION_EDIT => [
 									'label' => Craft::t(self::HANDLE, 'permission.editShipments'),
 								],

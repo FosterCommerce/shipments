@@ -28,6 +28,11 @@
 {% set tabs = {
 	integration: { label: 'settings.integrations.integration'|t('shipments'), url: '#integration' },
 	'provider-settings': { label: 'settings.integrations.provider'|t('shipments'), url: '#provider-settings' },
+	'carrier-mapping': {
+		label: 'settings.integrations.carrierMapping'|t('shipments'),
+		url: '#carrier-mapping',
+		class: integration.provider in carrierProviders|keys ? '' : 'hidden'
+	},
 } %}
 
 {% if readOnly %}
@@ -95,12 +100,13 @@
 	   Pane id is `provider-settings` (not `provider`) to avoid colliding with the sidebar
 	   Provider select's id. #}
 	<div id="provider-settings" class="hidden">
+		{{ forms.errorList(integration.getErrors('settings')) }}
 		{% if providerOptions|length %}
 			<fieldset{% if readOnly %} disabled{% endif %}>
 				{% for option in providerOptions %}
-					<div class="shipments-provider-panel{% if integration.provider != option.value %} hidden{% endif %}" data-provider="{{ option.value }}">
+					<fieldset class="shipments-provider-panel{% if integration.provider != option.value %} hidden{% endif %}" data-provider="{{ option.value }}">
 						{{ providerSettings[option.value]|raw }}
-					</div>
+					</fieldset>
 				{% endfor %}
 			</fieldset>
 
@@ -112,6 +118,36 @@
 				{% endif %}
 			{% endfor %}
 		{% endif %}
+	</div>
+	<div id="carrier-mapping" class="hidden">
+		{{ forms.errorList(integration.getErrors('settings')) }}
+		<fieldset{% if readOnly %} disabled{% endif %}>
+			{% for providerClass, carrier in carrierProviders %}
+				<fieldset class="shipments-provider-panel shipments-carrier-mapping{% if integration.provider != providerClass %} hidden{% endif %}"
+					data-provider="{{ providerClass }}"
+					data-input-prefix="{{ carrier.namespace }}"
+					data-sources="{{ carrierSources|json_encode|e('html_attr') }}"
+					data-services="{{ carrier.services|json_encode|e('html_attr') }}"
+					data-mappings="{{ carrier.mappings|json_encode|e('html_attr') }}">
+					<p class="light">{{ 'settings.integrations.carrierMappingHelp'|t('shipments') }}</p>
+					<input type="hidden" name="{{ carrier.namespace }}[carrierMappings]" value="">
+					<table class="data fullwidth">
+						<thead>
+							<tr>
+								<th scope="col">{{ 'settings.integrations.shippingSource'|t('shipments') }}</th>
+								<th scope="col">{{ 'settings.integrations.sourceService'|t('shipments') }}</th>
+								<th scope="col">{{ 'settings.integrations.integrationService'|t('shipments') }}</th>
+								<th scope="col"><span class="visually-hidden">{{ 'common.actions'|t('shipments') }}</span></th>
+							</tr>
+						</thead>
+						<tbody></tbody>
+					</table>
+					<div class="flex shipments-carrier-mapping-actions">
+						<button type="button" class="btn add icon" data-add-mapping>{{ 'settings.integrations.addMapping'|t('shipments') }}</button>
+					</div>
+				</fieldset>
+			{% endfor %}
+		</fieldset>
 	</div>
 	{% include 'shipments/_includes/plugin-footer' %}
 {% endblock %}

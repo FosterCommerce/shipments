@@ -256,3 +256,54 @@ Event::on(
 ## Debugging
 
 Set your site's log level to `info` and all status transitions log their source + target to the `shipments` log category. Increase to `debug` for rules-engine trace output.
+
+## `Deliveries::EVENT_AFTER_CREATE`
+
+**Fires:** in `Deliveries::publishSafely()` after a successful booking has saved its references and protected PDFs and transitioned the shipment to Shipped.
+
+**Payload:** `fostercommerce\shipments\events\DeliveryEvent`
+
+| Property | Type | Notes |
+|---|---|---|
+| `shipment` | `Shipment` | Current shipment element. |
+| `delivery` | `Delivery` | Saved booking, references, documents, cost, and operation ID. |
+
+**Listen:**
+
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace modules\deliverylog;
+
+use Craft;
+use fostercommerce\shipments\events\DeliveryEvent;
+use fostercommerce\shipments\services\Deliveries;
+use yii\base\Event;
+use yii\base\Module;
+
+class DeliveryLog extends Module
+{
+    public function init(): void
+    {
+        parent::init();
+        Event::on(Deliveries::class, Deliveries::EVENT_AFTER_CREATE, static function (DeliveryEvent $event): void {
+            Craft::info(
+                'Delivery ready: ' . $event->delivery->operationId . ', shipment ' . $event->shipment->id,
+                'delivery-ready',
+            );
+        });
+    }
+}
+```
+
+**Common use:** log completed carrier bookings or enqueue integration follow-up work.
+
+**Publication:** emitted once when the delivery first succeeds with tracking and documents saved. Refreshing or restoring documents does not emit it again. Configured emails use the Shipped status transition, which commits with delivery completion before this event fires.
+
+## `Deliveries::EVENT_AFTER_CANCEL`
+
+Fires after the carrier confirms cancellation and the delivery is saved as `voided`. Uses the same `DeliveryEvent` payload as creation. Failed or uncertain cancellation requests do not emit it. This event does not send configured emails.
+
+This event is emitted on confirmed cancellation and cannot be manually republished. Cancelling a delivery does not imply a refund or change the shipment's fulfillment status.

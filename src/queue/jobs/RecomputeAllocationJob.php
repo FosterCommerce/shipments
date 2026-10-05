@@ -22,7 +22,6 @@ class RecomputeAllocationJob extends BaseJob
 			return;
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		foreach ($this->orderIds as $orderId) {
 			$order = $plugin->shipments->loadOrder($orderId);

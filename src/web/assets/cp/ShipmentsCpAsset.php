@@ -35,6 +35,19 @@ class ShipmentsCpAsset extends AssetBundle
 
 		if ($view instanceof View) {
 			$view->registerTranslations(Plugin::HANDLE, [
+				'shipmentEdit.couldNotSaveShipDate',
+				'delivery.couldNotSaveMethod',
+				'delivery.responseCopied',
+				'delivery.couldNotCopyResponse',
+				'settings.integrations.shippingSource',
+				'settings.integrations.sourceService',
+				'settings.integrations.integrationService',
+				'settings.integrations.removeMapping',
+				'settings.integrations.chooseSource',
+				'settings.integrations.chooseService',
+				'settings.integrations.noSourceService',
+				'settings.integrations.unavailable',
+
 				'error.couldNotRestoreShipments',
 				'error.couldNotSaveLineItems',
 				'error.couldNotSaveShipments',

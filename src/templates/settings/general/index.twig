@@ -339,6 +339,22 @@
 			<p class="light">{{ 'settings.tracking.noOrderStatuses'|t('shipments') }}</p>
 		{% endif %}
 
+		<hr>
+
+		{{ forms.selectField({
+			label: 'settings.deliveryDocumentVolume'|t('shipments'),
+			instructions: 'settings.deliveryDocumentVolumeHelp'|t('shipments'),
+			id: 'delivery-document-volume',
+			name: 'settings[deliveryDocumentVolumeUid]',
+			value: settings.deliveryDocumentVolumeUid,
+			disabled: readOnly,
+			options: [{
+				label: 'settings.selectDeliveryDocumentVolume'|t('shipments'),
+				value: ''
+			}]|merge(deliveryVolumeOptions),
+			errors: settings.getErrors('deliveryDocumentVolumeUid')
+		}) }}
+
 		{% if not readOnly %}
 			<hr>
 

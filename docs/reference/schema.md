@@ -8,23 +8,28 @@ Every table the plugin creates, keyed. Source of truth: `src/migrations/Install.
 
 Supplementary table for the `Shipment` element. Keyed to `craft_elements.id`; the element row owns `dateCreated`, `dateUpdated`, `uid`, `dateDeleted`, `enabled`, `archived`.
 
-| Column                | Type        | Notes                                                |
-|-----------------------|-------------|------------------------------------------------------|
-| `id`                  | int PK      | -> `craft_elements.id` ON DELETE CASCADE             |
-| `orderId`             | int NOT NULL| -> `commerce_orders.id` ON DELETE CASCADE            |
-| `reference`           | varchar     | UNIQUE. Format `{orderRef}-sNNN`.                    |
-| `number`              | int NOT NULL| Per-order sequence integer. UNIQUE with `orderId`.  |
-| `status`              | varchar(32) | `Status` value. Default `new`. Indexed.             |
-| `dateScheduledShip`   | datetime    | Merchant-intended ship date.                        |
-| `trackingNumber`      | varchar     |                                                     |
-| `trackingUrl`         | varchar     |                                                     |
-| `carrier`             | varchar     | Indexed.                                            |
-| `service`             | varchar     |                                                     |
-| `fulfillmentNotes`    | text        | Admin-editable free-text notes.                     |
-| `shippingNotes`       | text        | Admin-editable free-text notes.                     |
-| `dateLastPushAttempt` | datetime    | Set by `PushShipmentJob` after each attempt.        |
-| `lastPushAttemptError`| text        | Error message on the last attempt; null on success. |
-| `pushAttemptCount`    | smallint    | Incremented on every push attempt. Default 0.       |
+| Column                 | Type         | Notes                                                                       |
+|------------------------|--------------|-----------------------------------------------------------------------------|
+| `id`                   | int PK       | -> `craft_elements.id` ON DELETE CASCADE                                    |
+| `orderId`              | int NOT NULL | -> `commerce_orders.id` ON DELETE CASCADE                                   |
+| `reference`            | varchar      | UNIQUE. Format `{orderRef}-sNNN`.                                           |
+| `number`               | int NOT NULL | Per-order sequence integer. UNIQUE with `orderId`.                          |
+| `status`               | varchar(32)  | `Status` value. Default `new`. Indexed.                                     |
+| `dateScheduledShip`    | datetime     | Merchant-intended ship date.                                                |
+| `trackingNumber`       | varchar      |                                                                             |
+| `trackingUrl`          | varchar      |                                                                             |
+| `carrier`              | varchar      | Indexed.                                                                    |
+| `service`              | varchar      |                                                                             |
+| `fulfillmentNotes`     | text         | Admin-editable free-text notes.                                             |
+| `shippingNotes`        | text         | Admin-editable free-text notes.                                             |
+| `dateLastPushAttempt`  | datetime     | Set by `PushShipmentJob` after each attempt.                                |
+| `lastPushAttemptError` | text         | Error message on the last attempt; null on success.                         |
+| `pushAttemptCount`     | smallint     | Incremented on every push attempt. Default 0.                               |
+| `shippingMethodHandle` | varchar      | Selected method handle, including carrier service handles.                  |
+| `shippingMethodName`   | varchar      | Display-name snapshot.                                                      |
+| `shippingAmount`       | varchar(64)  | Exact integer minor units; exposed as `shippingAmountMinor` on the element. |
+| `shippingCurrency`     | varchar(3)   | ISO currency paired with `shippingAmount`.                                  |
+| `shippingSnapshot`     | JSON         | Saved options, quotes, fingerprints, and expiry data.                       |
 
 ## `shipments_shipment_line_items`
 
@@ -162,6 +167,37 @@ Which completed orders the plugin is actively watching for fulfillment, plus eac
 | `uid`                   | uid         |                                                                                              |
 
 Indexed on `(state, shippable, underAllocated)` for the Attention page filter.
+
+## `shipments_deliveries`
+
+Per-shipment carrier booking attempts.
+
+| Column           | Type                 | Notes                                                                                                |
+|------------------|----------------------|------------------------------------------------------------------------------------------------------|
+| `id`             | int PK               |                                                                                                      |
+| `shipmentId`     | int NOT NULL         | -> `shipments_shipments.id` ON DELETE CASCADE                                                        |
+| `integrationId`  | int NOT NULL         | -> `shipments_integrations.id` ON DELETE RESTRICT                                                    |
+| `operationId`    | varchar(36) NOT NULL | UUID for the carrier request.                                                                        |
+| `status`         | varchar(32) NOT NULL | `pending`, `processing`, `created`, `failed`, `uncertain`, `voiding`, `void_uncertain`, or `voided`. |
+| `externalId`     | varchar              | Durable carrier reference or asynchronous job ID.                                                    |
+| `carrier`        | varchar NOT NULL     | Default empty string.                                                                                |
+| `service`        | varchar NOT NULL     | Default empty string.                                                                                |
+| `trackingNumber` | varchar              | Primary tracking reference.                                                                          |
+| `trackingUrl`    | text                 | Primary tracking URL.                                                                                |
+| `costAmount`     | varchar(64)          | Recorded cost in exact integer minor units.                                                          |
+| `costCurrency`   | varchar(3)           | ISO currency paired with the recorded cost.                                                          |
+| `metadata`       | JSON                 | Provider recovery data and cost provenance.                                                          |
+| `requestData`    | JSON                 | Options and selected quote at submission.                                                            |
+| `references`     | JSON                 | Typed BOL, PRO, master, and package references.                                                      |
+| `documents`      | JSON                 | Per-delivery PDF `assetId`, original `filename`, `mimeType`, and optional `trackingNumber`.          |
+| `lastError`      | text                 | Admin-facing failure or recovery message.                                                            |
+| `createdBy`      | int                  | Initiating user ID.                                                                                  |
+| `dateNotified`   | datetime             | First successful completion; prevents repeat creation events.                                        |
+| `dateCreated`    | datetime             |                                                                                                      |
+| `dateUpdated`    | datetime             |                                                                                                      |
+| `uid`            | uid                  |                                                                                                      |
+
+UNIQUE on `operationId`. Indexed on `(shipmentId, status)`.
 
 ## Craft core dependencies
 

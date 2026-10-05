@@ -33,7 +33,11 @@
 	"require": {
 		"php": "^8.2",
 		"craftcms/cms": "^5.0",
-		"craftcms/commerce": "^5.0"
+		"craftcms/commerce": "^5.0",
+		"dvdoug/boxpacker": "^3.0",
+		"moneyphp/money": "^4.9",
+		"php-units-of-measure/php-units-of-measure": "^2.1",
+		"verbb/shippy": "^1.2.23"
 	},
 	"require-dev": {
 		"verbb/postie": "^5.0",

@@ -9,6 +9,8 @@ namespace fostercommerce\shipments\db;
  */
 final class Table
 {
+	public const DELIVERIES = '{{%shipments_deliveries}}';
+
 	public const SHIPMENTS = '{{%shipments_shipments}}';
 
 	public const SHIPMENT_LINE_ITEMS = '{{%shipments_shipment_line_items}}';

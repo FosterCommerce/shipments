@@ -39,7 +39,6 @@ class IntegrationReferences extends Component
 			throw new InvalidArgumentException('Cannot set an integration reference on an unsaved shipment.');
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		$integration = $plugin->integrations->getIntegrationByHandle($integrationHandle);
 		if (! $integration instanceof Integration || $integration->id === null) {
@@ -74,7 +73,6 @@ class IntegrationReferences extends Component
 
 	public function findByIntegrationReference(string $integrationHandle, string $externalId): ?Shipment
 	{
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		$integration = $plugin->integrations->getIntegrationByHandle($integrationHandle);
 		if (! $integration instanceof Integration || $integration->id === null) {
@@ -167,7 +165,6 @@ class IntegrationReferences extends Component
 			throw new InvalidArgumentException('Cannot save integration references for an unsaved shipment.');
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		$knownSourceIds = [];
 		foreach ($plugin->integrations->getAllIntegrations() as $knownSource) {

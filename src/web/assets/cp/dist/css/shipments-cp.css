@@ -1,5 +1,46 @@
 /* Shipments plugin: CP styles for the order-edit tab and shipment edit page. */
 
+.shipment-ship-date-input {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.shipment-ship-date-spinner {
+	margin-inline-start: auto;
+	flex-shrink: 0;
+}
+
+/* Keep editable package-size tables inside the integration settings pane. */
+#provider-settings > fieldset,
+#provider-settings .shipments-provider-panel {
+	min-width: 0;
+}
+
+.shipments-size-table-field {
+	min-width: 0;
+}
+
+.shipments-size-table-field .input {
+	max-width: 100%;
+	min-width: 0;
+	overflow-x: auto;
+}
+
+.shipments-size-table-field table.editable {
+	min-width: 730px;
+}
+
+.shipments-size-table-field-wide table.editable {
+	min-width: 850px;
+}
+
+.shipments-size-table-field .btn.add {
+	position: sticky;
+	left: 0;
+	max-width: 100%;
+}
+
 /* Saved-shipment cards on the order tab. */
 .shipments-card {
 	margin-top: 1em;
@@ -408,3 +449,108 @@
 .fc-fc-logo path[fill="#D8AF7C"] { fill: currentcolor; transition: fill 0.3s ease; }
 .fc-plugin-credit:hover .fc-fc-logo { color: var(--text-color); }
 .fc-plugin-credit:hover .fc-fc-logo path[fill="#D8AF7C"] { fill: #D8AF7C; }
+.shipments-carrier-mapping table {
+	table-layout: fixed;
+}
+
+.shipments-carrier-mapping-actions {
+	margin-top: 12px;
+}
+
+.shipment-delivery-chevron {
+	margin-inline-start: auto;
+	flex-shrink: 0;
+}
+
+.shipment-item-column {
+	width: 35%;
+}
+
+table.data thead th.shipment-measurement-column {
+	white-space: normal;
+}
+
+.shipment-previous-cost {
+	text-decoration: underline dotted;
+	text-underline-offset: 3px;
+	cursor: help;
+}
+
+.shipment-rate-actions {
+	margin-block: 24px;
+}
+
+.pane.shipment-delivery {
+	padding: 0;
+}
+
+.shipment-delivery-summary {
+	cursor: pointer;
+	padding: 0.75rem;
+}
+
+.shipment-delivery-summary > .shipment-delivery-title {
+	margin: 0;
+}
+
+.shipment-delivery-content {
+	padding: 0 0.75rem 0.75rem;
+}
+
+.shipment-document-groups {
+	display: flex;
+	flex-direction: column;
+	gap: 24px;
+}
+
+.bullets.shipment-package-items {
+	margin-inline-start: 24px;
+}
+
+.shipment-delivery[open] > summary > .shipment-delivery-chevron {
+	transform: rotate(180deg);
+}
+
+.shipments-carrier-mapping th {
+	white-space: normal;
+	overflow-wrap: anywhere;
+}
+
+.shipments-carrier-mapping th:last-child {
+	width: 28px;
+}
+
+.shipments-carrier-mapping .select,
+.shipments-carrier-mapping select {
+	min-width: 0;
+	max-width: 100%;
+	width: 100%;
+}
+
+.shipment-delivery-documents {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(0, 12rem) max-content;
+	align-items: center;
+	gap: 0.75rem;
+}
+
+.shipment-delivery-documents > div {
+	min-width: 0;
+}
+
+.shipment-delivery-documents > div:nth-child(3n + 2) {
+	display: flex;
+	justify-content: flex-end;
+}
+
+.shipment-delivery-documents .elements {
+	margin: 0;
+}
+
+.shipment-delivery-documents .elementselect .elements:not(:empty) + .flex {
+	margin-block-start: 0;
+}
+
+.shipment-delivery-documents .status-label {
+	white-space: normal;
+}

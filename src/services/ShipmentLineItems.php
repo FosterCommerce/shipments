@@ -86,7 +86,6 @@ class ShipmentLineItems extends Component
 	 */
 	public function isShippingWork(LineItem $lineItem): bool
 	{
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		$settings = $plugin->getSettings();
 

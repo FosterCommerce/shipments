@@ -9,6 +9,7 @@ use craft\helpers\DateTimeHelper;
 use craft\web\Controller;
 use DateTimeInterface;
 use fostercommerce\shipments\elements\Shipment;
+use fostercommerce\shipments\models\Delivery;
 use fostercommerce\shipments\models\Integration;
 use fostercommerce\shipments\models\ShipmentUpdatePayload;
 use fostercommerce\shipments\Plugin;
@@ -17,7 +18,9 @@ use yii\web\BadRequestHttpException;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
 
-/** REST API for shipment status updates. */
+/**
+ * REST API for shipment status updates.
+ */
 class ApiController extends Controller
 {
 	public $enableCsrfValidation = false;
@@ -35,7 +38,6 @@ class ApiController extends Controller
 		$this->requirePostRequest();
 		$this->requirePermission(Plugin::PERMISSION_EDIT);
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$shipment = $plugin->shipments->findById($id, includeTrashed: true);
@@ -110,7 +112,6 @@ class ApiController extends Controller
 			return null;
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		$integration = $plugin->integrations->getIntegrationByHandle($handleRaw);
 		return $integration instanceof Integration ? $integration : null;
@@ -121,6 +122,8 @@ class ApiController extends Controller
 	 */
 	private function serializeShipment(Shipment $shipment): array
 	{
+		$delivery = $shipment->getDelivery();
+
 		return [
 			'id' => $shipment->id,
 			'reference' => $shipment->reference,
@@ -132,6 +135,12 @@ class ApiController extends Controller
 			'trackingUrl' => $shipment->trackingUrl,
 			'carrier' => $shipment->carrier,
 			'service' => $shipment->service,
+			'shippingMethodHandle' => $shipment->shippingMethodHandle,
+			'shippingMethodName' => $shipment->shippingMethodName,
+			'delivery' => $delivery instanceof Delivery ? [
+				'status' => $delivery->status,
+				'references' => $delivery->references,
+			] : null,
 			'fulfillmentNotes' => $shipment->fulfillmentNotes,
 			'shippingNotes' => $shipment->shippingNotes,
 			'enabled' => $shipment->enabled,

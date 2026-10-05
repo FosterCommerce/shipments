@@ -1,0 +1,258 @@
+{% import '_includes/forms' as forms %}
+
+{% set canEdit = currentUser.can(constant('fostercommerce\\shipments\\Plugin::PERMISSION_EDIT')) %}
+{% set canCreate = currentUser.can(constant('fostercommerce\\shipments\\Plugin::PERMISSION_CREATE_DELIVERY')) %}
+{% set canVoid = currentUser.can(constant('fostercommerce\\shipments\\Plugin::PERMISSION_VOID_DELIVERY')) %}
+{% set canDownload = currentUser.can(constant('fostercommerce\\shipments\\Plugin::PERMISSION_DOWNLOAD_DOCUMENTS')) %}
+{% set canPrepare = canEdit and not activeDelivery and shipment.enabled and not shipment.trashed %}
+{% set isCancelled = shipment.status == 'cancelled' %}
+
+<fieldset{% if isCancelled %} disabled inert aria-disabled="true" class="disabled"{% endif %}>
+
+{% set measurementSettings = craft.commerce.settings %}
+{% set totalItemWeight = 0 %}
+{% set hasMissingWeight = false %}
+
+<h2>{{ 'delivery.shipmentItems'|t('shipments') }}</h2>
+<table class="data fullwidth">
+	<thead>
+		<tr>
+			<th class="shipment-item-column">{{ 'delivery.item'|t('shipments') }}</th>
+			<th>{{ 'delivery.quantity'|t('shipments') }}</th>
+			<th class="shipment-measurement-column">{{ 'delivery.unitWeight'|t('shipments') }}</th>
+			<th class="shipment-measurement-column">{{ 'delivery.totalWeight'|t('shipments') }}</th>
+			<th class="shipment-measurement-column">{{ 'delivery.itemDimensions'|t('shipments') }}</th>
+		</tr>
+	</thead>
+	<tbody>
+		{% for item in shipment.lineItems %}
+			{% set orderItem = null %}
+			{% for candidate in order.lineItems %}
+				{% if candidate.id == item.lineItemId %}
+					{% set orderItem = candidate %}
+				{% endif %}
+			{% endfor %}
+			{% set hasWeight = orderItem and orderItem.weight > 0 %}
+			{% if hasWeight %}
+				{% set totalItemWeight = totalItemWeight + orderItem.weight * item.qty %}
+			{% else %}
+				{% set hasMissingWeight = true %}
+			{% endif %}
+			<tr>
+				<td>{{ orderItem ? orderItem.description : '#' ~ item.lineItemId }}{% if orderItem and orderItem.sku %} <code>{{ orderItem.sku }}</code>{% endif %}</td>
+				<td>{{ item.qty }}</td>
+				<td>{{ hasWeight ? orderItem.weight|number ~ ' ' ~ measurementSettings.weightUnits : 'delivery.notAvailable'|t('shipments') }}</td>
+				<td>{{ hasWeight ? (orderItem.weight * item.qty)|number ~ ' ' ~ measurementSettings.weightUnits : 'delivery.notAvailable'|t('shipments') }}</td>
+				<td>{% if orderItem and orderItem.length > 0 and orderItem.width > 0 and orderItem.height > 0 %}{{ orderItem.length|number }} × {{ orderItem.width|number }} × {{ orderItem.height|number }} {{ measurementSettings.dimensionUnits }}{% else %}{{ 'delivery.notAvailable'|t('shipments') }}{% endif %}</td>
+			</tr>
+		{% endfor %}
+	</tbody>
+</table>
+<p>{{ 'delivery.totalShipmentItemWeight'|t('shipments') }}: <strong>{{ hasMissingWeight ? 'delivery.notAvailable'|t('shipments') : totalItemWeight|number ~ ' ' ~ measurementSettings.weightUnits }}</strong></p>
+
+{% if not hasDeliveryProviders %}
+	<p class="warning">{{ 'delivery.noAvailableCarrierProviders'|t('shipments') }}</p>
+{% else %}
+
+<hr>
+<h2>{{ 'delivery.shipmentShippingMethod'|t('shipments') }}</h2>
+{% if staleQuote and not activeDelivery %}
+	<p class="warning">{{ 'delivery.quoteIsStale'|t('shipments') }}</p>
+{% endif %}
+{% set rateErrors = shipment.shippingSnapshot.errors ?? [] %}
+{% if quotes|length or rateErrors|length %}
+	<div>
+		<table class="data fullwidth">
+			<thead>
+				<tr>
+					<th>{{ 'delivery.method'|t('shipments') }}</th>
+					<th>{{ 'delivery.integration'|t('shipments') }}</th>
+					<th>{{ 'shipmentEdit.transitDays'|t('shipments') }}</th>
+					<th>{{ 'delivery.cost'|t('shipments') }}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for quote in quotes %}
+					<tr>
+						<td><label><input
+							type="radio"
+							name="method"
+							form="shipment-delivery-select-method"
+							value="{{ quote.handle }}"
+							{{ selectedQuote and selectedQuote.handle == quote.handle ? 'checked' }}
+							{{ not canPrepare or staleQuote ? 'disabled' }}
+						> {{ quote.name }}</label></td>
+						<td>{{ providerNames[quote.providerUid] ?? 'delivery.notAvailable'|t('shipments') }}</td>
+						<td>{{ quote.transitDays ?? '' }}</td>
+						<td>
+							{{ quoteCosts[quote.handle] ?? 'delivery.notConfirmed'|t('shipments') }}
+							{% if quote.previousCarrierCost %}
+								(<span class="warning shipment-previous-cost" tabindex="0" title="{{ 'delivery.carrierAmountChangedFrom'|t('shipments', {amount: quote.formattedPreviousCarrierCost}) }}" aria-label="{{ 'delivery.carrierAmountChangedFrom'|t('shipments', {amount: quote.formattedPreviousCarrierCost}) }}">{{ quote.formattedPreviousCarrierCost }}</span>)
+							{% endif %}
+						</td>
+					</tr>
+				{% endfor %}
+				{% for error in rateErrors %}
+					<tr>
+						<td class="error" colspan="4">{{ error.provider }}: {{ error.message }}</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+		<div id="shipment-method-status" role="status" aria-live="polite" class="hidden"><span class="spinner"></span> {{ 'delivery.savingMethod'|t('shipments') }}</div>
+	</div>
+{% else %}
+	<p class="light">{{ 'delivery.refreshRatesToFindMethodsForThisShipmentS'|t('shipments') }}</p>
+{% endif %}
+
+{% if canPrepare %}
+	<div class="shipment-rate-actions">
+		<div class="buttons flex">
+			<button class="btn submit{{ shipDateInPast ? ' disabled' }}" type="submit" form="shipment-delivery-refresh-rates" {{ shipDateInPast ? 'disabled' }} aria-disabled="{{ shipDateInPast ? 'true' : 'false' }}">{{ 'delivery.refreshRates'|t('shipments') }}</button>
+			{% if shipDateInPast %}
+				<span class="info warning">{{ 'delivery.shipDateInPast'|t('shipments') }}</span>
+			{% endif %}
+		</div>
+	</div>
+{% elseif activeDelivery %}
+	<p class="notice">{{ 'delivery.deliveryDetailsAreLockedWhileThisShipmentHasAn'|t('shipments') }}</p>
+{% endif %}
+
+<div id="shipment-prepared-details">
+	{% include "shipments/_cp/shipment/_prepared" %}
+</div>
+
+{% if selectedQuote and not activeDelivery and canCreate and shipment.enabled %}
+	{% if integrations|length %}
+		<div class="buttons">
+			<button type="submit" class="btn submit{{ staleQuote or shipDateInPast ? ' disabled' }}" form="shipment-delivery-create" {{ staleQuote or shipDateInPast ? 'disabled' }} aria-disabled="{{ staleQuote or shipDateInPast ? 'true' : 'false' }}">{{ 'delivery.createDelivery'|t('shipments') }}</button>
+		</div>
+	{% else %}
+		<p class="light">{{ 'delivery.thisMethodHasNoEnabledCarrierDocumentIntegration'|t('shipments') }}</p>
+	{% endif %}
+{% endif %}
+
+{% endif %}
+
+{% if hasDeliveryProviders or deliveries|length %}
+<hr>
+<h2>{{ 'delivery.deliveryHistory'|t('shipments') }}</h2>
+{% for delivery in deliveries %}
+	<details class="pane shipment-delivery" id="delivery-{{ delivery.id }}"{% if loop.first %} open{% endif %}>
+		<summary class="flex shipment-delivery-summary">
+			{{ delivery.statusHtml|raw }}
+			<h3 class="shipment-delivery-title">{{ (delivery.requestData.quote.name ?? null) ?: delivery.service ?: delivery.carrier ?: 'delivery.delivery'|t('shipments') }}{% if delivery.dateCreated %} - {{ delivery.dateCreated|datetime('short') }}{% endif %}</h3>
+			<svg class="shipment-delivery-chevron" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+		</summary>
+		<div class="shipment-delivery-content">
+		{% if delivery.externalId %}
+			<p><strong>{{ 'delivery.carrierReference'|t('shipments') }}:</strong> {% if delivery.trackingUrl %}<a href="{{ delivery.trackingUrl }}" target="_blank" rel="noopener">{{ delivery.externalId }}</a>{% else %}{{ delivery.externalId }}{% endif %}</p>
+		{% endif %}
+		<p><strong>{{ 'delivery.recordedCarrierCost'|t('shipments') }}:</strong> {{ delivery.formattedCost ?? 'delivery.notConfirmed'|t('shipments') }}</p>
+		<p><strong>{{ 'shipmentEdit.transitDays'|t('shipments') }}:</strong> {{ delivery.transitDays ?? 'delivery.notAvailable'|t('shipments') }}</p>
+		{% for reference in delivery.references|filter(reference => reference.type not in ['package', 'master']) %}
+			<p>{{ reference.type|upper }}: {% if reference.url ?? null %}<a href="{{ reference.url }}" target="_blank" rel="noopener">{{ reference.number }}</a>{% else %}
+			{{ reference.number }}{% endif %}</p>
+		{% endfor %}
+		{% if delivery.lastError %}
+			<p class="error">{{ delivery.lastError }}</p>
+		{% endif %}
+		{% for warning in delivery.metadata.warnings ?? [] %}
+			<p class="warning">{{ warning }}</p>
+		{% endfor %}
+		{% if delivery.status == 'uncertain' %}
+			<p class="warning">{{ 'delivery.carrierMayHaveAcceptedThisDelivery'|t('shipments') }}</p>
+		{% endif %}
+		{% if canDownload and delivery.documents|length %}
+			<h3>{{ 'delivery.packages'|t('shipments') }}</h3>
+			<div class="shipment-document-groups">
+			{% for group in delivery.documentGroups %}
+				<section>
+					<h4>{{ group.trackingNumber ? 'delivery.package'|t('shipments') ~ ' ' ~ (group.sequenceNumber ?? loop.index) ~ ' - ' ~ group.trackingNumber : 'delivery.pdfAssets'|t('shipments') }}</h4>
+					<div class="shipment-delivery-documents">
+						{% for document in group.documents %}
+							<div>{{ forms.elementSelect({
+								id: 'delivery-document-' ~ delivery.id ~ '-' ~ document.asset.id,
+								elementType: 'craft\\elements\\Asset',
+								elements: [document.asset],
+								allowAdd: false,
+								allowRemove: false,
+								sortable: false,
+								showActionMenu: false
+							}) }}</div>
+							<div><span class="status-label gray"><span class="status-label-text">{{ document.type ? document.type.label() : 'delivery.notAvailable'|t('shipments') }}</span></span></div>
+							<div>{% if document.asset.url %}<a class="btn" href="{{ document.asset.url }}" target="_blank" rel="noopener">{{ 'delivery.print'|t('shipments') }}</a>{% endif %}</div>
+						{% endfor %}
+					</div>
+				</section>
+			{% endfor %}
+			</div>
+		{% endif %}
+		<div class="buttons flex">
+			{% if canCreate and delivery.status in ['pending', 'uncertain', 'processing'] and delivery.externalId %}
+				<button type="submit" class="btn" form="shipment-delivery-refresh-delivery-{{ delivery.id }}">{{ 'delivery.retrieveDeliveryDocuments'|t('shipments') }}</button>
+			{% endif %}
+			{% if canVoid and delivery.status in ['pending', 'created', 'voiding', 'void_uncertain'] and delivery.externalId %}
+				<button type="submit" class="btn" form="shipment-delivery-void-{{ delivery.id }}">{{ 'delivery.voidCarrierDelivery'|t('shipments') }}</button>
+			{% endif %}
+			{% if delivery.metadata.response is defined %}
+				<a href="#" class="shipment-copy-response" data-response="{{ delivery.responseJson }}">{{ 'delivery.copyResponse'|t('shipments') }}</a>
+			{% endif %}
+		</div>
+		{% if canCreate and delivery.status in ['pending', 'processing', 'uncertain'] and not delivery.trackingNumber and not delivery.references|length and not delivery.documents|length %}
+			<details>
+				<summary>{{ 'delivery.recordCarrierReview'|t('shipments') }}</summary>
+				<div>
+					<div class="field">
+						<input
+							type="checkbox"
+							class="checkbox"
+							id="confirm-no-delivery-{{ delivery.id }}"
+							name="confirmNoDelivery"
+							value="1"
+							form="shipment-delivery-acknowledge-failed-{{ delivery.id }}"
+						>
+						<label for="confirm-no-delivery-{{ delivery.id }}">{{ 'delivery.carrierHasConfirmedThatNoDeliveryWasCreated'|t('shipments') }}</label>
+					</div>
+					{{ forms.textareaField({
+						label: 'delivery.reviewNotes'|t('shipments'),
+						id: 'delivery-review-notes-' ~ delivery.id,
+						name: 'note',
+						rows: 2,
+						required: true,
+						inputAttributes: {form: 'shipment-delivery-acknowledge-failed-' ~ delivery.id}
+					}) }}
+					<button type="submit" class="btn" form="shipment-delivery-acknowledge-failed-{{ delivery.id }}">{{ 'delivery.recordAsNotCreated'|t('shipments') }}</button>
+				</div>
+			</details>
+		{% endif %}
+		{% hook 'cp.shipments.delivery' %}
+		</div>
+	</details>
+{% else %}
+	<p class="light">{{ 'delivery.noCarrierDeliveryHasBeenCreatedForThisShipment'|t('shipments') }}</p>
+{% endfor %}
+{% endif %}
+
+</fieldset>
+
+{% macro actionForms(shipment, deliveries) %}
+	{% if shipment.status != 'cancelled' %}
+	{% for action in ['refresh-rates', 'select-method', 'create'] %}
+		<form id="shipment-delivery-{{ action }}" method="post" hidden>
+			{{ csrfInput() }}
+			{{ actionInput('shipments/deliveries/' ~ action) }}
+			{{ hiddenInput('id', shipment.id) }}
+		</form>
+	{% endfor %}
+	{% for delivery in deliveries %}
+		{% for action in ['refresh-delivery', 'void', 'acknowledge-failed'] %}
+			<form id="shipment-delivery-{{ action }}-{{ delivery.id }}" method="post" hidden{% if action == 'void' %} data-void-confirm="{{ 'delivery.confirmVoid'|t('shipments') }}"{% endif %}>
+				{{ csrfInput() }}
+				{{ actionInput('shipments/deliveries/' ~ action) }}
+				{{ hiddenInput('deliveryId', delivery.id) }}
+			</form>
+		{% endfor %}
+	{% endfor %}
+	{% endif %}
+{% endmacro %}
