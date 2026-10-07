@@ -29,7 +29,6 @@ class GatewayController extends Controller
 			throw new BadRequestHttpException('Integration must be set.');
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		try {

@@ -35,7 +35,6 @@ class IntegrationReference extends Model
 
 	public function getSource(): ?Integration
 	{
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		return $plugin->integrations->getIntegrationById($this->integrationId);
 	}

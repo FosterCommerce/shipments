@@ -35,7 +35,6 @@ class PushShipmentJob extends BaseJob
 			return;
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$shipment = $plugin->shipments->findById($this->shipmentId, includeTrashed: false);

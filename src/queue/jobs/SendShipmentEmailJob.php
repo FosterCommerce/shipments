@@ -37,7 +37,6 @@ class SendShipmentEmailJob extends BaseJob
 			return;
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$shipment = $plugin->shipments->findById($this->shipmentId);
@@ -89,6 +88,7 @@ class SendShipmentEmailJob extends BaseJob
 			history: $history instanceof ShipmentStatusHistory ? $history : null,
 			user: $user,
 			message: $this->message,
+			delivery: $plugin->deliveries->getLatestForShipment($this->shipmentId),
 		);
 
 		$error = '';

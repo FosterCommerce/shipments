@@ -26,7 +26,6 @@ class EmailsController extends Controller
 	{
 		$this->requirePermission(Plugin::PERMISSION_MANAGE_EMAILS);
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		return $this->renderTemplate(Plugin::HANDLE . '/settings/emails/index', [
@@ -41,7 +40,6 @@ class EmailsController extends Controller
 	{
 		$this->requirePermission(Plugin::PERMISSION_MANAGE_EMAILS);
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		if (! $email instanceof Email) {
@@ -83,7 +81,6 @@ class EmailsController extends Controller
 		$this->requirePostRequest();
 		$this->requirePermission(Plugin::PERMISSION_MANAGE_EMAILS);
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$idInput = $this->request->getBodyParam('id');
@@ -141,7 +138,6 @@ class EmailsController extends Controller
 		$this->requireAcceptsJson();
 		$this->requirePermission(Plugin::PERMISSION_MANAGE_EMAILS);
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$idInput = $this->request->getRequiredBodyParam('id');

@@ -29,8 +29,148 @@
 		initPushIntegrationButtons();
 		initIntegrationReferencesRepeater();
 		initIntegrationProviderPanels();
+		initCarrierMappings();
+		initShipDateAutosave();
+		initDeliveryMethod();
+		initCreateDeliveryButton();
+		initCopyDeliveryResponse();
+		initVoidDeliveryConfirmation();
 		initSettingsAddRuleButtons();
 	});
+
+	function initShipDateAutosave() {
+		const $field = $('[data-shipments-ship-date]');
+		if (!$field.length) {
+			return;
+		}
+
+		const $date = $field.find('input[name="dateScheduledShip[date]"]');
+		const $spinner = $field.find('.shipment-ship-date-spinner');
+		const $mainForm = $('#main-form');
+		let savedDate = $date.val();
+		$date.on('change', async function () {
+			const dateInput = {};
+			$field.find('input').serializeArray().forEach(({name, value}) => {
+				dateInput[name.match(/\[([^\]]+)\]$/)[1]] = value;
+			});
+			const $buttons = $('#main-form, #delivery').find('button[type="submit"], input[type="submit"]').add($field.find('button')).filter(':enabled');
+			$buttons.prop('disabled', true);
+			$date.prop('disabled', true);
+			if ($date.data('datepicker')) {
+				$date.datepicker('disable');
+			}
+			$field.attr('aria-busy', 'true');
+			$spinner.removeClass('invisible');
+
+			try {
+				const response = await Craft.sendActionRequest('POST', 'shipments/shipments/save-ship-date', {
+					data: {id: $field.data('shipments-ship-date'), dateScheduledShip: dateInput},
+				});
+				savedDate = $date.val();
+				// Only the saved date changes the baseline; other form edits stay unsaved.
+				const initial = new URLSearchParams($mainForm.data('initialSerializedValue'));
+				initial.set($date[0].name, savedDate);
+				$mainForm.data('initialSerializedValue', $.param(Array.from(initial, ([name, value]) => ({name, value}))));
+				$('#delivery').html(response.data.deliveryHtml);
+				initDeliveryMethod();
+				initCopyDeliveryResponse();
+			} catch (error) {
+				if ($date.data('datepicker')) {
+					$date.datepicker('setDate', savedDate);
+				}
+				$date.val(savedDate);
+				Craft.cp.displayError(error?.response?.data?.message || Craft.t('shipments', 'shipmentEdit.couldNotSaveShipDate'));
+			} finally {
+				$date.prop('disabled', false);
+				if ($date.data('datepicker')) {
+					$date.datepicker('enable');
+				}
+				$buttons.prop('disabled', false);
+				$field.removeAttr('aria-busy');
+				$spinner.addClass('invisible');
+			}
+		});
+	}
+
+	function initVoidDeliveryConfirmation() {
+		document.querySelectorAll('form[data-void-confirm]').forEach(form => {
+			form.addEventListener('submit', event => {
+				if (!window.confirm(form.dataset.voidConfirm)) {
+					event.preventDefault();
+				}
+			});
+		});
+	}
+
+	function initCopyDeliveryResponse() {
+		document.querySelectorAll('.shipment-copy-response').forEach(link => {
+			link.addEventListener('click', async event => {
+				event.preventDefault();
+				try {
+					await navigator.clipboard.writeText(link.dataset.response);
+					Craft.cp.displayNotice(Craft.t('shipments', 'delivery.responseCopied'));
+				} catch (error) {
+					Craft.cp.displayError(Craft.t('shipments', 'delivery.couldNotCopyResponse'));
+				}
+			});
+		});
+	}
+
+	function initDeliveryMethod() {
+		const form = document.getElementById('shipment-delivery-select-method');
+		if (!form) {
+			return;
+		}
+		const radios = Array.from(document.querySelectorAll('input[form="shipment-delivery-select-method"][name="method"]'));
+		const status = document.getElementById('shipment-method-status');
+		const prepared = document.getElementById('shipment-prepared-details');
+		let saved = radios.find(radio => radio.checked)?.value;
+		radios.forEach(radio => radio.addEventListener('change', async function () {
+			const controls = Array.from(document.querySelectorAll('#delivery input, #delivery button, #main-form button[type="submit"]'));
+			const enabled = controls.filter(control => !control.disabled);
+			enabled.forEach(control => { control.disabled = true; });
+			status.classList.remove('hidden');
+			prepared.setAttribute('aria-busy', 'true');
+			prepared.style.opacity = '0.5';
+			try {
+				const response = await Craft.sendActionRequest('POST', 'shipments/deliveries/select-method', {
+					data: {id: form.elements.id.value, method: radio.value},
+				});
+				prepared.innerHTML = response.data.html;
+				saved = radio.value;
+			} catch (error) {
+				radios.forEach(input => { input.checked = input.value === saved; });
+				Craft.cp.displayError(error?.response?.data?.message || Craft.t('shipments', 'delivery.couldNotSaveMethod'));
+			} finally {
+				enabled.forEach(control => { control.disabled = false; });
+				status.classList.add('hidden');
+				prepared.removeAttribute('aria-busy');
+				prepared.style.opacity = '';
+			}
+		}));
+	}
+
+	function initCreateDeliveryButton() {
+		const form = document.getElementById('shipment-delivery-create');
+		const button = document.querySelector('button[form="shipment-delivery-create"]');
+		if (!form || !button) {
+			return;
+		}
+
+		let submitting = false;
+		form.addEventListener('submit', event => {
+			if (submitting) {
+				event.preventDefault();
+				return;
+			}
+
+			submitting = true;
+			const currentButton = document.querySelector('button[form="shipment-delivery-create"]');
+			currentButton.disabled = true;
+			currentButton.classList.add('disabled');
+			currentButton.setAttribute('aria-disabled', 'true');
+		});
+	}
 
 	function initPushIntegrationButtons() {
 		document.querySelectorAll('.shipments-push-integration').forEach(function (pushButton) {
@@ -508,12 +648,23 @@
 		const providerPane = document.getElementById('provider-settings');
 		const integrationTabLink = document.querySelector('a[href="#integration"]');
 		const integrationPane = document.getElementById('integration');
+		const mappingTabLink = document.querySelector('a[href="#carrier-mapping"]');
+		const mappingPane = document.getElementById('carrier-mapping');
 
 		function applyProviderVisibility() {
 			const selected = providerSelect.value;
 			panels.forEach(function (panel) {
-				panel.classList.toggle('hidden', panel.getAttribute('data-provider') !== selected);
+				const inactive = panel.getAttribute('data-provider') !== selected;
+				panel.classList.toggle('hidden', inactive);
 			});
+			const hasCarrier = Array.from(document.querySelectorAll('.shipments-carrier-mapping')).some(panel => panel.dataset.provider === selected);
+			if (mappingTabLink) {
+				mappingTabLink.classList.toggle('hidden', !hasCarrier);
+				mappingTabLink.closest('li')?.classList.toggle('hidden', !hasCarrier);
+			}
+			if (!hasCarrier && mappingPane && !mappingPane.classList.contains('hidden')) {
+				integrationTabLink?.click();
+			}
 
 			const hasProvider = !!selected;
 			if (providerTabLink) {
@@ -536,5 +687,114 @@
 
 		providerSelect.addEventListener('change', applyProviderVisibility);
 		applyProviderVisibility();
+	}
+
+	function initCarrierMappings() {
+		document.querySelectorAll('.shipments-carrier-mapping').forEach(function (panel) {
+			const sources = JSON.parse(panel.dataset.sources);
+			const services = JSON.parse(panel.dataset.services);
+			const rows = panel.querySelector('tbody');
+			let nextIndex = 0;
+			const label = key => Craft.t('shipments', 'settings.integrations.' + key);
+			function addServiceOptions(input, options) {
+				const entries = Object.entries(options);
+				const counts = new Map();
+				entries.forEach(([, name]) => counts.set(name, (counts.get(name) ?? 0) + 1));
+				entries.forEach(([code, name]) => input.add(new Option(counts.get(name) > 1 ? name + ' (' + code + ')' : name, code)));
+			}
+
+			function addRow(mapping = {source: '', sourceService: '', service: ''}) {
+				const row = document.createElement('tr');
+				const prefix = panel.dataset.inputPrefix + '[carrierMappings][' + nextIndex++ + ']';
+				function select(column, heading) {
+					const cell = row.insertCell();
+					const wrap = document.createElement('div');
+					wrap.className = 'select fullwidth';
+					const input = document.createElement('select');
+					input.name = prefix + '[' + column + ']';
+					input.setAttribute('aria-label', label(heading));
+					wrap.append(input);
+					cell.append(wrap);
+					return input;
+				}
+				const source = select('source', 'shippingSource');
+				const sourceService = select('sourceService', 'sourceService');
+				const emptySourceService = document.createElement('input');
+				emptySourceService.type = 'hidden';
+				emptySourceService.name = sourceService.name;
+				emptySourceService.value = '';
+				sourceService.before(emptySourceService);
+				const service = select('service', 'integrationService');
+				source.required = true;
+				service.required = true;
+				source.add(new Option(label('chooseSource'), ''));
+				const groups = new Map();
+				sources.forEach(function (item) {
+					if (!groups.has(item.group)) {
+						const group = document.createElement('optgroup');
+						group.label = item.group;
+						groups.set(item.group, group);
+						source.append(group);
+					}
+					groups.get(item.group).append(new Option(item.label, item.value));
+				});
+				function keepSavedOption(input, value) {
+					if (value && !Array.from(input.options).some(option => option.value === value)) {
+						input.add(new Option(label('unavailable') + ' (' + value + ')', value));
+					}
+					input.value = value;
+				}
+				keepSavedOption(source, mapping.source);
+				function updateIntegrationServices(savedValue = '') {
+					service.replaceChildren(new Option(label('chooseService'), ''));
+					const options = Object.fromEntries(Object.entries(services).filter(([code]) => code !== 'auto' || source.value.startsWith('postie:')));
+					addServiceOptions(service, options);
+					keepSavedOption(service, savedValue);
+				}
+
+				function updateSourceServices(savedValue = '') {
+					const selected = sources.find(item => item.value === source.value);
+					const options = selected?.services ?? {};
+					sourceService.replaceChildren();
+					if (Object.keys(options).length) {
+						addServiceOptions(sourceService, options);
+						if (savedValue && !Object.hasOwn(options, savedValue)) {
+							sourceService.add(new Option(label('chooseService'), ''), 0);
+							sourceService.value = '';
+						} else {
+							sourceService.value = savedValue || '*';
+						}
+					} else {
+						sourceService.add(new Option(label('noSourceService'), ''));
+						keepSavedOption(sourceService, savedValue);
+					}
+					const noSourceService = sourceService.options.length === 1 && sourceService.options[0].value === '';
+					sourceService.required = Object.keys(options).length > 0;
+					sourceService.disabled = noSourceService;
+					sourceService.parentElement.classList.toggle('disabled', noSourceService);
+					emptySourceService.disabled = !noSourceService;
+				}
+				updateSourceServices(mapping.sourceService);
+				updateIntegrationServices(mapping.service);
+				source.addEventListener('change', () => {
+					updateSourceServices();
+					updateIntegrationServices(service.value === 'auto' && !source.value.startsWith('postie:') ? '' : service.value);
+				});
+				const remove = document.createElement('button');
+				remove.type = 'button';
+				remove.className = 'delete icon';
+				remove.setAttribute('aria-label', label('removeMapping'));
+				remove.addEventListener('click', () => { row.remove(); panel.dispatchEvent(new Event('change', {bubbles: true})); });
+				row.insertCell().append(remove);
+				rows.append(row);
+				return source;
+			}
+
+			JSON.parse(panel.dataset.mappings).forEach(addRow);
+			panel.querySelector('[data-add-mapping]').addEventListener('click', () => {
+				addRow().focus();
+				panel.dispatchEvent(new Event('change', {bubbles: true}));
+			});
+		});
 	}
 })(jQuery);

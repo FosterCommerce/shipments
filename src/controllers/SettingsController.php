@@ -45,7 +45,6 @@ class SettingsController extends Controller
 			throw new ForbiddenHttpException(Craft::t(Plugin::HANDLE, 'error.adminChangesDisallowed'));
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		$settings = $this->request->getBodyParam('settings', []);
 		if (! is_array($settings)) {
@@ -133,7 +132,6 @@ class SettingsController extends Controller
 	 */
 	private function renderSettings(): Response
 	{
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$builtInRuleNamespacePrefix = 'fostercommerce\\shipments\\rules\\';
@@ -216,6 +214,10 @@ class SettingsController extends Controller
 		Craft::$app->getView()->registerAssetBundle(ShipmentsCpAsset::class);
 
 		return $this->renderTemplate(Plugin::HANDLE . '/settings/general/index', [
+			'deliveryVolumeOptions' => collect(Craft::$app->getVolumes()->getAllVolumes())->map(static fn ($volume): array => [
+				'label' => $volume->name,
+				'value' => $volume->uid,
+			])->all(),
 			'settings' => $plugin->getSettings(),
 			'availableRules' => $availableRules,
 			'lineItemStatusOptions' => $lineItemStatusOptions,

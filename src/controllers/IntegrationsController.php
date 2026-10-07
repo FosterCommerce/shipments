@@ -9,8 +9,11 @@ use craft\helpers\Json;
 use craft\helpers\UrlHelper;
 use craft\web\assets\admintable\AdminTableAsset;
 use craft\web\Controller;
+use fostercommerce\shipments\base\AutomaticCarrierMappingProviderInterface;
+use fostercommerce\shipments\base\CarrierProvider;
 use fostercommerce\shipments\base\ControllerBodyParamsTrait;
 use fostercommerce\shipments\base\ProviderInterface;
+use fostercommerce\shipments\base\ShippingRateProviderInterface;
 use fostercommerce\shipments\enums\Status;
 use fostercommerce\shipments\models\Integration;
 use fostercommerce\shipments\Plugin;
@@ -32,7 +35,6 @@ class IntegrationsController extends Controller
 	{
 		$this->requirePermission(Plugin::PERMISSION_MANAGE_INTEGRATIONS);
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		$integrations = $plugin->integrations->getAllIntegrations();
 
@@ -78,7 +80,6 @@ class IntegrationsController extends Controller
 	{
 		$this->requirePermission(Plugin::PERMISSION_MANAGE_INTEGRATIONS);
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		if (! $integration instanceof Integration) {
@@ -94,9 +95,11 @@ class IntegrationsController extends Controller
 			}
 		}
 
+
 		$providerOptions = [];
 		$providerSettings = [];
 		$providerUtilitySettings = [];
+		$carrierProviders = [];
 		foreach ($plugin->integrations->getSelectableProviderTypes() as $providerClass) {
 			/** @var class-string<ProviderInterface> $providerClass */
 			$providerOptions[] = [
@@ -112,7 +115,31 @@ class IntegrationsController extends Controller
 				'settings' => $integration->provider === $providerClass ? $integration->settings : [],
 				'uid' => $integration->uid,
 			]);
-			$providerSettings[$providerClass] = $providerInstance->getSettingsHtml() ?? '';
+			if ($providerInstance instanceof ShippingRateProviderInterface) {
+				if ($providerInstance instanceof CarrierProvider && $integration->hasErrors('settings') && $integration->provider === $providerClass) {
+					$providerInstance->validate();
+				}
+
+				$automaticMappings = $providerInstance instanceof AutomaticCarrierMappingProviderInterface
+					? $plugin->carrierMappings->getAutomaticMappings($providerInstance)
+					: [];
+				$mappings = $providerInstance->getCarrierMappings();
+				if ($integration->id === null && ! $integration->hasErrors() && $mappings === []) {
+					$mappings = $automaticMappings;
+				}
+
+				$carrierProviders[$providerClass] = [
+					'namespace' => 'carrierSettings[' . md5($providerClass) . ']',
+					'services' => ($providerInstance instanceof AutomaticCarrierMappingProviderInterface ? [
+						'auto' => Craft::t('shipments', 'settings.integrations.autoMap'),
+					] : []) + $providerInstance->getServices(),
+					'mappings' => $mappings,
+				];
+				$providerSettings[$providerClass] = $this->view->namespaceInputs(fn (): string => $providerInstance->getSettingsHtml() ?? '', $carrierProviders[$providerClass]['namespace']);
+			} else {
+				$providerSettings[$providerClass] = $providerInstance->getSettingsHtml() ?? '';
+			}
+
 			$providerUtilitySettings[$providerClass] = $providerInstance->getSettingsUtilityHtml() ?? '';
 		}
 
@@ -130,6 +157,8 @@ class IntegrationsController extends Controller
 			'providerOptions' => $providerOptions,
 			'providerSettings' => $providerSettings,
 			'providerUtilitySettings' => $providerUtilitySettings,
+			'carrierProviders' => $carrierProviders,
+			'carrierSources' => $carrierProviders !== [] ? $plugin->carrierMappings->getSources() : [],
 			'title' => $integration->id === null
 				? Craft::t(Plugin::HANDLE, 'integrations.createNew')
 				: (string) $integration,
@@ -144,7 +173,6 @@ class IntegrationsController extends Controller
 		$this->requirePostRequest();
 		$this->requireAdmin();
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$idInput = $this->request->getBodyParam('id');
@@ -169,6 +197,10 @@ class IntegrationsController extends Controller
 		$integration->enabled = $this->normalizeEnabledConfig($this->request->getBodyParam('enabled', $integration->enabled));
 
 		$postedSettings = $this->request->getBodyParam('settings');
+		if ($integration->provider !== null && is_a($integration->provider, ShippingRateProviderInterface::class, true)) {
+			$postedSettings = $this->request->getBodyParam('carrierSettings.' . md5($integration->provider));
+		}
+
 		$integration->settings = is_array($postedSettings) ? $postedSettings : [];
 
 		if (! $plugin->integrations->saveIntegration($integration)) {
@@ -192,7 +224,6 @@ class IntegrationsController extends Controller
 		$this->requireAcceptsJson();
 		$this->requireAdmin();
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$idInput = $this->request->getRequiredBodyParam('id');
@@ -222,7 +253,6 @@ class IntegrationsController extends Controller
 	{
 		$this->requirePermission(Plugin::PERMISSION_MANAGE_INTEGRATIONS);
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$integration = $plugin->integrations->getIntegrationById($id);
@@ -277,7 +307,6 @@ class IntegrationsController extends Controller
 		$this->requireAcceptsJson();
 		$this->requireAdmin();
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$idsInput = $this->request->getRequiredBodyParam('ids');
@@ -302,7 +331,6 @@ class IntegrationsController extends Controller
 			return;
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		foreach ($rawRows as $row) {

@@ -10,6 +10,7 @@ use craft\helpers\App;
 use craft\helpers\UrlHelper;
 use craft\validators\HandleValidator;
 use craft\validators\UniqueValidator;
+use fostercommerce\shipments\base\CarrierProvider;
 use fostercommerce\shipments\base\ProviderInterface;
 use fostercommerce\shipments\Plugin;
 use fostercommerce\shipments\records\Integration as IntegrationRecord;
@@ -96,7 +97,6 @@ class Integration extends Model implements \Stringable
 			return $this->resolvedProvider;
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$this->resolvedProvider = $plugin->integrations->createProvider([
@@ -141,6 +141,12 @@ class Integration extends Model implements \Stringable
 	{
 		return [
 			[['name', 'handle'], 'required'],
+			['settings', function (string $attribute): void {
+				$provider = $this->getProvider();
+				if ($provider instanceof CarrierProvider && ! $provider->validate()) {
+					$this->addError($attribute, implode(' ', $provider->getFirstErrors()));
+				}
+			}],
 			[['handle'],
 				UniqueValidator::class,
 				'targetClass' => IntegrationRecord::class,

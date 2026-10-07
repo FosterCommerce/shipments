@@ -1,0 +1,12 @@
+{% import '_includes/forms' as forms %}
+
+{{ forms.booleanMenuField({
+    label: 'settings.productionMode'|t('shipments'),
+    name: 'production',
+    yesLabel: 'settings.integrations.enabled'|t('shipments'),
+    noLabel: 'settings.integrations.disabled'|t('shipments'),
+    includeEnvVars: true,
+    value: provider.production,
+    disabled: productionDisabled ?? false,
+    errors: provider.getErrors('production')
+}) }}

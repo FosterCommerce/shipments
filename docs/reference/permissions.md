@@ -4,17 +4,20 @@ Exhaustive permission handle list. Granted per user group under **Users -> Group
 
 ## Handles
 
-| Handle                              | Grants                                                                                                            | Nested under                  |
-|-------------------------------------|-------------------------------------------------------------------------------------------------------------------|-------------------------------|
-| `accessPlugin-shipments`            | Outer gate: see the Shipments nav item at all. Craft built-in; automatic for any plugin with `hasCpSection=true`. | |
-| `shipments-viewShipments`           | See the shipments element index, attention-needed page, and shipment edit page (read).                            | |
-| `shipments-editShipments`           | Create shipments via staging + edit fulfillment fields (tracking, carrier, service, notes).                       | `shipments-viewShipments`     |
-| `shipments-transitionShipments`     | Change a shipment's status.                                                                                       | `shipments-viewShipments`     |
-| `shipments-deleteShipments`         | Soft-delete shipments.                                                                                            | `shipments-viewShipments`     |
-| `shipments-pushShipments`           | Use the **Push to {integration}** button in the sidebar of the shipment edit page.                                | `shipments-viewShipments`     |
-| `shipments-manageIntegrations`      | CRUD integrations + status mappings.                                                                              | |
-| `shipments-manageEmails`            | CRUD notification emails + bind transition triggers.                                                              | |
-| `shipments-manageSettings`          | Edit plugin settings + the shipment field layout.                                                                 | |
+| Handle                          | Grants                                                                                                                        | Nested under              |
+|---------------------------------|-------------------------------------------------------------------------------------------------------------------------------|---------------------------|
+| `accessPlugin-shipments`        | Outer gate: see the Shipments nav item at all. Craft built-in; automatic for any plugin with `hasCpSection=true`.             |                           |
+| `shipments-viewShipments`       | See the shipments element index, attention-needed page, and shipment edit page (read).                                        |                           |
+| `shipments-editShipments`       | Create shipments via staging + edit fulfillment fields (tracking, carrier, service, notes), refresh rates and select methods. | `shipments-viewShipments` |
+| `shipments-transitionShipments` | Change a shipment's status.                                                                                                   | `shipments-viewShipments` |
+| `shipments-deleteShipments`     | Soft-delete shipments.                                                                                                        | `shipments-viewShipments` |
+| `shipments-pushShipments`       | Use the **Push to {integration}** button in the sidebar of the shipment edit page.                                            | `shipments-viewShipments` |
+| `shipments-createDelivery`      | Create deliveries, retrieve documents and record carrier reconciliation.                                                      | `shipments-viewShipments` |
+| `shipments-voidDelivery`        | Request cancellation of a saved carrier delivery.                                                                             | `shipments-viewShipments` |
+| `shipments-downloadDocuments`   | Download or display protected carrier PDFs for printing.                                                                      | `shipments-viewShipments` |
+| `shipments-manageIntegrations`  | CRUD integrations + status mappings.                                                                                          |                           |
+| `shipments-manageEmails`        | CRUD notification emails + bind transition triggers.                                                                          |                           |
+| `shipments-manageSettings`      | Edit plugin settings + the shipment field layout.                                                                             |                           |
 
 `shipments-viewShipments` is required to grant any of its nested children in the CP UI (Craft convention).
 
@@ -22,20 +25,26 @@ Exhaustive permission handle list. Granted per user group under **Users -> Group
 
 ### Controllers
 
-| Action                                                  | Permission                          |
-|---------------------------------------------------------|-------------------------------------|
-| `shipments/shipments/edit` (load edit page)             | `shipments-viewShipments`           |
-| `shipments/shipments/save` (save fulfillment fields)    | `shipments-editShipments`           |
-| &nbsp; + status change included                         | `shipments-transitionShipments`     |
-| `shipments/shipments/delete`                            | `shipments-deleteShipments`         |
-| `shipments/shipments/rebuild`                           | `shipments-editShipments`           |
-| `shipments/shipments/create-shipment` (staging submit)  | `shipments-editShipments`           |
-| `shipments/shipments/push` (per-shipment push button)   | `shipments-pushShipments`           |
-| `shipments/attention/index`                             | `shipments-viewShipments`           |
-| `shipments/integrations/*`                              | `shipments-manageIntegrations`      |
-| `shipments/emails/*`                                    | `shipments-manageEmails`            |
-| `shipments/settings/*`                                  | `shipments-manageSettings`          |
-| `shipments/shipment-fields/*`                           | `shipments-manageSettings`          |
+| Action                                                 | Permission                                             |
+|--------------------------------------------------------|--------------------------------------------------------|
+| `shipments/shipments/edit` (load edit page)            | `shipments-viewShipments`                              |
+| `shipments/shipments/save` (save fulfillment fields)   | `shipments-editShipments`                              |
+| &nbsp; + status change included                        | `shipments-transitionShipments`                        |
+| `shipments/shipments/delete`                           | `shipments-deleteShipments`                            |
+| `shipments/shipments/rebuild`                          | `shipments-editShipments`                              |
+| `shipments/shipments/create-shipment` (staging submit) | `shipments-editShipments`                              |
+| `shipments/shipments/push` (per-shipment push button)  | `shipments-pushShipments`                              |
+| `shipments/deliveries/refresh-rates`                   | `shipments-editShipments` + `shipments-viewShipments`  |
+| `shipments/deliveries/select-method`                   | `shipments-editShipments` + `shipments-viewShipments`  |
+| `shipments/deliveries/create`                          | `shipments-createDelivery` + `shipments-viewShipments` |
+| `shipments/deliveries/refresh-delivery`                | `shipments-createDelivery` + `shipments-viewShipments` |
+| `shipments/deliveries/acknowledge-failed`              | `shipments-createDelivery` + `shipments-viewShipments` |
+| `shipments/deliveries/void`                            | `shipments-voidDelivery` + `shipments-viewShipments`   |
+| `shipments/attention/index`                            | `shipments-viewShipments`                              |
+| `shipments/integrations/*`                             | `shipments-manageIntegrations`                         |
+| `shipments/emails/*`                                   | `shipments-manageEmails`                               |
+| `shipments/settings/*`                                 | `shipments-manageSettings`                             |
+| `shipments/shipment-fields/*`                          | `shipments-manageSettings`                             |
 
 ## Recommended role presets
 
@@ -70,6 +79,9 @@ Plugin::PERMISSION_EDIT
 Plugin::PERMISSION_TRANSITION
 Plugin::PERMISSION_DELETE
 Plugin::PERMISSION_PUSH
+Plugin::PERMISSION_CREATE_DELIVERY
+Plugin::PERMISSION_VOID_DELIVERY
+Plugin::PERMISSION_DOWNLOAD_DOCUMENTS
 Plugin::PERMISSION_MANAGE_INTEGRATIONS
 Plugin::PERMISSION_MANAGE_EMAILS
 Plugin::PERMISSION_MANAGE_SETTINGS

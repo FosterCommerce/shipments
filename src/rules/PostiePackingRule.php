@@ -32,7 +32,6 @@ class PostiePackingRule implements ShipmentRuleInterface
 
 	public function plan(Order $order, array $remainingQtyByLineItemId): array
 	{
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$orderNumber = $order->number;

@@ -6,15 +6,18 @@ Author and customize the Twig templates that render shipment emails. Audience: d
 
 Templates get these variables:
 
-| Variable        | Type                       | What it is                                                                           |
-|-----------------|----------------------------|--------------------------------------------------------------------------------------|
-| `shipment`      | `Shipment` element         | The shipment after the change.                                                       |
-| `order`         | `Order` element            | The Commerce order.                                                                  |
-| `fromCode`      | `?Status`                  | The status before the change (null if this is a new shipment).                       |
-| `toCode`        | `?Status`                  | The status after the change.                                                         |
-| `statusHistory` | `ShipmentStatusHistory`    | The new history row; pull the note or source integration from it.                    |
-| `user`          | `?User`                    | Who made the change (null for webhooks and background jobs).                         |
-| `message`       | `?string`                  | The optional note the admin left on the change.                                      |
+| Variable        | Type                    | What it is                                                                  |
+|-----------------|-------------------------|-----------------------------------------------------------------------------|
+| `shipment`      | `Shipment` element      | The shipment after the change.                                              |
+| `order`         | `Order` element         | The Commerce order.                                                         |
+| `fromCode`      | `?Status`               | The status before the change (null if this is a new shipment).              |
+| `toCode`        | `?Status`               | The status after the change.                                                |
+| `statusHistory` | `ShipmentStatusHistory` | The new history row; pull the note or source integration from it.           |
+| `user`          | `?User`                 | Who made the change (null for webhooks and background jobs).                |
+| `message`       | `?string`               | The optional note the admin left on the change.                             |
+| `delivery`      | `?Delivery`             | The newest active carrier delivery, if one exists when the job runs.        |
+| `booking`       | `?Delivery`             | Alias for `delivery`.                                                       |
+| `references`    | `array`                 | The delivery's BOL, PRO, and tracking references; empty without a delivery. |
 
 ## Starter template
 

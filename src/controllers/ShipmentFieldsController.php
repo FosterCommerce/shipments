@@ -25,7 +25,6 @@ class ShipmentFieldsController extends Controller
 	{
 		$this->requirePermission(Plugin::PERMISSION_MANAGE_SETTINGS);
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		return $this->renderTemplate(Plugin::HANDLE . '/_cp/settings/shipment-fields/index', [
@@ -47,7 +46,6 @@ class ShipmentFieldsController extends Controller
 			throw new ForbiddenHttpException(Craft::t(Plugin::HANDLE, 'error.adminChangesDisallowed'));
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$layout = Craft::$app->getFields()->assembleLayoutFromPost();

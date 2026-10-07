@@ -1,0 +1,38 @@
+{% import '_includes/forms' as forms %}
+
+{{ forms.editableTableField({
+    label: 'settings.boxPalletSizes'|t('shipments'),
+    fieldClass: 'shipments-size-table-field',
+    name: 'boxes',
+    rows: provider.boxes|map(box => box|merge({packageLength: box.length ?? '', enabled: box.enabled ?? true})),
+    defaultValues: {enabled: true},
+    allowAdd: true,
+    allowDelete: true,
+    allowReorder: true,
+    cols: {
+        packageLength: {
+            heading: 'settings.length'|t('shipments'),
+            type: 'number'
+        },
+        width: {
+            heading: 'settings.width'|t('shipments'),
+            type: 'number'
+        },
+        height: {
+            heading: 'settings.height'|t('shipments'),
+            type: 'number'
+        },
+        tareWeight: {
+            heading: 'settings.emptyWeight'|t('shipments'),
+            type: 'number'
+        },
+        maxWeight: {
+            heading: 'settings.maximumTotalWeight'|t('shipments'),
+            type: 'number'
+        },
+        enabled: {
+            heading: 'settings.integrations.enabled'|t('shipments'),
+            type: 'lightswitch'
+        }
+    }
+}) }}

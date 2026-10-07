@@ -9,11 +9,13 @@ use craft\base\Element;
 use craft\commerce\elements\Order;
 use craft\commerce\Plugin as Commerce;
 use craft\db\Query;
+use craft\db\Table as CraftTable;
 use craft\elements\db\ElementQueryInterface;
 use craft\elements\User;
 use craft\helpers\Cp;
 use craft\helpers\DateTimeHelper;
 use craft\helpers\Html;
+use craft\helpers\Json;
 use craft\helpers\UrlHelper;
 use craft\models\FieldLayout;
 use DateTime;
@@ -23,10 +25,16 @@ use fostercommerce\shipments\elements\exporters\Fulfillment as FulfillmentExport
 use fostercommerce\shipments\enums\Status;
 use fostercommerce\shipments\errors\AllocationOverflowException;
 use fostercommerce\shipments\errors\DuplicateShipmentReferenceException;
+use fostercommerce\shipments\helpers\MoneyValues;
+use fostercommerce\shipments\models\Delivery;
 use fostercommerce\shipments\models\IntegrationReference;
 use fostercommerce\shipments\models\ShipmentLineItem;
 use fostercommerce\shipments\Plugin;
 use fostercommerce\shipments\records\Shipment as ShipmentRecord;
+use fostercommerce\shipments\validators\MoneyAmount;
+use Money\Money;
+use RuntimeException;
+use Throwable;
 use yii\base\Exception as YiiBaseException;
 use yii\db\IntegrityException;
 
@@ -53,9 +61,24 @@ class Shipment extends Element
 
 	public ?string $trackingUrl = null;
 
+	public ?int $transitDays = null;
+
 	public ?string $carrier = null;
 
 	public ?string $service = null;
+
+	public ?string $shippingMethodHandle = null;
+
+	public ?string $shippingMethodName = null;
+
+	public ?string $shippingAmountMinor = null;
+
+	public ?string $shippingCurrency = null;
+
+	/**
+	 * @var array<string, mixed>
+	 */
+	public array $shippingSnapshot = [];
 
 	public ?string $fulfillmentNotes = null;
 
@@ -66,6 +89,8 @@ class Shipment extends Element
 	public ?string $lastPushAttemptError = null;
 
 	public int $pushAttemptCount = 0;
+
+	private bool $_deliveryWriteLock = false;
 
 	/**
 	 * @var list<ShipmentLineItem>|null
@@ -91,6 +116,41 @@ class Shipment extends Element
 	public function __toString(): string
 	{
 		return $this->getUiLabel();
+	}
+
+	public function setShippingSnapshotData(mixed $value): void
+	{
+		$value = is_string($value) ? Json::decode($value) : $value;
+		$this->shippingSnapshot = is_array($value) ? $value : [];
+	}
+
+	public function getShippingAmount(): ?Money
+	{
+		return $this->shippingAmountMinor !== null && $this->shippingCurrency !== null
+			? MoneyValues::restore([
+				'amount' => $this->shippingAmountMinor,
+				'currency' => $this->shippingCurrency,
+			]) : null;
+	}
+
+	public function getCarrierCost(): ?Money
+	{
+		return $this->getDelivery()?->getCost();
+	}
+
+	public function getDelivery(): ?Delivery
+	{
+		$plugin = Plugin::getInstance();
+		return $this->id === null ? null : $plugin->deliveries->getLatestForShipment($this->id);
+	}
+
+	/**
+	 * @return list<Delivery>
+	 */
+	public function getDeliveries(): array
+	{
+		$plugin = Plugin::getInstance();
+		return $this->id === null ? [] : $plugin->deliveries->getForShipment($this->id);
 	}
 
 	public static function displayName(): string
@@ -215,7 +275,6 @@ class Shipment extends Element
 
 	public function getFieldLayout(): ?FieldLayout
 	{
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		return $plugin->shipmentFieldLayouts->getFieldLayout();
 	}
@@ -268,7 +327,6 @@ class Shipment extends Element
 				return $this->_lineItems = [];
 			}
 
-			/** @var Plugin $plugin */
 			$plugin = Plugin::getInstance();
 			$this->_lineItems = $plugin->shipmentLineItems->findForShipmentId($this->id);
 		}
@@ -294,7 +352,6 @@ class Shipment extends Element
 				return $this->_integrationReferences = [];
 			}
 
-			/** @var Plugin $plugin */
 			$plugin = Plugin::getInstance();
 			$this->_integrationReferences = $plugin->integrationReferences->getReferencesForShipmentId($this->id);
 		}
@@ -335,20 +392,55 @@ class Shipment extends Element
 
 	public function beforeSave(bool $isNew): bool
 	{
-		if ($isNew && ($this->reference === null || $this->reference === '')) {
-			$order = $this->getOrder();
-			if ($order instanceof Order) {
-				/** @var Plugin $plugin */
-				$plugin = Plugin::getInstance();
-				$this->reference = $plugin->shipmentReferences->allocate($order);
-				$separator = strrpos($this->reference, '-s');
-				if ($separator !== false) {
-					$this->number = (int) substr($this->reference, $separator + 2);
+		try {
+			if (! $isNew && $this->id !== null) {
+				$this->acquireDeliveryWriteLock();
+				$this->assertDeliveryDetailsUnchanged();
+			}
+
+			if ($isNew && ($this->reference === null || $this->reference === '')) {
+				$order = $this->getOrder();
+				if ($order instanceof Order) {
+					$plugin = Plugin::getInstance();
+					$this->reference = $plugin->shipmentReferences->allocate($order);
+					$separator = strrpos($this->reference, '-s');
+					if ($separator !== false) {
+						$this->number = (int) substr($this->reference, $separator + 2);
+					}
 				}
 			}
-		}
 
-		return parent::beforeSave($isNew);
+			$save = parent::beforeSave($isNew);
+			if (! $save) {
+				$this->releaseDeliveryWriteLock();
+			}
+
+			return $save;
+		} catch (Throwable $throwable) {
+			$this->releaseDeliveryWriteLock();
+			throw $throwable;
+		}
+	}
+
+	public function beforeDelete(): bool
+	{
+		try {
+			if ($this->id !== null) {
+				$this->acquireDeliveryWriteLock();
+				$plugin = Plugin::getInstance();
+				$plugin->deliveries->assertShipmentEditable((int) $this->id);
+			}
+
+			$delete = parent::beforeDelete();
+			if (! $delete) {
+				$this->releaseDeliveryWriteLock();
+			}
+
+			return $delete;
+		} catch (Throwable $throwable) {
+			$this->releaseDeliveryWriteLock();
+			throw $throwable;
+		}
 	}
 
 	/**
@@ -382,7 +474,6 @@ class Shipment extends Element
 		}
 
 		if ($handle === 'lineItems') {
-			/** @var Plugin $plugin */
 			$plugin = Plugin::getInstance();
 			$rowsByShipmentId = $plugin->shipmentLineItems->findForShipmentIds($sourceIds);
 			foreach ($sourceElements as $sourceElement) {
@@ -399,7 +490,6 @@ class Shipment extends Element
 		}
 
 		if ($handle === 'integrationReferences') {
-			/** @var Plugin $plugin */
 			$plugin = Plugin::getInstance();
 			$rowsByShipmentId = $plugin->integrationReferences->getReferencesForShipmentIds($sourceIds);
 			foreach ($sourceElements as $sourceElement) {
@@ -418,48 +508,63 @@ class Shipment extends Element
 
 	public function afterSave(bool $isNew): void
 	{
-		if (! $this->propagating) {
-			if ($isNew) {
-				$record = new ShipmentRecord();
-				$record->id = (int) $this->id;
-			} else {
-				$record = ShipmentRecord::findOne($this->id);
-				if (! $record instanceof ShipmentRecord) {
-					throw new YiiBaseException('Invalid shipment ID: ' . $this->id);
+		try {
+			if (! $this->propagating) {
+				if ($isNew) {
+					$this->dateScheduledShip ??= $this->dateCreated;
+					$record = new ShipmentRecord();
+					$record->id = (int) $this->id;
+				} else {
+					$record = ShipmentRecord::findOne($this->id);
+					if (! $record instanceof ShipmentRecord) {
+						throw new YiiBaseException('Invalid shipment ID: ' . $this->id);
+					}
+				}
+
+				$record->orderId = (int) $this->orderId;
+				$record->reference = (string) $this->reference;
+				$record->number = (int) $this->number;
+				$record->status = $this->status;
+				$record->dateScheduledShip = $this->dateScheduledShip;
+				$record->trackingNumber = $this->trackingNumber;
+				$record->trackingUrl = $this->trackingUrl;
+				$record->transitDays = $this->transitDays;
+				$record->carrier = $this->carrier;
+				$record->service = $this->service;
+				$record->fulfillmentNotes = $this->fulfillmentNotes;
+				$record->shippingNotes = $this->shippingNotes;
+				$record->dateLastPushAttempt = $this->dateLastPushAttempt;
+				$record->lastPushAttemptError = $this->lastPushAttemptError;
+				$record->pushAttemptCount = $this->pushAttemptCount;
+				$record->setAttribute('shippingMethodHandle', $this->shippingMethodHandle);
+				$record->setAttribute('shippingMethodName', $this->shippingMethodName);
+				$record->setAttribute('shippingAmount', $this->shippingAmountMinor);
+				$record->setAttribute('shippingCurrency', $this->shippingCurrency);
+				$record->setAttribute('shippingSnapshot', $this->shippingSnapshot);
+
+				try {
+					$record->save(false);
+				} catch (IntegrityException $integrityException) {
+					throw new DuplicateShipmentReferenceException((string) $this->reference, previous: $integrityException);
 				}
 			}
 
-			$record->orderId = (int) $this->orderId;
-			$record->reference = (string) $this->reference;
-			$record->number = (int) $this->number;
-			$record->status = $this->status;
-			$record->dateScheduledShip = $this->dateScheduledShip;
-			$record->trackingNumber = $this->trackingNumber;
-			$record->trackingUrl = $this->trackingUrl;
-			$record->carrier = $this->carrier;
-			$record->service = $this->service;
-			$record->fulfillmentNotes = $this->fulfillmentNotes;
-			$record->shippingNotes = $this->shippingNotes;
-			$record->dateLastPushAttempt = $this->dateLastPushAttempt;
-			$record->lastPushAttemptError = $this->lastPushAttemptError;
-			$record->pushAttemptCount = $this->pushAttemptCount;
+			$this->recomputeTrackedOrderAllocation();
 
-			try {
-				$record->save(false);
-			} catch (IntegrityException $integrityException) {
-				throw new DuplicateShipmentReferenceException((string) $this->reference, previous: $integrityException);
-			}
+			parent::afterSave($isNew);
+		} finally {
+			$this->releaseDeliveryWriteLock();
 		}
-
-		$this->recomputeTrackedOrderAllocation();
-
-		parent::afterSave($isNew);
 	}
 
 	public function afterDelete(): void
 	{
-		$this->recomputeTrackedOrderAllocation();
-		parent::afterDelete();
+		try {
+			$this->recomputeTrackedOrderAllocation();
+			parent::afterDelete();
+		} finally {
+			$this->releaseDeliveryWriteLock();
+		}
 	}
 
 	public function afterRestore(): void
@@ -478,6 +583,8 @@ class Shipment extends Element
 	public function toArray(array $fields = [], array $expand = [], $recursive = true): array
 	{
 		$serialized = parent::toArray($fields, $expand, $recursive);
+		// Internal quote snapshots and merchant money are never part of generic element exports.
+		unset($serialized['shippingSnapshot'], $serialized['shippingAmountMinor'], $serialized['shippingCurrency']);
 
 		if ($fields === [] || in_array('status', $fields, true)) {
 			$serialized['status'] = $this->getStatusEnum()->label();
@@ -490,6 +597,21 @@ class Shipment extends Element
 		}
 
 		return $serialized;
+	}
+
+	/**
+	 * @return array<string, string>
+	 */
+	public function attributeLabels(): array
+	{
+		return [
+			...parent::attributeLabels(),
+			'transitDays' => Craft::t('shipments', 'shipmentEdit.transitDays'),
+			'shippingMethodHandle' => Craft::t('shipments', 'delivery.fields.shippingMethodHandle'),
+			'shippingMethodName' => Craft::t('shipments', 'delivery.fields.shippingMethodName'),
+			'shippingAmountMinor' => Craft::t('shipments', 'delivery.calculatedShippingAmount'),
+			'shippingCurrency' => Craft::t('shipments', 'delivery.fields.shippingCurrency'),
+		];
 	}
 
 	/**
@@ -513,7 +635,20 @@ class Shipment extends Element
 				'defaultScheme' => 'https'],
 			[['fulfillmentNotes', 'shippingNotes', 'lastPushAttemptError'], 'string'],
 			[['number', 'pushAttemptCount'], 'integer'],
+			[['transitDays'],
+				'integer',
+				'min' => 0],
 			[['dateScheduledShip', 'dateLastPushAttempt'], 'safe'],
+			[['shippingMethodHandle', 'shippingMethodName'],
+				'string',
+				'max' => 255],
+			[['shippingAmountMinor'],
+				'string',
+				'max' => 64],
+			[['shippingAmountMinor'],
+				MoneyAmount::class,
+				'currencyAttribute' => 'shippingCurrency'],
+			[['shippingSnapshot'], 'safe'],
 		]);
 	}
 
@@ -579,7 +714,6 @@ class Shipment extends Element
 			],
 		];
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		foreach ($plugin->shipmentFieldLayouts->getFieldLayout()->getCustomFields() as $field) {
 			$attributes['field:' . $field->uid] = [
@@ -673,6 +807,72 @@ class Shipment extends Element
 		};
 	}
 
+	private function assertDeliveryDetailsUnchanged(): void
+	{
+		if (! $this->getDelivery() instanceof Delivery) {
+			return;
+		}
+
+		if ($this->status === Status::Cancelled->value) {
+			throw new RuntimeException(Craft::t('shipments', 'delivery.errors.voidBeforeCancellingShipment'));
+		}
+
+		$saved = (new Query())->from(Table::SHIPMENTS)->where([
+			'[[id]]' => $this->id,
+		])->one();
+		if (! is_array($saved)) {
+			throw new RuntimeException(Craft::t('shipments', 'delivery.errors.bookedShipmentCouldNotBeLoaded'));
+		}
+
+		$attributes = [
+			'orderId' => 'orderId',
+			'trackingNumber' => 'trackingNumber',
+			'trackingUrl' => 'trackingUrl',
+			'carrier' => 'carrier',
+			'service' => 'service',
+			'shippingMethodHandle' => 'shippingMethodHandle',
+			'shippingMethodName' => 'shippingMethodName',
+			'shippingAmountMinor' => 'shippingAmount',
+			'shippingCurrency' => 'shippingCurrency',
+		];
+		foreach ($attributes as $attribute => $column) {
+			if ($this->{$attribute} !== $saved[$column]) {
+				throw new RuntimeException(Craft::t('shipments', 'delivery.errors.carrierDeliveryDetailsAreLocked'));
+			}
+		}
+
+		$snapshot = is_string($saved['shippingSnapshot']) ? Json::decode($saved['shippingSnapshot']) : $saved['shippingSnapshot'];
+		$enabled = (new Query())->select('[[enabled]]')->from(CraftTable::ELEMENTS)->where([
+			'[[id]]' => $this->id,
+		])->scalar();
+		if ($this->shippingSnapshot !== $snapshot || $this->enabled !== (bool) $enabled) {
+			throw new RuntimeException(Craft::t('shipments', 'delivery.errors.bookedShipmentCannotChangeShippingDetailsOrBe'));
+		}
+	}
+
+	private function acquireDeliveryWriteLock(): void
+	{
+		$mutex = Craft::$app->getMutex();
+		$key = 'shipments:delivery:' . $this->id;
+		if ($mutex->isAcquired($key)) {
+			return;
+		}
+
+		if (! $mutex->acquire($key, 0)) {
+			throw new RuntimeException(Craft::t('shipments', 'delivery.errors.carrierDeliveryActionIsInProgress'));
+		}
+
+		$this->_deliveryWriteLock = true;
+	}
+
+	private function releaseDeliveryWriteLock(): void
+	{
+		if ($this->_deliveryWriteLock) {
+			Craft::$app->getMutex()->release('shipments:delivery:' . $this->id);
+			$this->_deliveryWriteLock = false;
+		}
+	}
+
 	/**
 	 * @throws AllocationOverflowException
 	 */
@@ -687,7 +887,6 @@ class Shipment extends Element
 			return;
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		$overflow = $plugin->shipmentLineItems->overflowIfCounted($this->id, $order);
 		if ($overflow !== []) {
@@ -704,7 +903,6 @@ class Shipment extends Element
 
 		unset(self::$_orderAllocationCache[(int) $order->id]);
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		$plugin->getTrackedOrders()->recomputeUnderAllocation($order);
 	}
@@ -766,7 +964,6 @@ class Shipment extends Element
 			if (! $order instanceof Order) {
 				self::$_orderAllocationCache[$this->orderId] = false;
 			} else {
-				/** @var Plugin $plugin */
 				$plugin = Plugin::getInstance();
 				self::$_orderAllocationCache[$this->orderId] = $plugin->shipmentLineItems->isOrderUnderAllocated($order);
 			}

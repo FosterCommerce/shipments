@@ -23,7 +23,6 @@ class AttentionController extends Controller
 	{
 		$this->requirePermission(Plugin::PERMISSION_VIEW);
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$allOrderIds = $plugin->shipmentLineItems->findUnderAllocatedOrderIds();

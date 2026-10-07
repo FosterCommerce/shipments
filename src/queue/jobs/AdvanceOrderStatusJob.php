@@ -23,7 +23,6 @@ class AdvanceOrderStatusJob extends BaseJob
 			return;
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$order = $plugin->shipments->loadOrder($this->orderId);

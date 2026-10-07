@@ -109,6 +109,21 @@ class Shipment extends Element
 				'type' => Type::string(),
 				'description' => 'Service level (admin-entered).',
 			],
+			'shippingMethodHandle' => [
+				'name' => 'shippingMethodHandle',
+				'type' => Type::string(),
+				'description' => 'Commerce or provider method selected for this shipment.',
+			],
+			'shippingMethodName' => [
+				'name' => 'shippingMethodName',
+				'type' => Type::string(),
+				'description' => 'Display name of the shipment shipping method.',
+			],
+			'deliveryStatus' => [
+				'name' => 'deliveryStatus',
+				'type' => Type::string(),
+				'description' => 'Carrier delivery state, independent of warehouse fulfillment status.',
+			],
 			'fulfillmentNotes' => [
 				'name' => 'fulfillmentNotes',
 				'type' => Type::string(),
@@ -130,7 +145,6 @@ class Shipment extends Element
 	 */
 	private static function getCustomFieldDefinitions(): array
 	{
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		$fieldLayout = $plugin->shipmentFieldLayouts->getFieldLayout();
 

@@ -21,6 +21,7 @@ class Install extends Migration
 {
 	public function safeUp(): bool
 	{
+		$this->archiveTableIfExists(Table::DELIVERIES);
 		$this->archiveTableIfExists(Table::TRACKED_ORDERS);
 		$this->archiveTableIfExists(Table::INTEGRATION_STATUS_MAPS);
 		$this->archiveTableIfExists(Table::INTEGRATION_REFERENCES);
@@ -60,8 +61,14 @@ class Install extends Migration
 			'dateScheduledShip' => $this->dateTime(),
 			'trackingNumber' => $this->string(),
 			'trackingUrl' => $this->string(),
+			'transitDays' => $this->integer(),
 			'carrier' => $this->string(),
 			'service' => $this->string(),
+			'shippingMethodHandle' => $this->string(),
+			'shippingMethodName' => $this->string(),
+			'shippingAmount' => $this->string(64),
+			'shippingCurrency' => $this->string(3),
+			'shippingSnapshot' => $this->json(),
 			'fulfillmentNotes' => $this->text(),
 			'shippingNotes' => $this->text(),
 			'dateLastPushAttempt' => $this->dateTime(),
@@ -140,6 +147,35 @@ class Install extends Migration
 			'uid' => $this->uid(),
 		]);
 
+		$this->createTable(Table::DELIVERIES, [
+			'id' => $this->primaryKey(),
+			'shipmentId' => $this->integer()->notNull(),
+			'integrationId' => $this->integer()->notNull(),
+			'operationId' => $this->string(36)->notNull(),
+			'status' => $this->string(32)->notNull(),
+			'externalId' => $this->string(),
+			'carrier' => $this->string()->notNull()->defaultValue(''),
+			'service' => $this->string()->notNull()->defaultValue(''),
+			'trackingNumber' => $this->string(),
+			'trackingUrl' => $this->text(),
+			'transitDays' => $this->integer(),
+			'costAmount' => $this->string(64),
+			'costCurrency' => $this->string(3),
+			'metadata' => $this->json(),
+			'requestData' => $this->json(),
+			'references' => $this->json(),
+			'documents' => $this->json(),
+			'lastError' => $this->text(),
+			'createdBy' => $this->integer(),
+			'dateNotified' => $this->dateTime(),
+			'dateCreated' => $this->dateTime()->notNull(),
+			'dateUpdated' => $this->dateTime()->notNull(),
+			'uid' => $this->uid(),
+		]);
+
+		$this->createIndex(null, Table::DELIVERIES, ['operationId'], true);
+		$this->createIndex(null, Table::DELIVERIES, ['shipmentId', 'status']);
+
 		$this->createIndex(null, Table::SHIPMENTS, ['reference'], true);
 		$this->createIndex(null, Table::SHIPMENTS, ['orderId', 'number'], true);
 		$this->createIndex(null, Table::SHIPMENTS, ['orderId'], false);
@@ -196,11 +232,15 @@ class Install extends Migration
 		$this->addForeignKey(null, Table::INTEGRATION_STATUS_MAPS, ['integrationId'], Table::INTEGRATIONS, ['id'], 'CASCADE');
 		$this->addForeignKey(null, Table::TRACKED_ORDERS, ['orderId'], CommerceTable::ORDERS, ['id'], 'CASCADE');
 
+		$this->addForeignKey(null, Table::DELIVERIES, ['shipmentId'], Table::SHIPMENTS, ['id'], 'CASCADE');
+		$this->addForeignKey(null, Table::DELIVERIES, ['integrationId'], Table::INTEGRATIONS, ['id'], 'RESTRICT');
+
 		return true;
 	}
 
 	public function safeDown(): bool
 	{
+		$this->dropTableIfExists(Table::DELIVERIES);
 		// Drop in reverse FK-dependency order: any table with inbound foreign keys must be
 		// dropped after every table that points at it.
 		$this->dropTableIfExists(Table::TRACKED_ORDERS);

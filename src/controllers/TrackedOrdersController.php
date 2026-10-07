@@ -25,7 +25,6 @@ class TrackedOrdersController extends Controller
 		$this->requirePermission(Plugin::PERMISSION_EDIT);
 
 		$order = $this->requireOrder();
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		if ($plugin->trackedOrders->isOrderStatusIgnored($order)) {
@@ -55,7 +54,6 @@ class TrackedOrdersController extends Controller
 		$this->requirePermission(Plugin::PERMISSION_EDIT);
 
 		$order = $this->requireOrder();
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$plugin->trackedOrders->markIgnored($order);
@@ -72,7 +70,6 @@ class TrackedOrdersController extends Controller
 		$this->requirePermission(Plugin::PERMISSION_EDIT);
 
 		$order = $this->requireOrder();
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$result = $plugin->trackedOrders->restoreTrashedShipments($order);

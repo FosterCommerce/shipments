@@ -36,7 +36,6 @@ class TransitionEmails extends Component
 			])
 			->column();
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$emails = [];

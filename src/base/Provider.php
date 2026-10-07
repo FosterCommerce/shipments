@@ -114,7 +114,6 @@ abstract class Provider extends SavableComponent implements ProviderInterface
 			return null;
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		$this->sourceIntegration = $plugin->integrations->getIntegrationByHandle($this->handle);
 

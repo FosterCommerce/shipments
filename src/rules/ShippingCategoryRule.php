@@ -43,7 +43,6 @@ class ShippingCategoryRule implements ShipmentRuleInterface
 
 	public function plan(Order $order, array $remainingQtyByLineItemId): array
 	{
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		$groups = $plugin->getSettings()->shippingCategoryGroups;
 		if ($groups === []) {

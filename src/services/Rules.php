@@ -32,7 +32,6 @@ class Rules extends Component
 	 */
 	public function planFor(Order $order): array
 	{
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		$pool = $plugin->shipmentLineItems->remainingPoolFor($order);
 		$plans = [];
@@ -104,7 +103,6 @@ class Rules extends Component
 
 	private function resolveSourceRule(): ?ShipmentRuleInterface
 	{
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		$sourceHandle = $plugin->getSettings()->groupingSource;
 		if ($sourceHandle === '' || $sourceHandle === Settings::GROUPING_SOURCE_NONE) {

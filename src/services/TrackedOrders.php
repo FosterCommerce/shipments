@@ -42,7 +42,6 @@ class TrackedOrders extends Component
 	 */
 	public function resolveShippable(Order $order): TrackedOrderShippable
 	{
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		foreach ($order->getLineItems() as $lineItem) {
@@ -56,7 +55,6 @@ class TrackedOrders extends Component
 
 	public function isOrderStatusIgnored(Order $order): bool
 	{
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		$ignoredHandles = $plugin->getSettings()->orderStatusesToIgnore;
 		if ($ignoredHandles === []) {
@@ -84,7 +82,6 @@ class TrackedOrders extends Component
 			throw new InvalidArgumentException('Cannot track an order without an id.');
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$existing = $this->findForOrderId($order->id);
@@ -130,7 +127,6 @@ class TrackedOrders extends Component
 			return;
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		$underAllocated = $plugin->shipmentLineItems->isOrderUnderAllocated($order)
 			? TrackedOrderUnderAllocated::Yes
@@ -160,7 +156,6 @@ class TrackedOrders extends Component
 			return;
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		$targetHandle = $plugin->getSettings()->autoAdvanceOrderStatusHandle;
 		if ($targetHandle === null || $targetHandle === '') {
@@ -335,7 +330,6 @@ class TrackedOrders extends Component
 			];
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		$trashed = $plugin->getShipments()->findTrashedByOrderId($order->id);
 

@@ -114,8 +114,7 @@
 
 	<hr>
 
-	<h2>{{ 'emails.transitionTriggers'|t('shipments') }}</h2>
-	<p class="light">{{ 'emails.triggersHelp'|t('shipments') }}</p>
+	<h2>{{ 'emails.triggers'|t('shipments') }}</h2>
 
 	{% if email.id %}
 		{% set statusFieldOptions = [] %}
@@ -124,13 +123,20 @@
 		{% endfor %}
 
 		{{ forms.checkboxGroupField({
-			label: 'emails.statusTriggers'|t('shipments'),
+			label: 'emails.transitionTriggers'|t('shipments'),
+			instructions: 'emails.triggersHelp'|t('shipments'),
 			name: 'statusBindings',
 			values: statusBindings,
 			options: statusFieldOptions,
 		}) }}
 	{% else %}
-		<p class="light"><em>{{ 'emails.saveFirstForTriggers'|t('shipments') }}</em></p>
+		{% set transitionInput %}
+			<p class="light"><em>{{ 'emails.saveFirstForTriggers'|t('shipments') }}</em></p>
+		{% endset %}
+		{{ forms.field({
+			label: 'emails.transitionTriggers'|t('shipments'),
+			instructions: 'emails.triggersHelp'|t('shipments'),
+		}, transitionInput) }}
 	{% endif %}
 	{% include 'shipments/_includes/plugin-footer' %}
 {% endblock %}

@@ -1,4 +1,4 @@
-{% extends "_layouts/cp" %}
+{% extends "shipments/_cp/shipment/_layout" %}
 {% import "_includes/forms" as forms %}
 
 {#
@@ -9,35 +9,6 @@
 #}
 
 {% set fullPageForm = true %}
-
-{% set crumbs = [
-	{ label: 'nav.shipments'|t('shipments'), url: url('shipments/shipments') },
-	{ label: order.reference ?: order.number, url: order.cpEditUrl },
-] %}
-
-{% set fieldLayout = shipment.getFieldLayout() %}
-{% set fieldLayoutForm = fieldLayout ? fieldLayout.createForm(shipment) : null %}
-{% set customFieldTabs = [] %}
-{% if fieldLayoutForm %}
-	{% for layoutTab in fieldLayoutForm.tabs %}
-		{% if layoutTab.getContent() is not empty %}
-			{% set customFieldTabs = customFieldTabs|merge([layoutTab]) %}
-		{% endif %}
-	{% endfor %}
-{% endif %}
-
-{% set tabs = {
-	shipmentDetails: { label: 'nav.details'|t('shipments'), url: '#shipment-details' },
-	lineItems: { label: 'shipmentEdit.lineItems.heading'|t('shipments'), url: '#line-items' },
-	integrationReferences: { label: 'shipmentEdit.references.heading'|t('shipments'), url: '#integration-references' },
-	statusHistory: { label: 'shipmentEdit.statusHistory.heading'|t('shipments'), url: '#status-history' },
-} %}
-{% for layoutTab in customFieldTabs %}
-	{% set tabs = tabs|merge({
-		(layoutTab.getId()): { label: layoutTab.getName(), url: '#' ~ layoutTab.getId() },
-	}) %}
-{% endfor %}
-{% set selectedTab = selectedTab ?? 'shipmentDetails' %}
 
 {% set statusSelectOptions = [] %}
 {% for code, label in statusOptions %}
@@ -72,9 +43,47 @@
 			name: 'enabled',
 			on: shipment.enabled,
 		}) }}
+		{% set canEditShipDate = currentUser.can(constant('fostercommerce\\shipments\\Plugin::PERMISSION_EDIT')) and shipment.status != 'cancelled' and not shipment.trashed %}
+		{% set shipDateInput %}
+			{{ forms.date({
+				id: 'dateScheduledShip',
+				name: 'dateScheduledShip',
+				value: shipment.dateScheduledShip,
+				disabled: not canEditShipDate,
+			}) }}
+			<span class="spinner small invisible shipment-ship-date-spinner" role="status" aria-label="{{ 'shipmentEdit.savingShipDate'|t('shipments') }}"></span>
+		{% endset %}
+		{{ forms.field({
+			id: 'dateScheduledShip',
+			label: 'shipmentEdit.targetShipDate'|t('shipments'),
+			labelAttributes: {for: 'dateScheduledShip-date'},
+			fieldAttributes: {data: {'shipments-ship-date': shipment.id}},
+			inputContainerAttributes: {class: 'input shipment-ship-date-input'},
+			errors: shipment.getErrors('dateScheduledShip'),
+		}, shipDateInput) }}
+		<div class="field">
+			<div class="heading">{{ 'delivery.deliveryAddress'|t('shipments') }}</div>
+			<div class="input">
+			{% set deliveryAddress = order.shippingAddress ?? order.estimatedShippingAddress %}
+			{% if deliveryAddress %}
+				{{ deliveryAddress|address }}
+			{% else %}
+				<p class="light">{{ 'delivery.noDeliveryAddress'|t('shipments') }}</p>
+			{% endif %}
+			</div>
+		</div>
 	</div>
 
+	<hr>
 	<div class="meta read-only">
+		<div class="data">
+			<h5 class="heading">{{ 'shipmentEdit.statusLabel'|t('shipments') }}</h5>
+			<div class="value">{{ shipment.getAttributeHtml('status')|raw }}</div>
+		</div>
+		<div class="data">
+			<h5 class="heading">{{ 'shipmentEdit.orderAllocation'|t('shipments') }}</h5>
+			<div class="value">{{ shipment.getAttributeHtml('orderAllocation')|raw }}</div>
+		</div>
 		<div class="data">
 			<h5 class="heading">{{ 'index.column.reference'|t('shipments') }}</h5>
 			<div class="value"><code>{{ shipment.reference }}</code></div>
@@ -166,14 +175,6 @@
 			rows: 2,
 		}) }}
 
-		{{ forms.dateTimeField({
-			label: 'shipmentEdit.targetShipDate'|t('shipments'),
-			instructions: 'shipmentEdit.targetShipDateHelp'|t('shipments'),
-			id: 'dateScheduledShip',
-			name: 'dateScheduledShip',
-			value: shipment.dateScheduledShip,
-		}) }}
-
 		{{ forms.textareaField({
 			label: 'shipmentEdit.note'|t('shipments'),
 			instructions: 'shipmentEdit.fulfillmentNoteHelp'|t('shipments'),
@@ -230,6 +231,18 @@
 			</div>
 		</div>
 
+		{{ forms.textField({
+			label: 'shipmentEdit.transitDays'|t('shipments'),
+			instructions: 'shipmentEdit.transitDaysHelp'|t('shipments'),
+			id: 'transitDays',
+			name: 'transitDays',
+			type: 'number',
+			min: 0,
+			step: 1,
+			value: shipment.transitDays,
+			errors: shipment.getErrors('transitDays'),
+		}) }}
+
 		{{ forms.textareaField({
 			label: 'shipmentEdit.note'|t('shipments'),
 			instructions: 'shipmentEdit.shippingNoteHelp'|t('shipments'),
@@ -239,6 +252,10 @@
 			rows: 3,
 			value: shipment.shippingNotes,
 		}) }}
+	</div>
+
+	<div id="delivery" class="hidden">
+		{% include 'shipments/_cp/shipment/_delivery' with deliveryTab %}
 	</div>
 
 	{# Line items tab #}
@@ -458,4 +475,11 @@
 		</div>
 	{% endfor %}
 	{% include 'shipments/_includes/plugin-footer' %}
+{% endblock %}
+
+{% block foot %}
+	{{ parent() }}
+	{# Delivery actions submit independently of the shipment's full-page form. #}
+	{% from 'shipments/_cp/shipment/_delivery' import actionForms %}
+	{{ actionForms(shipment, deliveryTab.deliveries) }}
 {% endblock %}

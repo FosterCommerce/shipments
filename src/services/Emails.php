@@ -176,7 +176,6 @@ class Emails extends Component
 			return false;
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		$plugin->transitionEmails->pruneForEmailId((int) $email->id);
 
@@ -255,6 +254,9 @@ class Emails extends Component
 			'statusHistory' => $context->history,
 			'user' => $context->user,
 			'message' => $context->message,
+			'delivery' => $context->delivery,
+			'booking' => $context->delivery,
+			'references' => $context->delivery?->references ?? [],
 		];
 
 		$mailer = Craft::$app->getMailer();

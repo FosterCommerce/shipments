@@ -7,6 +7,9 @@ A Craft CMS plugin that adds first-class **shipments** to Craft Commerce, splitt
 - Craft CMS `^5.0`
 - Craft Commerce `^5.0`
 - PHP `^8.2`
+- Shippy `^1.2.23`
+- BoxPacker `^3.0`
+- PHP Units of Measure `^2.1`
 - MySQL 8 / MariaDB 10.4+ or PostgreSQL 13+
 
 ## Install

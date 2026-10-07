@@ -22,6 +22,7 @@ use fostercommerce\shipments\events\CreateShipmentsEvent;
 use fostercommerce\shipments\events\ShipmentLineItemsChangedEvent;
 use fostercommerce\shipments\events\ShipmentStatusChangedEvent;
 use fostercommerce\shipments\models\Integration;
+use fostercommerce\shipments\models\ShipmentLineItem;
 use fostercommerce\shipments\models\ShipmentPlan;
 use fostercommerce\shipments\models\ShipmentUpdatePayload;
 use fostercommerce\shipments\Plugin;
@@ -170,7 +171,6 @@ class Shipments extends Component
 			return [];
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		if ($plugin->getTrackedOrders()->isOrderStatusIgnored($order)) {
@@ -251,7 +251,6 @@ class Shipments extends Component
 			throw new OrderNotCompletedException($order->id);
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$submittedTotals = [];
@@ -385,7 +384,6 @@ class Shipments extends Component
 			]));
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		if ($plugin->getSettings()->enforceCoverage) {
@@ -439,7 +437,6 @@ class Shipments extends Component
 			$desired[$lineItemId] = ($desired[$lineItemId] ?? 0) + $qty;
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		// Share the per-order allocation lock with createFromStagingPost: an edit and a staging
@@ -453,7 +450,24 @@ class Shipments extends Component
 			]));
 		}
 
+		$deliveryLock = 'shipments:delivery:' . $shipmentId;
+		if (! $mutex->acquire($deliveryLock, self::STAGING_LOCK_TIMEOUT)) {
+			$mutex->release($lockName);
+			throw new Exception(Craft::t('shipments', 'delivery.errors.carrierDeliveryOperationIsInProgressForThis'));
+		}
+
 		try {
+			$currentAllocation = collect($plugin->shipmentLineItems->findForShipmentId($shipmentId))
+				->mapWithKeys(fn (ShipmentLineItem $line): array => [
+					$line->lineItemId => $line->qty,
+				])
+				->sortKeys()->all();
+			if ($currentAllocation === collect($desired)->sortKeys()->all() && $plugin->deliveries->getLatestForShipment($shipmentId) !== null) {
+				$shipment->setLineItems($plugin->shipmentLineItems->findForShipmentId($shipmentId));
+				return $shipment;
+			}
+
+			$plugin->deliveries->assertShipmentEditable($shipmentId);
 			$overflow = $plugin->shipmentLineItems->overflowForProposedAllocation($shipmentId, $order, $desired);
 			if ($overflow !== []) {
 				throw new AllocationOverflowException($shipmentId, $order->id, $overflow);
@@ -523,6 +537,7 @@ class Shipments extends Component
 				throw $throwable;
 			}
 		} finally {
+			$mutex->release($deliveryLock);
 			$mutex->release($lockName);
 		}
 
@@ -889,7 +904,6 @@ class Shipments extends Component
 			return;
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 		foreach ($plugin->integrations->getAllIntegrations() as $integration) {
 			if (! $integration instanceof Integration) {

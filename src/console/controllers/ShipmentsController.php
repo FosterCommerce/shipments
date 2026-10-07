@@ -21,7 +21,6 @@ class ShipmentsController extends Controller
 	{
 		/** @var Commerce $commerce */
 		$commerce = Commerce::getInstance();
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		$order = $commerce->getOrders()->getOrderById($orderId);

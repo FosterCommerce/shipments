@@ -1,0 +1,61 @@
+{% if selectedQuote and selectedQuote.metadata.packages is defined %}
+	<hr>
+	<h2>{{ 'delivery.preparedPackages'|t('shipments') }}</h2>
+	<table class="data fullwidth">
+		<thead>
+			<tr>
+				<th>{{ 'delivery.package'|t('shipments') }}</th>
+				<th>{{ 'delivery.dimensions'|t('shipments') }}</th>
+				<th>{{ 'delivery.weight'|t('shipments') }}</th>
+			</tr>
+		</thead>
+		<tbody>
+			{% for package in selectedQuote.metadata.packages %}
+				<tr>
+					<td>{{ package.reference ?? package.name ?? loop.index }}</td>
+					<td>{{ package.length }} × {{ package.width }} × {{ package.height }} {{ package.dimensionUnit ?? '' }}</td>
+					<td>{{ package.weight }} {{ package.weightUnit ?? '' }}</td>
+				</tr>
+				{% if package.items is defined %}
+					<tr>
+						<td colspan="3">
+							<ul class="bullets shipment-package-items">
+								{% for item in package.items %}
+									<li>{{ item.description }} × {{ item.quantity }}</li>
+								{% endfor %}
+							</ul>
+						</td>
+					</tr>
+				{% endif %}
+			{% endfor %}
+		</tbody>
+	</table>
+{% endif %}
+{% if selectedQuote and selectedQuote.metadata.handlingUnits is defined %}
+	<h3>{{ 'delivery.preparedFreight'|t('shipments') }}</h3>
+	{% for unit in selectedQuote.metadata.handlingUnits %}
+		<p><strong>{{ unit.num_of }} {{ unit.type }}</strong>: {{ unit.length }} × {{ unit.width }} × {{ unit.height }} in</p>
+		<table class="data fullwidth">
+			<thead>
+				<tr>
+					<th>{{ 'delivery.commodity'|t('shipments') }}</th>
+					<th>{{ 'delivery.pieces'|t('shipments') }}</th>
+					<th>{{ 'delivery.nmfc'|t('shipments') }}</th>
+					<th>{{ 'delivery.class'|t('shipments') }}</th>
+					<th>{{ 'delivery.weight'|t('shipments') }}</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for product in unit.products %}
+					<tr>
+						<td>{{ product.product }}</td>
+						<td>{{ product.pieces }}</td>
+						<td>{{ product.nmfc }}</td>
+						<td>{{ product.class }}</td>
+						<td>{{ product.weight }} lb</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+	{% endfor %}
+{% endif %}

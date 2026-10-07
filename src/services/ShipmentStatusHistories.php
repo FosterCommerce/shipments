@@ -40,7 +40,6 @@ class ShipmentStatusHistories extends Component
 			return [];
 		}
 
-		/** @var Plugin $plugin */
 		$plugin = Plugin::getInstance();
 
 		// Batch-fetch users + integrations referenced across all rows so we don't
