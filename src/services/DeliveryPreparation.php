@@ -11,8 +11,10 @@ use craft\commerce\elements\Order;
 use craft\commerce\models\LineItem;
 use craft\commerce\Plugin as Commerce;
 use craft\elements\Address;
+use DVDoug\BoxPacker\NoBoxesAvailableException;
 use DVDoug\BoxPacker\Packer;
 use fostercommerce\shipments\errors\DeliveryRejectedException;
+use fostercommerce\shipments\errors\PackingException;
 use fostercommerce\shipments\models\PackageBox;
 use PhpUnitsOfMeasure\PhysicalQuantity\Length;
 use PhpUnitsOfMeasure\PhysicalQuantity\Mass;
@@ -289,8 +291,22 @@ class DeliveryPreparation extends Component
 			$packer->addItem($this->item($item, true), $item->qty);
 		}
 
+		try {
+			$packedBoxes = $packer->pack();
+		} catch (NoBoxesAvailableException $noBoxesAvailableException) {
+			$item = $byId->get((int) $noBoxesAvailableException->getItem()->getDescription());
+			if (! $item instanceof LineItem) {
+				throw $noBoxesAvailableException;
+			}
+
+			throw new PackingException(Craft::t('shipments', 'delivery.errors.noBoxesCouldBeFoundForItem', [
+				'item' => $item->getDescription(),
+				'sku' => $item->getSku(),
+			]), 0, $noBoxesAvailableException);
+		}
+
 		$parcels = [];
-		foreach ($packer->pack() as $packed) {
+		foreach ($packedBoxes as $packed) {
 			$contents = [];
 			foreach ($packed->getItems() as $packedItem) {
 				$item = $byId->get((int) $packedItem->getItem()->getDescription());
@@ -325,9 +341,9 @@ class DeliveryPreparation extends Component
 		$package = new PackageItem();
 		$package->setDimensions(
 			(string) $item->id,
-			(int) ceil((new Length($item->width, $settings->dimensionUnits))->toUnit('mm')),
-			(int) ceil((new Length($item->length, $settings->dimensionUnits))->toUnit('mm')),
-			(int) ceil((new Length($item->height, $settings->dimensionUnits))->toUnit('mm')),
+			$this->packingDimension($item->width, $settings->dimensionUnits),
+			$this->packingDimension($item->length, $settings->dimensionUnits),
+			$this->packingDimension($item->height, $settings->dimensionUnits),
 			(int) ceil((new Mass($item->weight, $settings->weightUnits))->toUnit('g'))
 		);
 		return $package;
@@ -359,14 +375,21 @@ class DeliveryPreparation extends Component
 		$box->heightInches = (new Length($measurements['height'], $dimensionUnit))->toUnit('in');
 		$box->setDimensions(
 			'',
-			(int) floor((new Length($measurements['width'], $dimensionUnit))->toUnit('mm')),
-			(int) floor((new Length($measurements['length'], $dimensionUnit))->toUnit('mm')),
-			(int) floor((new Length($measurements['height'], $dimensionUnit))->toUnit('mm')),
+			$this->packingDimension($measurements['width'], $dimensionUnit),
+			$this->packingDimension($measurements['length'], $dimensionUnit),
+			$this->packingDimension($measurements['height'], $dimensionUnit),
 			(int) floor((new Mass($measurements['maxWeight'], $weightUnit))->toUnit('g')),
 		);
 		$box->setEmptyWeight((int) ceil((new Mass((float) $tare, $weightUnit))->toUnit('g')));
 		$box->setType(is_string($row['boxType'] ?? null) ? $row['boxType'] : '');
 		return $box;
+	}
+
+	private function packingDimension(float $value, string $unit): int
+	{
+		// Use hundredths of an inch consistently for all packer dimensions.
+		// This turns 17.5in into 1750, 25mm into 98 (equivalent to 0.98in), etc.
+		return (int) round((new Length($value, $unit))->toUnit('in') * 100);
 	}
 
 	/** @param list<LineItem> $items

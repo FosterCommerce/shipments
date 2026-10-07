@@ -541,6 +541,7 @@ return [
 	'delivery.errors.itemExceedsTheConfiguredPalletWeightLimit' => 'An item exceeds the configured pallet weight limit.',
 	'delivery.errors.chooseAValidPackingMode' => 'Choose a valid packing mode.',
 	'delivery.errors.packingReturnedAnUnknownShipmentItem' => 'Packing returned an unknown shipment item.',
+	'delivery.errors.noBoxesCouldBeFoundForItem' => 'No boxes could be found for {item} (SKU {sku}).',
 	'delivery.errors.packingDidNotIncludeEveryAllocatedItem' => 'Packing did not include every allocated item. Check the configured sizes and item dimensions.',
 	'delivery.errors.chooseValidPackageMeasurementUnits' => 'Choose valid package measurement units.',
 	'delivery.errors.everyAllocatedItemNeedsAPositiveWeightAndFor' => 'Every allocated item needs a positive weight and, for box packing, dimensions.',

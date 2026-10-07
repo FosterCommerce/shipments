@@ -8,7 +8,7 @@ use verbb\shippy\models\PackageBox as ShippyPackageBox;
 
 class PackageBox extends ShippyPackageBox
 {
-	// Carrier dimensions retain precision lost by the packer's integer millimetres.
+	// Carrier dimensions retain precision lost by the packer's integer scaling.
 	public float $lengthInches;
 
 	public float $widthInches;
