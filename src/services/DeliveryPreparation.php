@@ -105,25 +105,25 @@ class DeliveryPreparation extends Component
 	}
 
 	/**
-	 * Pack all allocated physical items using the configured mode.
+	 * Offer allocated physical items to the callback, then fit them into boxes if unhandled.
 	 *
 	 * @param list<array<string, mixed>> $boxes
+	 * @param (\Closure(list<LineItem>): (list<PackedParcel>|false))|null $callback Return false to use box packing.
 	 * @return list<PackedParcel>
 	 * @throws DeliveryRejectedException
 	 */
-	public function pack(Order $order, array $boxes, string $mode, string $capacityField = '', string $weightUnit = 'lb', string $dimensionUnit = 'in'): array
+	public function pack(Order $order, array $boxes, ?\Closure $callback = null, string $weightUnit = 'lb', string $dimensionUnit = 'in'): array
 	{
 		$items = $this->physicalItems($order);
 		if ($items === []) {
 			throw new DeliveryRejectedException(Craft::t('shipments', 'delivery.errors.thereAreNoPhysicalItemsAllocatedToThisShipment'));
 		}
 
-		if ($mode === 'individual') {
-			return $this->packIndividually($items);
-		}
-
-		if ($mode === 'singleBox') {
-			return $this->packSingleBox($items);
+		if ($callback instanceof \Closure) {
+			$parcels = $callback($items);
+			if ($parcels !== false) {
+				return $parcels;
+			}
 		}
 
 		if ($boxes === []) {
@@ -131,19 +131,6 @@ class DeliveryPreparation extends Component
 		}
 
 		$definitions = collect($boxes)->map(fn (array $box): PackageBox => $this->box($box, $weightUnit, $dimensionUnit));
-
-		if ($mode === 'count') {
-			$box = $definitions->first();
-			if (! $box instanceof PackageBox) {
-				throw new DeliveryRejectedException(Craft::t('shipments', 'delivery.errors.configureAtLeastOnePalletSize'));
-			}
-
-			return $this->packByCount($items, $box, $capacityField);
-		}
-
-		if ($mode !== 'boxes') {
-			throw new DeliveryRejectedException(Craft::t('shipments', 'delivery.errors.chooseAValidPackingMode'));
-		}
 
 		return $this->packInBoxes($items, $definitions->all());
 	}
@@ -170,10 +157,14 @@ class DeliveryPreparation extends Component
 	}
 
 	/**
+	 * Pack each unit in its own parcel using the item's dimensions and weight.
+	 * Returns dimensions in inches and weights in pounds.
+	 *
 	 * @param list<LineItem> $items
 	 * @return list<PackedParcel>
+	 * @throws DeliveryRejectedException When an item has nonpositive dimensions or weight.
 	 */
-	private function packIndividually(array $items): array
+	public function packIndividually(array $items): array
 	{
 		/** @var Commerce $commerce */
 		$commerce = Commerce::getInstance();
@@ -196,10 +187,14 @@ class DeliveryPreparation extends Component
 	}
 
 	/**
+	 * Stack all units into one parcel, summing their heights and weights.
+	 * Uses the largest item length and width, with dimensions in inches and weight in pounds.
+	 *
 	 * @param list<LineItem> $items
 	 * @return list<PackedParcel>
+	 * @throws DeliveryRejectedException When an item has nonpositive dimensions or weight.
 	 */
-	private function packSingleBox(array $items): array
+	public function packStacked(array $items): array
 	{
 		/** @var Commerce $commerce */
 		$commerce = Commerce::getInstance();
@@ -229,52 +224,6 @@ class DeliveryPreparation extends Component
 			'weight' => (new Mass($weight, $settings->weightUnits))->toUnit('lb'),
 			'items' => $contents,
 		]];
-	}
-
-	/**
-	 * @param list<LineItem> $items
-	 * @return list<PackedParcel>
-	 */
-	private function packByCount(array $items, PackageBox $box, string $capacityField): array
-	{
-		$groups = [];
-		$group = [];
-		$used = 0.0;
-		$weight = $box->getEmptyWeight();
-
-		foreach ($items as $item) {
-			$capacity = filter_var($this->field($item->getPurchasable(), $capacityField), FILTER_VALIDATE_INT, [
-				'options' => [
-					'min_range' => 1,
-				],
-			]);
-			if ($capacity === false) {
-				throw new DeliveryRejectedException(Craft::t('shipments', 'delivery.errors.everyItemNeedsAPositiveUnitsPerPalletValue'));
-			}
-
-			$share = 1 / $capacity;
-
-			$itemWeight = $this->item($item, false)->getWeight();
-			if ($itemWeight + $box->getEmptyWeight() > $box->getMaxWeight()) {
-				throw new DeliveryRejectedException(Craft::t('shipments', 'delivery.errors.itemExceedsTheConfiguredPalletWeightLimit'));
-			}
-
-			for ($unit = 0; $unit < $item->qty; $unit++) {
-				if ($group !== [] && ($used + $share > 1.0 + 1e-9 || $weight + $itemWeight > $box->getMaxWeight())) {
-					$groups[] = $this->parcel($box, $weight, $group);
-					$group = [];
-					$used = 0.0;
-					$weight = $box->getEmptyWeight();
-				}
-
-				$group[] = $item;
-				$used += $share;
-				$weight += $itemWeight;
-			}
-		}
-
-		$groups[] = $this->parcel($box, $weight, $group);
-		return $groups;
 	}
 
 	/**
