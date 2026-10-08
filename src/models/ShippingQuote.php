@@ -94,6 +94,12 @@ class ShippingQuote extends Model
 		return new self($snapshot);
 	}
 
+	public function getIsExpired(): bool
+	{
+		return $this->amount instanceof Money
+			&& (! $this->expiresAt instanceof DateTimeImmutable || $this->expiresAt < new DateTimeImmutable());
+	}
+
 	/**
 	 * Format the calculated shipping amount using the control-panel locale.
 	 */

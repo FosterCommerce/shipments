@@ -199,7 +199,7 @@ class Shipping extends Component
 	}
 
 	/**
-	 * @return array{quotes: list<ShippingQuote>, errors: list<array{provider: string, message: string}>}
+	 * @return array{quotes: list<ShippingQuote>, errors: list<array{provider: string, message: string, showingConfiguredServices: bool}>}
 	 */
 	private function calculateResult(Shipment $shipment): array
 	{
@@ -345,7 +345,7 @@ class Shipping extends Component
 	 * @param ProviderInterface&ShippingRateProviderInterface $provider
 	 * @param list<array{method: ShippingQuote, services: list<string>}> $requests
 	 * @param array<string, mixed> $options
-	 * @return array{quotes: list<ShippingQuote>, errors: list<array{provider: string, message: string}>}
+	 * @return array{quotes: list<ShippingQuote>, errors: list<array{provider: string, message: string, showingConfiguredServices: bool}>}
 	 */
 	private function requestRates(ShippingRateProviderInterface $provider, Order $order, array $requests, array $options): array
 	{
@@ -363,6 +363,7 @@ class Shipping extends Component
 			$errors[] = [
 				'provider' => $provider::displayName(),
 				'message' => $throwable->getMessage(),
+				'showingConfiguredServices' => $quotes !== [],
 			];
 		}
 
@@ -513,7 +514,7 @@ class Shipping extends Component
 
 	private function assertCurrent(Shipment $shipment, ShippingQuote $quote): void
 	{
-		if (! $quote->expiresAt instanceof DateTimeImmutable || $quote->expiresAt < new DateTimeImmutable() || $quote->fingerprint !== $this->fingerprint($shipment)) {
+		if ($quote->getIsExpired() || $quote->fingerprint !== $this->fingerprint($shipment)) {
 			throw new RuntimeException(Craft::t('shipments', 'delivery.errors.shipmentDetailsOrConfigurationChangedOrTheQuoteExpired'));
 		}
 	}

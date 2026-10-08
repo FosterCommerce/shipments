@@ -98,7 +98,10 @@
 				{% endfor %}
 				{% for error in rateErrors %}
 					<tr>
-						<td class="error" colspan="4">{{ error.provider }}: {{ error.message }}</td>
+						<td colspan="4">
+							{{ ((error.showingConfiguredServices ?? false) ? 'delivery.ratesFailedShowingConfiguredServices' : 'delivery.ratesFailed')|t('shipments', {provider: error.provider}) }}
+							<span class="info warning">{{ error.message }}</span>
+						</td>
 					</tr>
 				{% endfor %}
 			</tbody>

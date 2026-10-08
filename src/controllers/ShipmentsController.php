@@ -9,7 +9,6 @@ use craft\helpers\DateTimeHelper;
 use craft\helpers\Json;
 use craft\helpers\MoneyHelper;
 use craft\web\Controller;
-use DateTimeImmutable;
 use DateTimeInterface;
 use fostercommerce\shipments\base\ControllerBodyParamsTrait;
 use fostercommerce\shipments\base\DeliveryProviderInterface;
@@ -195,9 +194,11 @@ class ShipmentsController extends Controller
 		$shipment->setFieldValuesFromRequest('fields');
 
 		$dateScheduledShipInput = $this->request->getBodyParam('dateScheduledShip');
-		$shipment->dateScheduledShip = is_string($dateScheduledShipInput) || is_int($dateScheduledShipInput) || is_array($dateScheduledShipInput) || $dateScheduledShipInput instanceof DateTimeInterface
-			? DateTimeHelper::toDateTime($dateScheduledShipInput) ?: null
-			: null;
+		if ($dateScheduledShipInput !== null) {
+			$shipment->dateScheduledShip = is_string($dateScheduledShipInput) || is_int($dateScheduledShipInput) || is_array($dateScheduledShipInput) || $dateScheduledShipInput instanceof DateTimeInterface
+				? DateTimeHelper::toDateTime($dateScheduledShipInput) ?: null
+				: null;
+		}
 
 		$integrationReferences = $this->parseIntegrationReferences();
 		$statusInput = $this->bodyString('status') ?? '';
@@ -502,7 +503,7 @@ class ShipmentsController extends Controller
 		$deliveries = $plugin->deliveries->getForShipment((int) $shipment->id);
 		$activeDelivery = collect($deliveries)->first(static fn (Delivery $delivery): bool => $delivery->getIsActive());
 		$stale = $selectedQuote instanceof ShippingQuote && (
-			! $selectedQuote->expiresAt instanceof DateTimeImmutable || $selectedQuote->expiresAt < new DateTimeImmutable()
+			$selectedQuote->getIsExpired()
 			|| $selectedQuote->fingerprint !== $plugin->shipping->fingerprint($shipment)
 		);
 

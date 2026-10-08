@@ -421,6 +421,7 @@ return [
 	'shipmentEdit.couldNotSaveShipDate' => 'Couldn’t save the ship date.',
 	'shipmentEdit.invalidShipDate' => 'Enter a valid ship date.',
 	'shipmentEdit.shipDateReadOnly' => 'The ship date is read-only for cancelled or deleted shipments.',
+	'shipmentEdit.shipDateActiveDelivery' => 'Void the active delivery before changing the ship date.',
 
 	// shipmentEdit.lineItems
 	'shipmentEdit.lineItems.adjustIntro' => 'Adjust quantities to split or rebalance this shipment. Lowering a quantity returns those units to the order’s unallocated pool, where you can create a new shipment for them from the order’s Shipments tab. Set a quantity to 0 to remove a line item.',
@@ -584,6 +585,8 @@ return [
 	'delivery.method' => 'Method',
 	'delivery.orderShippingMethod' => 'Order method',
 	'delivery.rateUnavailable' => 'Rate unavailable',
+	'delivery.ratesFailed' => 'Fetching rates failed for {provider}.',
+	'delivery.ratesFailedShowingConfiguredServices' => 'Fetching rates failed for {provider}. Showing configured services.',
 	'delivery.integration' => 'Integration',
 	'delivery.cost' => 'Cost',
 	'delivery.calculatedShippingAmount' => 'Calculated shipping amount',

@@ -43,7 +43,7 @@
 			name: 'enabled',
 			on: shipment.enabled,
 		}) }}
-		{% set canEditShipDate = currentUser.can(constant('fostercommerce\\shipments\\Plugin::PERMISSION_EDIT')) and shipment.status != 'cancelled' and not shipment.trashed %}
+		{% set canEditShipDate = currentUser.can(constant('fostercommerce\\shipments\\Plugin::PERMISSION_EDIT')) and shipment.status != 'cancelled' and not shipment.trashed and not deliveryTab.activeDelivery %}
 		{% set shipDateInput %}
 			{{ forms.date({
 				id: 'dateScheduledShip',

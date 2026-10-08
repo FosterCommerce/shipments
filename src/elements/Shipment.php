@@ -824,6 +824,13 @@ class Shipment extends Element
 			throw new RuntimeException(Craft::t('shipments', 'delivery.errors.bookedShipmentCouldNotBeLoaded'));
 		}
 
+		$savedShipDate = DateTimeHelper::toDateTime($saved['dateScheduledShip']);
+		$savedShipTimestamp = $savedShipDate instanceof DateTime ? $savedShipDate->getTimestamp() : null;
+
+		if ($this->dateScheduledShip?->getTimestamp() !== $savedShipTimestamp) {
+			throw new RuntimeException(Craft::t('shipments', 'shipmentEdit.shipDateActiveDelivery'));
+		}
+
 		$attributes = [
 			'orderId' => 'orderId',
 			'trackingNumber' => 'trackingNumber',
