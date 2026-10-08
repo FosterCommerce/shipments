@@ -81,11 +81,15 @@
 							value="{{ quote.handle }}"
 							{{ selectedQuote and selectedQuote.handle == quote.handle ? 'checked' }}
 							{{ not canPrepare or staleQuote ? 'disabled' }}
-						> {{ quote.name }}</label></td>
+						> {{ quote.name }}</label>
+						{% if quote.handle in customerChosenQuoteHandles %}
+							<span class="status-label blue"><span class="status-label-text">{{ 'delivery.orderShippingMethod'|t('shipments') }}</span></span>
+						{% endif %}
+						</td>
 						<td>{{ providerNames[quote.providerUid] ?? 'delivery.notAvailable'|t('shipments') }}</td>
 						<td>{{ quote.transitDays ?? '' }}</td>
 						<td>
-							{{ quoteCosts[quote.handle] ?? 'delivery.notConfirmed'|t('shipments') }}
+							{{ quoteCosts[quote.handle] ?? 'delivery.rateUnavailable'|t('shipments') }}
 							{% if quote.previousCarrierCost %}
 								(<span class="warning shipment-previous-cost" tabindex="0" title="{{ 'delivery.carrierAmountChangedFrom'|t('shipments', {amount: quote.formattedPreviousCarrierCost}) }}" aria-label="{{ 'delivery.carrierAmountChangedFrom'|t('shipments', {amount: quote.formattedPreviousCarrierCost}) }}">{{ quote.formattedPreviousCarrierCost }}</span>)
 							{% endif %}

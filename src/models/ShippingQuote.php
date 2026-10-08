@@ -26,7 +26,7 @@ class ShippingQuote extends Model
 
 	public ?int $transitDays = null;
 
-	public Money $amount;
+	public ?Money $amount = null;
 
 	public ?Money $carrierCost = null;
 
@@ -55,7 +55,7 @@ class ShippingQuote extends Model
 			'providerHandle' => $this->providerHandle,
 			'serviceCode' => $this->serviceCode,
 			'transitDays' => $this->transitDays,
-			'amount' => MoneyValues::serialize($this->amount),
+			'amount' => $this->amount instanceof Money ? MoneyValues::serialize($this->amount) : null,
 			'carrierCost' => $this->carrierCost instanceof Money ? MoneyValues::serialize($this->carrierCost) : null,
 			'previousCarrierCost' => $this->previousCarrierCost instanceof Money ? MoneyValues::serialize($this->previousCarrierCost) : null,
 			'metadata' => $this->metadata,
@@ -76,14 +76,21 @@ class ShippingQuote extends Model
 		$cost = $snapshot['carrierCost'] ?? null;
 		$previousCost = $snapshot['previousCarrierCost'] ?? null;
 		$expiresAt = $snapshot['expiresAt'] ?? null;
-		if (! is_array($amount) || ($cost !== null && ! is_array($cost)) || ($previousCost !== null && ! is_array($previousCost)) || ($expiresAt !== null && ! is_string($expiresAt))) {
+
+		if (
+			($amount !== null && ! is_array($amount))
+			|| ($cost !== null && ! is_array($cost))
+			|| ($previousCost !== null && ! is_array($previousCost))
+			|| ($expiresAt !== null && ! is_string($expiresAt))
+		) {
 			throw new InvalidArgumentException(Craft::t('shipments', 'delivery.errors.savedShipmentQuoteIsInvalidDetails'));
 		}
 
-		$snapshot['amount'] = MoneyValues::restore($amount);
+		$snapshot['amount'] = $amount === null ? null : MoneyValues::restore($amount);
 		$snapshot['carrierCost'] = $cost === null ? null : MoneyValues::restore($cost);
 		$snapshot['previousCarrierCost'] = $previousCost === null ? null : MoneyValues::restore($previousCost);
 		$snapshot['expiresAt'] = $expiresAt !== null && $expiresAt !== '' ? new DateTimeImmutable($expiresAt) : null;
+
 		return new self($snapshot);
 	}
 
@@ -92,7 +99,9 @@ class ShippingQuote extends Model
 	 */
 	public function getFormattedAmount(): string
 	{
-		return (string) MoneyHelper::toString($this->amount);
+		return $this->amount instanceof Money
+			? (string) MoneyHelper::toString($this->amount)
+			: Craft::t('shipments', 'delivery.rateUnavailable');
 	}
 
 	public function getFormattedPreviousCarrierCost(): ?string

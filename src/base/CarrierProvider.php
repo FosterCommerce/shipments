@@ -122,7 +122,7 @@ abstract class CarrierProvider extends Provider implements ShippingRateProviderI
 	/**
 	 * @param array<string, mixed> $metadata
 	 */
-	protected function carrierQuote(ShippingQuote $method, string $serviceCode, string $name, Money $cost, array $metadata = [], ?string $integrationService = null, ?int $transitDays = null): ShippingQuote
+	protected function carrierQuote(ShippingQuote $method, string $serviceCode, string $name, ?Money $cost, array $metadata = [], ?string $integrationService = null, ?int $transitDays = null): ShippingQuote
 	{
 		$quote = clone $method;
 		$quote->handle = 'delivery_' . $this->uid . '_' . substr(hash('sha256', Json::encode([$method->metadata['mappingSource'], $method->metadata['mappingSourceService'], $integrationService ?? $serviceCode, $serviceCode])), 0, 24);

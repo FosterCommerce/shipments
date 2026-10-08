@@ -511,6 +511,9 @@ class ShipmentsController extends Controller
 				static fn (Integration $integration): bool => $integration->isEnabled() && $integration->getProvider() instanceof DeliveryProviderInterface,
 			),
 			'quotes' => $quotes,
+			'customerChosenQuoteHandles' => collect($plugin->shipping->getCustomerChosenQuotes($shipment, $quotes))
+				->pluck('handle')
+				->all(),
 			'providerNames' => $plugin->integrations->getAllIntegrations()->pluck('name', 'uid')->all(),
 			'quoteCosts' => collect($quotes)->mapWithKeys(static fn (ShippingQuote $quote): array => [
 				$quote->handle => $quote->carrierCost instanceof Money ? MoneyHelper::toString($quote->carrierCost) : null,

@@ -31,6 +31,24 @@ interface ShippingRateProviderInterface
 	public function getShippingQuotes(Order $order, ShippingQuote $method, array $services, array $options): array;
 
 	/**
+	 * Quote mapped methods together without purchasing shipping or saving the order.
+	 *
+	 * @param list<array{method: ShippingQuote, services: list<string>}> $methods
+	 * @param array<string, mixed> $options
+	 * @return list<ShippingQuote>
+	 * @throws \Throwable When the carrier cannot return usable rates.
+	 */
+	public function getShippingQuotesForMethods(Order $order, array $methods, array $options): array;
+
+	/**
+	 * Return configured methods after a rate request fails, or an empty list when unsupported.
+	 *
+	 * @param list<string> $services
+	 * @return list<ShippingQuote>
+	 */
+	public function getUnquotedShippingMethods(ShippingQuote $method, array $services): array;
+
+	/**
 	 * Get resolved settings for hashing, including credentials that affect rate eligibility.
 	 *
 	 * Values must never be persisted in quote snapshots or logs.

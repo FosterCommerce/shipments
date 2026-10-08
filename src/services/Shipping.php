@@ -11,7 +11,6 @@ use craft\commerce\models\ShippingMethod;
 use craft\commerce\Plugin as Commerce;
 use craft\helpers\Json;
 use DateTimeImmutable;
-use fostercommerce\shipments\base\BatchShippingRateProviderInterface;
 use fostercommerce\shipments\base\ProviderInterface;
 use fostercommerce\shipments\base\ShippingRateProviderInterface;
 use fostercommerce\shipments\elements\Shipment;
@@ -62,6 +61,35 @@ class Shipping extends Component
 			return ShippingQuote::fromSnapshot($snapshot);
 		})->values()->all();
 		return $quotes;
+	}
+
+	/**
+	 * Find rates mapped from the customer's order shipping method.
+	 *
+	 * @param list<ShippingQuote> $quotes
+	 * @return list<ShippingQuote>
+	 */
+	public function getCustomerChosenQuotes(Shipment $shipment, array $quotes): array
+	{
+		$order = $shipment->getOrder();
+		$handle = $order?->shippingMethodHandle;
+
+		if (! $order instanceof Order || $handle === null || $handle === '') {
+			return [];
+		}
+
+		$commerceSource = 'commerce:' . $order->getStore()->handle . ':' . $handle;
+
+		return collect($quotes)
+			->filter(static function (ShippingQuote $quote) use ($handle, $commerceSource): bool {
+				$source = $quote->metadata['mappingSource'] ?? '';
+
+				return $quote->handle === $handle
+					|| $source === $commerceSource
+					|| (is_string($source) && str_starts_with($source, 'postie:') && ($quote->metadata['mappingSourceService'] ?? null) === $handle);
+			})
+			->values()
+			->all();
 	}
 
 	/**
@@ -124,34 +152,24 @@ class Shipping extends Component
 	}
 
 	/**
-	 * Recheck the selected method and price before a carrier purchase.
+	 * Validate the selected method and shipment inputs before a carrier purchase.
 	 *
 	 * @throws RuntimeException
 	 */
 	public function validateForBooking(Shipment $shipment): ShippingQuote
 	{
 		$this->assertShipDate($shipment);
-		$selected = collect($this->getQuotes($shipment))->firstWhere('handle', $shipment->shippingMethodHandle);
+
+		$selected = collect($this->getQuotes($shipment))
+			->firstWhere('handle', $shipment->shippingMethodHandle);
+
 		if (! $selected instanceof ShippingQuote) {
 			throw new RuntimeException(Craft::t('shipments', 'delivery.errors.selectAShipmentMethodBeforeCreatingADelivery'));
 		}
 
 		$this->assertCurrent($shipment, $selected);
-		$quotes = $this->calculate($shipment);
-		// Order addresses and items can change while a carrier rate request is running.
-		if ($selected->fingerprint !== $this->fingerprint($this->reload($shipment))) {
-			throw new RuntimeException(Craft::t('shipments', 'delivery.errors.shipmentDetailsChangedWhileRetrievingRates'));
-		}
 
-		$fresh = collect($quotes)->firstWhere('handle', $selected->handle);
-		if (! $fresh instanceof ShippingQuote || ! $fresh->amount->equals($selected->amount) || $fresh->providerUid !== $selected->providerUid || $fresh->carrierCost?->getAmount() !== $selected->carrierCost?->getAmount() || $fresh->carrierCost?->getCurrency()->getCode() !== $selected->carrierCost?->getCurrency()->getCode()) {
-			$shipment->shippingSnapshot['quotes'] = collect($quotes)->map(static fn (ShippingQuote $quote): array => $quote->toSnapshot())->all();
-			$this->applyQuote($shipment, $fresh);
-			$this->persist($shipment);
-			throw new RuntimeException(Craft::t('shipments', 'delivery.errors.availableMethodOrPriceChanged'));
-		}
-
-		return $fresh;
+		return $selected;
 	}
 
 	public function assertEditable(Shipment $shipment): void
@@ -223,7 +241,13 @@ class Shipping extends Component
 		$quotes = collect($quotes)
 			->filter(static fn (ShippingQuote $quote): bool => $plugin->deliveries->getAvailableIntegrations($quote) !== [])
 			->keyBy('handle')
-			->sort(static fn (ShippingQuote $first, ShippingQuote $second): int => $first->amount->compare($second->amount))
+			->sort(static function (ShippingQuote $first, ShippingQuote $second): int {
+				if (! $first->amount instanceof Money || ! $second->amount instanceof Money) {
+					return ($first->amount instanceof Money ? 0 : 1) <=> ($second->amount instanceof Money ? 0 : 1);
+				}
+
+				return $first->amount->compare($second->amount);
+			})
 			->values()
 			->all();
 
@@ -328,33 +352,18 @@ class Shipping extends Component
 		$quotes = [];
 		$errors = [];
 
-		if ($provider instanceof BatchShippingRateProviderInterface) {
-			try {
-				$quotes = [...$quotes, ...$provider->getShippingQuotesForMethods($order, $requests, $options)];
-			} catch (Throwable $throwable) {
-				Craft::error(sprintf('Shipping rates unavailable from %s: %s', $provider::class, $throwable->getMessage()), Plugin::HANDLE);
-				$errors[] = [
-					'provider' => $provider::displayName(),
-					'message' => $throwable->getMessage(),
-				];
+		try {
+			$quotes = $provider->getShippingQuotesForMethods($order, $requests, $options);
+		} catch (Throwable $throwable) {
+			foreach ($requests as $request) {
+				$quotes = [...$quotes, ...$provider->getUnquotedShippingMethods($request['method'], $request['services'])];
 			}
 
-			return [
-				'quotes' => $quotes,
-				'errors' => $errors,
+			Craft::error(sprintf('Shipping rates unavailable from %s: %s', $provider::class, $throwable->getMessage()), Plugin::HANDLE);
+			$errors[] = [
+				'provider' => $provider::displayName(),
+				'message' => $throwable->getMessage(),
 			];
-		}
-
-		foreach ($requests as $request) {
-			try {
-				$quotes = [...$quotes, ...$provider->getShippingQuotes($order, $request['method'], $request['services'], $options)];
-			} catch (Throwable $throwable) {
-				Craft::error(sprintf('Shipping rates unavailable from %s for method %s: %s', $provider::class, $request['method']->handle, $throwable->getMessage()), Plugin::HANDLE);
-				$errors[] = [
-					'provider' => $provider::displayName() . ' (' . $request['method']->name . ')',
-					'message' => $throwable->getMessage(),
-				];
-			}
 		}
 
 		return [
@@ -400,8 +409,9 @@ class Shipping extends Component
 	{
 		$shipment->shippingMethodHandle = $quote?->handle;
 		$shipment->shippingMethodName = $quote?->name;
-		$shipment->shippingAmountMinor = $quote?->amount->getAmount();
-		$shipment->shippingCurrency = $quote?->amount->getCurrency()->getCode();
+		$shipment->shippingAmountMinor = $quote?->amount?->getAmount();
+		$shipment->shippingCurrency = $quote?->amount?->getCurrency()
+			->getCode();
 	}
 
 	/**
@@ -426,7 +436,14 @@ class Shipping extends Component
 			'errors' => $result['errors'],
 			'calculatedAt' => (new DateTimeImmutable())->format(DATE_ATOM),
 		];
-		$selected = collect($quotes)->firstWhere('handle', $shipment->shippingMethodHandle ?? $shipment->getOrder()?->shippingMethodHandle);
+
+		$selected = collect($quotes)
+			->firstWhere('handle', $shipment->shippingMethodHandle);
+
+		if (! $selected instanceof ShippingQuote) {
+			$selected = $this->getCustomerChosenQuotes($shipment, $quotes)[0] ?? null;
+		}
+
 		if (! $selected instanceof ShippingQuote) {
 			// Available quotes are sorted by their final shipment price.
 			$selected = $quotes[0] ?? null;

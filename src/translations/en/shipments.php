@@ -582,6 +582,8 @@ return [
 	'delivery.shipmentShippingMethod' => 'Shipping method',
 	'delivery.quoteIsStale' => 'The quote is stale. Refresh rates before creating delivery.',
 	'delivery.method' => 'Method',
+	'delivery.orderShippingMethod' => 'Order method',
+	'delivery.rateUnavailable' => 'Rate unavailable',
 	'delivery.integration' => 'Integration',
 	'delivery.cost' => 'Cost',
 	'delivery.calculatedShippingAmount' => 'Calculated shipping amount',
