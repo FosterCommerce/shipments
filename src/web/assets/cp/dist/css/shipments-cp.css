@@ -480,6 +480,15 @@ table.data thead th.shipment-measurement-column {
 	margin-block: 24px;
 }
 
+.shipment-rate-warning {
+	--fg-warning: var(--red-600);
+	color: var(--red-500);
+}
+
+.shipment-rate-warning .info.warning:not(:hover)::before {
+	color: var(--red-500);
+}
+
 .pane.shipment-delivery {
 	padding: 0;
 }
