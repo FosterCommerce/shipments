@@ -46,6 +46,16 @@ enum DeliveryDocumentType: string
 
 	case OTHER = 'OTHER';
 
+	public function filenameStem(): string
+	{
+		return match ($this) {
+			self::COMMERCIAL_INVOICE => 'invoice',
+			self::BILL_OF_LADING, self::VICS_BILL_OF_LADING => 'bol',
+			self::OTHER => 'document',
+			default => substr(strtolower(str_replace('_', '-', $this->value)), 0, 32),
+		};
+	}
+
 	public function label(): string
 	{
 		return Craft::t('shipments', match ($this) {

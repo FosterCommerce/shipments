@@ -13,6 +13,7 @@ use craft\helpers\FileHelper;
 use craft\helpers\Json;
 use craft\helpers\StringHelper;
 use craft\models\VolumeFolder;
+use craft\validators\AssetLocationValidator;
 use DateTime;
 use fostercommerce\shipments\base\DeliveryProviderInterface;
 use fostercommerce\shipments\db\Table;
@@ -37,7 +38,7 @@ use yii\base\Component;
 class Deliveries extends Component
 {
 	/**
-	 * Emitted after a successful booking has saved references and protected PDFs.
+	 * Emitted after a successful booking has saved references and carrier documents.
 	 *
 	 * The DeliveryEvent contains the current shipment and delivery. Follow-up retries can
 	 * emit this event again, so listeners must deduplicate by delivery ID or operation ID.
@@ -238,36 +239,32 @@ class Deliveries extends Component
 				return $delivery;
 			}
 
-			$delivery->status = 'voided';
-			$delivery->lastError = null;
-			$delivery->metadata['voidedAt'] = (new DateTime())->format(DATE_ATOM);
-			$delivery->metadata['voidedBy'] = Craft::$app->getUser()->getId();
-			$transaction = Craft::$app->getDb()->beginTransaction();
-			try {
-				$this->saveOrFail($delivery);
-				// Retain all booking costs/history; cancellation is not proof of a refund.
-				$record = ShipmentRecord::findOne([
-					'id' => $delivery->shipmentId,
-					'trackingNumber' => $delivery->trackingNumber,
-				]);
-				if ($record !== null) {
-					$record->trackingNumber = null;
-					$record->trackingUrl = null;
-					$record->transitDays = null;
-					$record->carrier = null;
-					$record->service = null;
-					if (! $record->save(false)) {
-						throw new RuntimeException(Craft::t('shipments', 'delivery.errors.unableToSaveShipmentTracking'));
-					}
-				}
-
-				$transaction->commit();
-			} catch (Throwable $throwable) {
-				$transaction->rollBack();
-				throw $throwable;
-			}
+			$this->completeVoid($delivery);
 
 			$this->publishSafely($delivery);
+			return $delivery;
+		});
+	}
+
+	public function markVoided(Delivery $delivery): void
+	{
+		$this->locked($delivery->shipmentId, function () use ($delivery): Delivery {
+			$delivery = $this->getById((int) $delivery->id) ?? throw new RuntimeException(Craft::t('shipments', 'delivery.errors.deliveryNotFound'));
+			if ($delivery->status === 'voided') {
+				return $delivery;
+			}
+
+			if (! $delivery->getCanMarkVoided()) {
+				throw new RuntimeException(Craft::t('shipments', 'delivery.errors.cannotMarkVoided'));
+			}
+
+			$delivery->metadata['manualVoid'] = [
+				'at' => (new DateTime())->format(DATE_ATOM),
+				'by' => Craft::$app->getUser()->getId(),
+				'previousStatus' => $delivery->status,
+				'previousError' => $delivery->lastError,
+			];
+			$this->completeVoid($delivery);
 			return $delivery;
 		});
 	}
@@ -445,7 +442,7 @@ class Deliveries extends Component
 	private function storeResultDocuments(Delivery $delivery, DeliveryResult $result): void
 	{
 		if ($result->documents !== []) {
-			/** @var list<array{assetId: int, filename: string, mimeType: string, trackingNumber: ?string, sequenceNumber?: ?int, type?: string}> $documents */
+			/** @var list<array{assetId: int, filename: string, mimeType: string, trackingNumber: ?string, sequenceNumber?: ?int, type?: string, contentHash?: string}> $documents */
 			$documents = collect($result->documents)
 				->map(fn (DeliveryDocument $document): array => $this->storeDocument($delivery, $document))
 				->values()
@@ -508,18 +505,50 @@ class Deliveries extends Component
 	}
 
 	/**
-	 * @return array{assetId: int, filename: string, mimeType: string, trackingNumber: ?string, sequenceNumber?: ?int, type?: string}
+	 * @return array{assetId: int, filename: string, mimeType: string, trackingNumber: ?string, sequenceNumber: ?int, type: string, contentHash: string}
 	 */
 	private function storeDocument(Delivery $delivery, DeliveryDocument $document): array
 	{
-		if ($document->mimeType !== 'application/pdf' || ! str_starts_with($document->contents, '%PDF-') || strlen($document->contents) > 25 * 1024 * 1024) {
-			throw new RuntimeException(Craft::t('shipments', 'delivery.errors.carrierDocumentIsNotAValidPDFOrExceeds'));
+		$extension = pathinfo($document->filename, PATHINFO_EXTENSION);
+		$folder = $this->documentFolder();
+		$contentHash = hash('sha256', $document->contents);
+		$carrier = trim(substr(preg_replace('/[^a-z0-9]+/', '-', strtolower($delivery->carrier)) ?? '', 0, 20), '-');
+		$base = ($carrier === '' ? 'carrier' : $carrier) . '-' . $document->type->filenameStem();
+		if ($document->sequenceNumber !== null) {
+			$base .= '-p' . $document->sequenceNumber;
 		}
 
-		$folder = $this->documentFolder();
-		$filename = $delivery->operationId . '-' . hash('sha256', $document->contents) . '.pdf';
+		$legacyFilename = $delivery->operationId . '-' . $contentHash . '.' . $extension;
+		$filenames = collect([12, 64])
+			->map(static fn (int $length): string => $base . '-d' . $delivery->id . '-' . substr($contentHash, 0, $length) . '.' . $extension)
+			->prepend($legacyFilename);
+		$asset = null;
+		$filename = '';
+		foreach ($filenames as $candidate) {
+			$existing = Asset::find()->folderId($folder->id)->filename($candidate)->status(null)->one();
+			if ($existing instanceof Asset && $existing->getVolume()->fileExists($existing->getPath())) {
+				if (hash('sha256', $existing->getContents()) === $contentHash) {
+					$asset = $existing;
+					$filename = $candidate;
+					break;
+				}
 
-		$asset = Asset::find()->folderId($folder->id)->filename($filename)->status(null)->one();
+				continue;
+			}
+
+			if ($candidate === $legacyFilename) {
+				continue;
+			}
+
+			$asset = $existing;
+			$filename = $candidate;
+			break;
+		}
+
+		if ($filename === '') {
+			throw new RuntimeException(Craft::t('shipments', 'delivery.errors.carrierDocumentFilenameConflict'));
+		}
+
 		if (! $asset instanceof Asset || ! $asset->getVolume()->fileExists($asset->getPath())) {
 			$isNew = ! $asset instanceof Asset;
 			if (! $asset instanceof Asset) {
@@ -527,18 +556,27 @@ class Deliveries extends Component
 					'volumeId' => $folder->volumeId,
 					'newFolderId' => $folder->id,
 					'filename' => $filename,
-					'title' => pathinfo($document->filename, PATHINFO_FILENAME),
+					'title' => trim($delivery->carrier . ' ' . $document->type->label()) . ($document->sequenceNumber === null ? '' : ' ' . $document->sequenceNumber),
+					'avoidFilenameConflicts' => false,
 				]);
 			}
 
 			$temporary = AssetHelper::tempFilePath($filename);
 			try {
 				if (file_put_contents($temporary, $document->contents) !== strlen($document->contents)) {
-					throw new RuntimeException(Craft::t('shipments', 'delivery.errors.unableToStoreTheCarrierPDF'));
+					throw new RuntimeException(Craft::t('shipments', 'delivery.errors.unableToStoreTheCarrierDocument'));
 				}
 
 				$asset->tempFilePath = $temporary;
+				$asset->sanitizeOnUpload = false;
 				$asset->setScenario($isNew ? Asset::SCENARIO_CREATE : Asset::SCENARIO_REPLACE);
+				$asset->setMimeType($document->mimeType);
+				foreach ($asset->getValidators() as $validator) {
+					if ($validator instanceof AssetLocationValidator) {
+						$validator->allowedExtensions = '*';
+					}
+				}
+
 				if (! Craft::$app->getElements()->saveElement($asset)) {
 					throw new RuntimeException(Craft::t('shipments', 'delivery.errors.unableToStoreCarrierAsset', [
 						'errors' => implode(' ', $asset->getFirstErrors()),
@@ -551,12 +589,45 @@ class Deliveries extends Component
 
 		return [
 			'assetId' => (int) $asset->id,
-			'filename' => basename($document->filename === '' || $document->filename === '0' ? 'delivery.pdf' : $document->filename),
-			'mimeType' => 'application/pdf',
+			'filename' => $asset->filename,
+			'mimeType' => $document->mimeType,
+			'contentHash' => $contentHash,
 			'trackingNumber' => $document->trackingNumber,
 			'sequenceNumber' => $document->sequenceNumber,
 			'type' => $document->type->value,
 		];
+	}
+
+	private function completeVoid(Delivery $delivery): void
+	{
+		$delivery->status = 'voided';
+		$delivery->lastError = null;
+		$delivery->metadata['voidedAt'] = (new DateTime())->format(DATE_ATOM);
+		$delivery->metadata['voidedBy'] = Craft::$app->getUser()->getId();
+		$transaction = Craft::$app->getDb()->beginTransaction();
+		try {
+			$this->saveOrFail($delivery);
+			// Retain all booking costs/history; cancellation is not proof of a refund.
+			$record = ShipmentRecord::findOne([
+				'id' => $delivery->shipmentId,
+				'trackingNumber' => $delivery->trackingNumber,
+			]);
+			if ($record !== null) {
+				$record->trackingNumber = null;
+				$record->trackingUrl = null;
+				$record->transitDays = null;
+				$record->carrier = null;
+				$record->service = null;
+				if (! $record->save(false)) {
+					throw new RuntimeException(Craft::t('shipments', 'delivery.errors.unableToSaveShipmentTracking'));
+				}
+			}
+
+			$transaction->commit();
+		} catch (Throwable $throwable) {
+			$transaction->rollBack();
+			throw $throwable;
+		}
 	}
 
 	private function saveOrFail(Delivery $delivery): void

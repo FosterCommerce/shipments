@@ -152,6 +152,12 @@
 			<svg class="shipment-delivery-chevron" width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="m4 6 4 4 4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
 		</summary>
 		<div class="shipment-delivery-content">
+		{% if delivery.lastError %}
+			<p class="error">{{ delivery.lastError }}</p>
+		{% endif %}
+		{% if delivery.status == 'voided' and delivery.metadata.manualVoid is defined %}
+			<p class="notice">{{ 'delivery.markedVoidedManually'|t('shipments', {date: delivery.metadata.manualVoid.at|datetime('short')}) }}</p>
+		{% endif %}
 		{% if delivery.externalId %}
 			<p><strong>{{ 'delivery.carrierReference'|t('shipments') }}:</strong> {% if delivery.trackingUrl %}<a href="{{ delivery.trackingUrl }}" target="_blank" rel="noopener">{{ delivery.externalId }}</a>{% else %}{{ delivery.externalId }}{% endif %}</p>
 		{% endif %}
@@ -161,9 +167,6 @@
 			<p>{{ reference.type|upper }}: {% if reference.url ?? null %}<a href="{{ reference.url }}" target="_blank" rel="noopener">{{ reference.number }}</a>{% else %}
 			{{ reference.number }}{% endif %}</p>
 		{% endfor %}
-		{% if delivery.lastError %}
-			<p class="error">{{ delivery.lastError }}</p>
-		{% endif %}
 		{% for warning in delivery.metadata.warnings ?? [] %}
 			<p class="warning">{{ warning }}</p>
 		{% endfor %}
@@ -175,20 +178,30 @@
 			<div class="shipment-document-groups">
 			{% for group in delivery.documentGroups %}
 				<section>
-					<h4>{{ group.trackingNumber ? 'delivery.package'|t('shipments') ~ ' ' ~ (group.sequenceNumber ?? loop.index) ~ ' - ' ~ group.trackingNumber : 'delivery.pdfAssets'|t('shipments') }}</h4>
+					<h4>{{ group.trackingNumber ? 'delivery.package'|t('shipments') ~ ' ' ~ (group.sequenceNumber ?? loop.index) ~ ' - ' ~ group.trackingNumber : 'delivery.documentAssets'|t('shipments') }}</h4>
 					<div class="shipment-delivery-documents">
 						{% for document in group.documents %}
-							<div>{{ forms.elementSelect({
-								id: 'delivery-document-' ~ delivery.id ~ '-' ~ document.asset.id,
-								elementType: 'craft\\elements\\Asset',
-								elements: [document.asset],
-								allowAdd: false,
-								allowRemove: false,
-								sortable: false,
-								showActionMenu: false
-							}) }}</div>
-							<div><span class="status-label gray"><span class="status-label-text">{{ document.type ? document.type.label() : 'delivery.notAvailable'|t('shipments') }}</span></span></div>
-							<div>{% if document.asset.url %}<a class="btn" href="{{ document.asset.url }}" target="_blank" rel="noopener">{{ 'delivery.print'|t('shipments') }}</a>{% endif %}</div>
+							<div class="flex">
+								<div>{{ forms.elementSelect({
+									id: 'delivery-document-' ~ delivery.id ~ '-' ~ document.asset.id,
+									elementType: 'craft\\elements\\Asset',
+									elements: [document.asset],
+									allowAdd: false,
+									allowRemove: false,
+									sortable: false,
+									showActionMenu: false
+								}) }}</div>
+								<span class="status-label gray shipment-document-type"><span class="status-label-text">{{ document.type ? document.type.label() : 'delivery.notAvailable'|t('shipments') }}{% if document.extension %} · {{ document.extension|upper }}{% endif %}</span></span>
+							</div>
+							<div class="flex">
+								{% set documentActions %}{% hook 'shipments.delivery.document-actions' %}{% endset %}
+								{% if documentActions|trim %}
+									{{ documentActions|raw }}
+								{% else %}
+									<a class="btn" href="{{ actionUrl('shipments/deliveries/download-document', {deliveryId: delivery.id, assetId: document.asset.id}) }}">{{ 'delivery.download'|t('shipments') }}</a>
+									{% if document.browserPrintable %}<a class="btn" href="{{ actionUrl('shipments/deliveries/download-document', {deliveryId: delivery.id, assetId: document.asset.id, inline: 1}) }}" target="_blank" rel="noopener">{{ 'delivery.print'|t('shipments') }}</a>{% endif %}
+								{% endif %}
+							</div>
 						{% endfor %}
 					</div>
 				</section>
@@ -201,6 +214,9 @@
 			{% endif %}
 			{% if canVoid and delivery.status in ['pending', 'created', 'voiding', 'void_uncertain'] and delivery.externalId %}
 				<button type="submit" class="btn" form="shipment-delivery-void-{{ delivery.id }}">{{ 'delivery.voidCarrierDelivery'|t('shipments') }}</button>
+			{% endif %}
+			{% if canVoid and delivery.canMarkVoided %}
+				<button type="submit" class="btn" form="shipment-delivery-mark-voided-{{ delivery.id }}">{{ 'delivery.markVoidedManually'|t('shipments') }}</button>
 			{% endif %}
 			{% if delivery.metadata.response is defined %}
 				<a href="#" class="shipment-copy-response" data-response="{{ delivery.responseJson }}">{{ 'delivery.copyResponse'|t('shipments') }}</a>
@@ -253,8 +269,8 @@
 		</form>
 	{% endfor %}
 	{% for delivery in deliveries %}
-		{% for action in ['refresh-delivery', 'void', 'acknowledge-failed'] %}
-			<form id="shipment-delivery-{{ action }}-{{ delivery.id }}" method="post" hidden{% if action == 'void' %} data-void-confirm="{{ 'delivery.confirmVoid'|t('shipments') }}"{% endif %}>
+		{% for action in ['refresh-delivery', 'void', 'mark-voided', 'acknowledge-failed'] %}
+			<form id="shipment-delivery-{{ action }}-{{ delivery.id }}" method="post" hidden{% if action in ['void', 'mark-voided'] %} data-void-confirm="{{ (action == 'mark-voided' ? 'delivery.confirmMarkVoided' : 'delivery.confirmVoid')|t('shipments') }}"{% endif %}>
 				{{ csrfInput() }}
 				{{ actionInput('shipments/deliveries/' ~ action) }}
 				{{ hiddenInput('deliveryId', delivery.id) }}

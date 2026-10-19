@@ -23,6 +23,30 @@ class DeliveriesController extends Controller
 {
 	use ControllerBodyParamsTrait;
 
+	public function actionDownloadDocument(int $deliveryId, int $assetId, bool $inline = false): Response
+	{
+		$this->requirePermission(Plugin::PERMISSION_VIEW);
+		$this->requirePermission(Plugin::PERMISSION_DOWNLOAD_DOCUMENTS);
+		$delivery = $this->delivery($deliveryId);
+		$document = collect($delivery->getDocumentGroups())
+			->flatMap(static fn (array $group): array => $group['documents'])
+			->first(static fn (array $document): bool => $document['asset']->id === $assetId);
+
+		if ($document === null) {
+			throw new NotFoundHttpException(Craft::t('shipments', 'delivery.errors.documentDoesNotExist'));
+		}
+
+		$response = $this->response;
+		$response->getHeaders()->set('X-Content-Type-Options', 'nosniff');
+		$response->getHeaders()->set('Cache-Control', 'private, no-store');
+
+		return $response->sendStreamAsFile($document['asset']->getStream(), $document['filename'], [
+			'mimeType' => $document['mimeType'],
+			'fileSize' => $document['asset']->size,
+			'inline' => $inline && $document['browserPrintable'],
+		]);
+	}
+
 	public function actionRefreshRates(): Response
 	{
 		$this->requirePostRequest();
@@ -91,6 +115,18 @@ class DeliveriesController extends Controller
 			}
 
 			return Craft::t('shipments', 'delivery.notices.carrierCancellationConfirmed');
+		});
+	}
+
+	public function actionMarkVoided(): Response
+	{
+		$this->requirePostRequest();
+		$this->requirePermission(Plugin::PERMISSION_VOID_DELIVERY);
+		$this->requirePermission(Plugin::PERMISSION_VIEW);
+		$delivery = $this->delivery($this->bodyId('deliveryId'));
+		return $this->finish($delivery->shipmentId, function () use ($delivery): string {
+			Plugin::getInstance()->deliveries->markVoided($delivery);
+			return Craft::t('shipments', 'delivery.notices.deliveryMarkedVoided');
 		});
 	}
 

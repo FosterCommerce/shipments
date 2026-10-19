@@ -62,7 +62,7 @@ class Delivery extends Model
 	public array $references = [];
 
 	/**
-	 * @var list<array{assetId: int, filename: string, mimeType: string, trackingNumber: ?string, sequenceNumber?: ?int, type?: string}>
+	 * @var list<array{assetId: int, filename: string, mimeType: string, trackingNumber: ?string, sequenceNumber?: ?int, type?: string, contentHash?: string}>
 	 */
 	public array $documents = [];
 
@@ -88,7 +88,7 @@ class Delivery extends Model
 	}
 
 	/**
-	 * @return list<array{trackingNumber: ?string, sequenceNumber: ?int, documents: list<array{asset: Asset, type: ?DeliveryDocumentType}>}>
+	 * @return list<array{trackingNumber: ?string, sequenceNumber: ?int, documents: list<array{asset: Asset, type: ?DeliveryDocumentType, mimeType: string, extension: string, browserPrintable: bool, filename: string}>}>
 	 */
 	public function getDocumentGroups(): array
 	{
@@ -104,7 +104,7 @@ class Delivery extends Model
 			}
 		}
 
-		foreach ($this->documents as $document) {
+		foreach ($this->documents as $index => $document) {
 			$key = $document['trackingNumber'] ?? '';
 			$groups[$key] ??= [
 				'trackingNumber' => $document['trackingNumber'],
@@ -113,9 +113,22 @@ class Delivery extends Model
 			];
 			$asset = $assets->get($document['assetId']);
 			if ($asset instanceof Asset) {
+				$type = DeliveryDocumentType::tryFrom($document['type'] ?? '');
+				$extension = pathinfo($document['filename'], PATHINFO_EXTENSION);
+				$carrier = trim(substr(preg_replace('/[^a-z0-9]+/', '-', strtolower($this->carrier)) ?? '', 0, 20), '-');
+				$filename = ($carrier === '' ? 'delivery' : $carrier) . '-' . ($type?->filenameStem() ?? 'document');
+				if (($document['sequenceNumber'] ?? null) !== null) {
+					$filename .= '-p' . $document['sequenceNumber'];
+				}
+
+				$filename .= '-' . ($index + 1) . '.' . $extension;
 				$groups[$key]['documents'][] = [
 					'asset' => $asset,
-					'type' => DeliveryDocumentType::tryFrom($document['type'] ?? ''),
+					'type' => $type,
+					'mimeType' => $document['mimeType'],
+					'extension' => $extension,
+					'browserPrintable' => in_array($document['mimeType'], ['application/pdf', 'image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/avif'], true),
+					'filename' => $filename,
 				];
 			}
 		}
@@ -157,6 +170,12 @@ class Delivery extends Model
 	public function getIsActive(): bool
 	{
 		return ! in_array($this->status, ['failed', 'voided'], true);
+	}
+
+	public function getCanMarkVoided(): bool
+	{
+		return $this->externalId !== null
+			&& $this->status === 'void_uncertain';
 	}
 
 	/**

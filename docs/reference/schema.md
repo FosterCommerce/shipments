@@ -189,7 +189,7 @@ Per-shipment carrier booking attempts.
 | `metadata`       | JSON                 | Provider recovery data and cost provenance.                                                          |
 | `requestData`    | JSON                 | Options and selected quote at submission.                                                            |
 | `references`     | JSON                 | Typed BOL, PRO, master, and package references.                                                      |
-| `documents`      | JSON                 | Per-delivery PDF `assetId`, original `filename`, `mimeType`, and optional `trackingNumber`.          |
+| `documents`      | JSON                 | Per-delivery document `assetId`, stored `filename`, `mimeType`, optional `contentHash`, package sequence, purpose, and tracking reference.          |
 | `lastError`      | text                 | Admin-facing failure or recovery message.                                                            |
 | `createdBy`      | int                  | Initiating user ID.                                                                                  |
 | `dateNotified`   | datetime             | First successful completion; prevents repeat creation events.                                        |

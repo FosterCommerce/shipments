@@ -538,18 +538,13 @@ table.data thead th.shipment-measurement-column {
 
 .shipment-delivery-documents {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) minmax(0, 12rem) max-content;
+	grid-template-columns: minmax(0, 1fr) max-content;
 	align-items: center;
 	gap: 0.75rem;
 }
 
 .shipment-delivery-documents > div {
 	min-width: 0;
-}
-
-.shipment-delivery-documents > div:nth-child(3n + 2) {
-	display: flex;
-	justify-content: flex-end;
 }
 
 .shipment-delivery-documents .elements {
@@ -562,4 +557,8 @@ table.data thead th.shipment-measurement-column {
 
 .shipment-delivery-documents .status-label {
 	white-space: normal;
+}
+
+.shipment-delivery-documents .shipment-document-type {
+	padding-inline-start: var(--s);
 }

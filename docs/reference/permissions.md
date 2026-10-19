@@ -14,7 +14,7 @@ Exhaustive permission handle list. Granted per user group under **Users -> Group
 | `shipments-pushShipments`       | Use the **Push to {integration}** button in the sidebar of the shipment edit page.                                            | `shipments-viewShipments` |
 | `shipments-createDelivery`      | Create deliveries, retrieve documents and record carrier reconciliation.                                                      | `shipments-viewShipments` |
 | `shipments-voidDelivery`        | Request cancellation of a saved carrier delivery.                                                                             | `shipments-viewShipments` |
-| `shipments-downloadDocuments`   | Download or display protected carrier PDFs for printing.                                                                      | `shipments-viewShipments` |
+| `shipments-downloadDocuments`   | Download protected carrier documents and display PDFs or browser-supported images for printing.                                                                      | `shipments-viewShipments` |
 | `shipments-manageIntegrations`  | CRUD integrations + status mappings.                                                                                          |                           |
 | `shipments-manageEmails`        | CRUD notification emails + bind transition triggers.                                                                          |                           |
 | `shipments-manageSettings`      | Edit plugin settings + the shipment field layout.                                                                             |                           |

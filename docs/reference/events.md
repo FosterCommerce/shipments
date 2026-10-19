@@ -259,7 +259,7 @@ Set your site's log level to `info` and all status transitions log their source 
 
 ## `Deliveries::EVENT_AFTER_CREATE`
 
-**Fires:** in `Deliveries::publishSafely()` after a successful booking has saved its references and protected PDFs and transitioned the shipment to Shipped.
+**Fires:** in `Deliveries::publishSafely()` after a successful booking has saved its references and carrier documents and transitioned the shipment to Shipped.
 
 **Payload:** `fostercommerce\shipments\events\DeliveryEvent`
 
