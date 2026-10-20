@@ -373,26 +373,12 @@ class Shipments extends Component
 	 */
 	public function saveManual(Shipment $shipment, Order $order, bool $queueAutoPushes = true): Shipment
 	{
-		if ($shipment->id === null) {
-			throw new InvalidArgumentException('Cannot save a shipment without an id.');
-		}
-
-		if (! Craft::$app->getElements()->saveElement($shipment)) {
-			$errors = $shipment->getFirstErrors();
-			throw new Exception(Craft::t(Plugin::HANDLE, 'error.couldNotSaveShipment', [
-				'errors' => implode(', ', $errors),
-			]));
-		}
+		$updated = $this->saveFulfillment($shipment);
 
 		$plugin = Plugin::getInstance();
 
 		if ($plugin->getSettings()->enforceCoverage) {
 			$plugin->shipmentLineItems->assertFullCoverage($order);
-		}
-
-		$updated = $this->findById($shipment->id, includeTrashed: true);
-		if (! $updated instanceof Shipment) {
-			throw new Exception('Lost track of shipment after save.');
 		}
 
 		if ($queueAutoPushes) {
@@ -635,8 +621,9 @@ class Shipments extends Component
 		$outerTransaction = Craft::$app->getDb()->beginTransaction();
 
 		try {
+			// Skip the coverage check, since a reported parcel can ship before every line item is allocated
 			if ($fulfillmentDirty) {
-				$shipment = $this->saveManual($shipment, $order, false);
+				$shipment = $this->saveFulfillment($shipment);
 				$updated = true;
 			}
 
@@ -820,6 +807,30 @@ class Shipments extends Component
 		}
 
 		return Craft::$app->getElements()->deleteElement($shipment);
+	}
+
+	/**
+	 * @throws Throwable
+	 */
+	private function saveFulfillment(Shipment $shipment): Shipment
+	{
+		if ($shipment->id === null) {
+			throw new InvalidArgumentException('Cannot save a shipment without an id.');
+		}
+
+		if (! Craft::$app->getElements()->saveElement($shipment)) {
+			$errors = $shipment->getFirstErrors();
+			throw new Exception(Craft::t(Plugin::HANDLE, 'error.couldNotSaveShipment', [
+				'errors' => implode(', ', $errors),
+			]));
+		}
+
+		$updated = $this->findById($shipment->id, includeTrashed: true);
+		if (! $updated instanceof Shipment) {
+			throw new Exception('Lost track of shipment after save.');
+		}
+
+		return $updated;
 	}
 
 	/**

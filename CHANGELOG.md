@@ -27,6 +27,7 @@
 - `orderStatusesToIgnore` plugin setting (UI: **Order statuses to ignore**). Orders whose Commerce status is in this list are auto-untracked on status change. Existing shipments are left intact. Adding a handle to the setting runs a one-time retroactive sweep of orders currently in that status.
 
 ### Changed
+- Shipments now requires Craft Commerce 5.7 or later.
 - The “Order requires shipping” switch is locked off on an order whose line items are all skipped, and turning it on is rejected.
 - Replaced the user-editable `ShipmentStatus` model with a fixed enum.
 - Plugin settings moved off `settingsHtml()` to a custom CP route (the delta wrapper on the default form silently strips POST).
@@ -36,6 +37,7 @@
 - Status history records the source integration handle and the external code it sent on every transition, with batched user/integration lookups to avoid N+1s.
 
 ### Fixed
+- Fixed a bug where **Enforce full coverage** rejected tracking and status updates from an integration while the order had unallocated line items.
 - Fixed cancelled shipments counting toward an order's allocated quantities, which blocked a replacement shipment from claiming the same line items.
 - Fixed shipment export date windows applying the start bound in the site timezone and the end bound in UTC.
 - Fixed a bug where canceling the “Order requires shipping” confirmation reprompted without end.
