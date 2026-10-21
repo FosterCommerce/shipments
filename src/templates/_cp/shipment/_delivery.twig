@@ -57,9 +57,10 @@
 <hr>
 <h2>{{ 'delivery.shipmentShippingMethod'|t('shipments') }}</h2>
 {% if staleQuote and not activeDelivery %}
-	<p class="warning">{{ 'delivery.quoteIsStale'|t('shipments') }}</p>
+	<p class="warning" id="shipment-stale-quote">{{ 'delivery.quoteIsStale'|t('shipments') }}</p>
 {% endif %}
 {% set rateErrors = shipment.shippingSnapshot.errors ?? [] %}
+{% set hiddenMethods = quotes|filter(quote => quote.carrierCost is null and (not selectedQuote or selectedQuote.handle != quote.handle)) %}
 {% if quotes|length or rateErrors|length %}
 	<div>
 		<table class="data fullwidth">
@@ -71,16 +72,16 @@
 					<th>{{ 'delivery.cost'|t('shipments') }}</th>
 				</tr>
 			</thead>
-			<tbody>
+			<tbody id="shipment-shipping-methods">
 				{% for quote in quotes %}
-					<tr>
+					<tr{% if quote in hiddenMethods %} class="hidden" data-unquoted-method{% endif %}>
 						<td><label><input
 							type="radio"
 							name="method"
 							form="shipment-delivery-select-method"
 							value="{{ quote.handle }}"
 							{{ selectedQuote and selectedQuote.handle == quote.handle ? 'checked' }}
-							{{ not canPrepare or staleQuote ? 'disabled' }}
+							{{ not canPrepare or quote.handle in staleQuoteHandles ? 'disabled' }}
 						> {{ quote.name }}</label>
 						{% if quote.handle in customerChosenQuoteHandles %}
 							<span class="status-label blue"><span class="status-label-text">{{ 'delivery.orderShippingMethod'|t('shipments') }}</span></span>
@@ -105,6 +106,13 @@
 					</tr>
 				{% endfor %}
 			</tbody>
+			{% if hiddenMethods|length %}
+				<tfoot>
+					<tr>
+						<td colspan="4"><a href="#shipment-shipping-methods" data-show-configured-methods aria-controls="shipment-shipping-methods" aria-expanded="false">{{ 'delivery.showAllConfiguredMethods'|t('shipments') }}</a></td>
+					</tr>
+				</tfoot>
+			{% endif %}
 		</table>
 		<div id="shipment-method-status" role="status" aria-live="polite" class="hidden"><span class="spinner"></span> {{ 'delivery.savingMethod'|t('shipments') }}</div>
 	</div>
@@ -129,10 +137,10 @@
 	{% include "shipments/_cp/shipment/_prepared" %}
 </div>
 
-{% if selectedQuote and not activeDelivery and canCreate and shipment.enabled %}
-	{% if integrations|length %}
+{% if (selectedQuote or quotes|length) and not activeDelivery and canCreate and shipment.enabled %}
+	{% if integrations|length or not selectedQuote %}
 		<div class="buttons">
-			<button type="submit" class="btn submit{{ staleQuote or shipDateInPast ? ' disabled' }}" form="shipment-delivery-create" {{ staleQuote or shipDateInPast ? 'disabled' }} aria-disabled="{{ staleQuote or shipDateInPast ? 'true' : 'false' }}">{{ 'delivery.createDelivery'|t('shipments') }}</button>
+			<button type="submit" class="btn submit{{ not selectedQuote ? ' hidden' }}{{ staleQuote or shipDateInPast ? ' disabled' }}" form="shipment-delivery-create" data-ship-date-in-past="{{ shipDateInPast ? 'true' : 'false' }}" {{ staleQuote or shipDateInPast ? 'disabled' }} aria-disabled="{{ staleQuote or shipDateInPast ? 'true' : 'false' }}">{{ 'delivery.createDelivery'|t('shipments') }}</button>
 		</div>
 	{% else %}
 		<p class="light">{{ 'delivery.thisMethodHasNoEnabledCarrierDocumentIntegration'|t('shipments') }}</p>

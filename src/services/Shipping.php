@@ -64,6 +64,43 @@ class Shipping extends Component
 	}
 
 	/**
+	 * Get mapped, configured methods missing from the saved results without requesting rates.
+	 *
+	 * @return list<ShippingQuote>
+	 */
+	public function getUnquotedMethods(Shipment $shipment): array
+	{
+		$providers = $this->rateProviders();
+		if ($providers === [] || $shipment->getLineItems() === []) {
+			return [];
+		}
+
+		$plugin = Plugin::getInstance();
+		$order = $plugin->shipmentCalculation->create($shipment);
+		$methods = $this->methodQuotes($order, $this->fingerprint($shipment), (string) $order->currency);
+		$serviceKey = static fn (ShippingQuote $quote): string => Json::encode([$quote->providerUid, $quote->serviceCode]);
+		$nameKey = static fn (ShippingQuote $quote): string => Json::encode([$quote->providerUid, $quote->name]);
+		$saved = collect($this->getQuotes($shipment));
+		$existingServices = $saved->map($serviceKey);
+		$existingNames = $saved->map($nameKey);
+
+		/** @var list<ShippingQuote> $unquoted */
+		$unquoted = collect($providers)
+			->flatMap(fn (ShippingRateProviderInterface $provider): array => collect($this->rateRequests($provider, $methods))
+				->flatMap(static fn (array $request): array => $provider->getUnquotedShippingMethods($request['method'], $request['services']))
+				->all())
+			->filter(static fn (ShippingQuote $quote): bool => ! $existingServices->contains($serviceKey($quote))
+				&& ! $existingNames->contains($nameKey($quote))
+				&& $plugin->deliveries->getAvailableIntegrations($quote) !== [])
+			->unique($serviceKey)
+			->unique($nameKey)
+			->values()
+			->all();
+
+		return $unquoted;
+	}
+
+	/**
 	 * Find rates mapped from the customer's order shipping method.
 	 *
 	 * @param list<ShippingQuote> $quotes
@@ -458,7 +495,17 @@ class Shipping extends Component
 	private function selectUnlocked(Shipment $shipment, string $handle): ShippingQuote
 	{
 		$this->assertEditable($shipment);
-		$quote = collect($this->getQuotes($shipment))->firstWhere('handle', $handle);
+		$quotes = $this->getQuotes($shipment);
+		$quote = collect($quotes)->firstWhere('handle', $handle);
+		if (! $quote instanceof ShippingQuote) {
+			$quote = collect($this->getUnquotedMethods($shipment))->firstWhere('handle', $handle);
+			if ($quote instanceof ShippingQuote) {
+				$shipment->shippingSnapshot['quotes'] = collect([...$quotes, $quote])
+					->map(static fn (ShippingQuote $method): array => $method->toSnapshot())
+					->all();
+			}
+		}
+
 		if (! $quote instanceof ShippingQuote) {
 			throw new RuntimeException(Craft::t('shipments', 'delivery.errors.refreshRatesAndSelectAnAvailableShipmentMethod'));
 		}

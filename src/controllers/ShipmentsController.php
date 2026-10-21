@@ -496,16 +496,23 @@ class ShipmentsController extends Controller
 	 */
 	private function deliveryVariables(Shipment $shipment, Plugin $plugin): array
 	{
+		/** @var list<ShippingQuote> $quotes */
 		$quotes = collect($plugin->shipping->getQuotes($shipment))
 			->filter(static fn (ShippingQuote $quote): bool => $plugin->deliveries->getAvailableIntegrations($quote) !== [])
 			->values()->all();
-		$selectedQuote = collect($quotes)->firstWhere('handle', $shipment->shippingMethodHandle);
 		$deliveries = $plugin->deliveries->getForShipment((int) $shipment->id);
 		$activeDelivery = collect($deliveries)->first(static fn (Delivery $delivery): bool => $delivery->getIsActive());
-		$stale = $selectedQuote instanceof ShippingQuote && (
-			$selectedQuote->getIsExpired()
-			|| $selectedQuote->fingerprint !== $plugin->shipping->fingerprint($shipment)
-		);
+		if (! $activeDelivery instanceof Delivery && $shipment->enabled && $shipment->status !== 'cancelled') {
+			$quotes = [...$quotes, ...$plugin->shipping->getUnquotedMethods($shipment)];
+		}
+
+		$selectedQuote = collect($quotes)->firstWhere('handle', $shipment->shippingMethodHandle);
+		$fingerprint = $quotes === [] ? null : $plugin->shipping->fingerprint($shipment);
+		$staleQuoteHandles = collect($quotes)
+			->filter(static fn (ShippingQuote $quote): bool => $quote->getIsExpired() || $quote->fingerprint !== $fingerprint)
+			->pluck('handle')
+			->all();
+		$stale = $selectedQuote instanceof ShippingQuote && in_array($selectedQuote->handle, $staleQuoteHandles, true);
 
 		return [
 			'hasDeliveryProviders' => $plugin->integrations->getAllIntegrations()->contains(
@@ -521,6 +528,7 @@ class ShipmentsController extends Controller
 			])->all(),
 			'selectedQuote' => $selectedQuote,
 			'staleQuote' => $stale,
+			'staleQuoteHandles' => $staleQuoteHandles,
 			'shipDateInPast' => $plugin->shipping->isShipDateInPast($shipment),
 			'integrations' => $selectedQuote instanceof ShippingQuote ? $plugin->deliveries->getAvailableIntegrations($selectedQuote) : [],
 			'deliveries' => $deliveries,

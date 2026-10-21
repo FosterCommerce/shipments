@@ -581,6 +581,7 @@ return [
 	'delivery.deliveryDetails' => 'Delivery details',
 	'delivery.weight' => 'Weight',
 	'delivery.refreshRates' => 'Refresh rates',
+	'delivery.showAllConfiguredMethods' => 'Show all configured methods',
 	'delivery.shipDateInPast' => 'Ship Date is in the past. Save today’s date or a future date before refreshing rates or creating a delivery.',
 	'delivery.deliveryDetailsAreLockedWhileThisShipmentHasAn' => 'Delivery details are locked while this shipment has an active carrier delivery.',
 	'delivery.shipmentShippingMethod' => 'Shipping method',

@@ -117,6 +117,16 @@
 	}
 
 	function initDeliveryMethod() {
+		const showConfigured = document.querySelector('[data-show-configured-methods]');
+		if (showConfigured) {
+			showConfigured.addEventListener('click', event => {
+				event.preventDefault();
+				document.querySelectorAll('[data-unquoted-method]').forEach(row => row.classList.remove('hidden'));
+				showConfigured.setAttribute('aria-expanded', 'true');
+				showConfigured.closest('tr').classList.add('hidden');
+			});
+		}
+
 		const form = document.getElementById('shipment-delivery-select-method');
 		if (!form) {
 			return;
@@ -138,6 +148,15 @@
 				});
 				prepared.innerHTML = response.data.html;
 				saved = radio.value;
+				document.getElementById('shipment-stale-quote')?.classList.add('hidden');
+				const createButton = document.querySelector('button[form="shipment-delivery-create"]');
+				if (createButton) {
+					const shipDateInPast = createButton.dataset.shipDateInPast === 'true';
+					createButton.classList.remove('hidden');
+					createButton.classList.toggle('disabled', shipDateInPast);
+					createButton.disabled = shipDateInPast;
+					createButton.setAttribute('aria-disabled', String(shipDateInPast));
+				}
 			} catch (error) {
 				radios.forEach(input => { input.checked = input.value === saved; });
 				Craft.cp.displayError(error?.response?.data?.message || Craft.t('shipments', 'delivery.couldNotSaveMethod'));
