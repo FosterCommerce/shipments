@@ -483,6 +483,13 @@ class Deliveries extends Component
 	private function updateShipmentFromDelivery(Shipment $shipment, Delivery $delivery, bool $firstSuccess): void
 	{
 		$record = ShipmentRecord::findOne($shipment->id) ?? throw new RuntimeException(Craft::t('shipments', 'error.shipmentNotFound'));
+		$options = $delivery->requestData['options'] ?? null;
+		$shipDate = is_array($options) ? ($options['shipDate'] ?? null) : null;
+		if ($record->dateScheduledShip === null && is_string($shipDate)) {
+			$record->dateScheduledShip = new DateTime($shipDate);
+			$shipment->dateScheduledShip = $record->dateScheduledShip;
+		}
+
 		$record->setAttributes([
 			'trackingNumber' => $delivery->trackingNumber,
 			'trackingUrl' => $delivery->trackingUrl,
@@ -490,6 +497,7 @@ class Deliveries extends Component
 			'carrier' => $delivery->carrier,
 			'service' => $delivery->service,
 		], false);
+
 		if (! $record->save(false)) {
 			throw new RuntimeException(Craft::t('shipments', 'delivery.errors.unableToSaveShipmentTracking'));
 		}

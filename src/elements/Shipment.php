@@ -511,7 +511,6 @@ class Shipment extends Element
 		try {
 			if (! $this->propagating) {
 				if ($isNew) {
-					$this->dateScheduledShip ??= $this->dateCreated;
 					$record = new ShipmentRecord();
 					$record->id = (int) $this->id;
 				} else {
