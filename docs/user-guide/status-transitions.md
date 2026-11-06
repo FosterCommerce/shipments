@@ -23,7 +23,7 @@ A typical flow, not a required one. Your store decides what each status means an
 
 **From the shipment edit page** (`/admin/shipments/shipments/<id>`):
 
-Pick a new value in **Status**. Add an optional **Status change message** (saved on the history row). Save.
+Pick a new value in **Status**. Add an optional **Status change note** (saved on the history row). Save.
 
 **From the order's Shipments tab:**
 
@@ -31,7 +31,11 @@ Click **Manage shipment** on the shipment card.
 
 **Many shipments at once:**
 
-The Shipments index has no bulk-transition action. Click a row to open the shipment in a slideout and change the status there. The slideout is the fastest way to move through several shipments without leaving the index.
+Select shipments on the Shipments index and choose **Set status**. The action skips canceled shipments and counts them as failed, because reopening one counts its units as allocated again.
+
+**From a carrier delivery:**
+
+When **Set shipments to Shipped when a carrier delivery is created** is on (the default), creating a label or bill of lading sets the shipment to `shipped`. Voiding the last active delivery sets a `shipped` shipment back to its previous status. With the setting off, neither action changes the status.
 
 **Via an integration webhook:**
 
@@ -49,15 +53,15 @@ Reaching `shipped` advances the shipment's Commerce order to the order status co
 
 ## What the order's status does to shipments
 
-List Commerce order statuses under **Shipments -> Settings -> General -> Order statuses that cancel shipments**, and an order moving into one of them cancels every shipment on it that hasn't reached `shipped`. Each cancellation records the order as its cause in the shipment's history.
+List Commerce order statuses under **Shipments -> Settings -> General -> Order statuses that cancel shipments**, and an order moving into one of them cancels every shipment on it that isn't `shipped` and has no active carrier delivery. To cancel a shipment that has one, void the delivery, then set the status to `cancelled`. Each cancellation records the order as its cause in the shipment's history.
 
-Moving the order back out of those statuses restores each of those shipments to the status it held immediately before. A shipment cancelled any other way, by an admin or by an integration, stays cancelled. A shipment already at `shipped` is left alone in both directions.
+Moving the order back out of those statuses restores each of those shipments to the status it held immediately before. A shipment canceled any other way, by an admin or by an integration, stays canceled. A shipment already at `shipped` is left alone in both directions.
 
 Emails bound to the `cancelled` transition send when this runs, and emails bound to the restored status send when the order moves back out. Check your triggers under **Shipments -> Settings -> Emails** before adding a status here.
 
 ## Derived ship date
 
-The plugin doesn't store a "shipped" timestamp. `dateShipped` is read from the status history: the first time the shipment reached `shipped`. `dateScheduledShip` is separate, a merchant-intended ship date you set on the edit page; it is not transition-driven. If you backdate or correct a transition, `dateShipped` follows automatically.
+The plugin doesn't store a "shipped" timestamp. `dateShipped` is read from the status history: the latest time the shipment was set to `shipped`, and only while it is Shipped. `dateScheduledShip` is separate, the **Pickup Date** you set on the shipment's **Delivery** tab when a delivery provider is enabled; it is not transition-driven.
 
 ## History
 
@@ -74,7 +78,7 @@ Every status change is recorded. Open the **Status history** tab on the shipment
 
 Admins attach any email to any status-change trigger under **Shipments -> Settings -> Emails -> {email} -> Transition triggers**. Multiple emails can share a trigger; every match queues up. See the [emails guide](./emails.md).
 
-## Cancelled vs disabled vs deleted
+## Canceled vs disabled vs deleted
 
 - **`cancelled` status**: the shipment exists and is visible, but won't ship. Its quantity returns to the pool, so another shipment can claim the same line items.
 - **Disabled**: the shipment is paused. Quantity returns to the pool. Re-enabling checks the math.

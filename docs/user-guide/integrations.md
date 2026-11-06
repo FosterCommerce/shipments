@@ -8,11 +8,11 @@ Audience: store admins connecting, mapping, and monitoring integrations.
 
 **Shipments -> Settings -> Integrations -> New.**
 
-1. **Name**, shown in CP dropdowns, email render context, and bulk-action menus.
+1. **Name**, shown in CP dropdowns and email render context.
 2. **Handle**, a stable identifier used in webhook URLs and on history rows. Never change it after you've set it.
 3. **Provider**, the dropdown lists every provider class a site module or plugin has registered. If it's empty, no providers are installed yet; ask your developer.
 4. **URL template**, optional. Builds clickable links from external IDs on shipment cards. Supports `{externalId}` and `{shipment.reference}` placeholders.
-5. **Enabled**, a disabled integration rejects inbound webhooks (with a 400) and hides from the push bulk-action.
+5. **Enabled**, a disabled integration rejects inbound webhooks (with a 400) and stops outbound pushes.
 6. **Provider settings**, whatever fields the provider needs (credentials, webhook secret, endpoint URL).
 
 Save the integration. Then click through to the **Status mappings** editor to wire up code translation.

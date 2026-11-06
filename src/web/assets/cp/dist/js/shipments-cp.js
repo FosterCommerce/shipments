@@ -39,57 +39,44 @@
 	});
 
 	function initShipDateAutosave() {
-		const $field = $('[data-shipments-ship-date]');
-		if (!$field.length) {
-			return;
-		}
+		let saveTimer = null;
 
-		const $date = $field.find('input[name="dateScheduledShip[date]"]');
-		const $spinner = $field.find('.shipment-ship-date-spinner');
-		const $mainForm = $('#main-form');
-		let savedDate = $date.val();
-		$date.on('change', async function () {
-			const dateInput = {};
-			$field.find('input').serializeArray().forEach(({name, value}) => {
-				dateInput[name.match(/\[([^\]]+)\]$/)[1]] = value;
-			});
-			const $buttons = $('#main-form, #delivery').find('button[type="submit"], input[type="submit"]').add($field.find('button')).filter(':enabled');
+		// Listen on the tab, since saving the date replaces the input
+		// Wait for a pause, since typing a date fires change on each digit
+		$('#delivery').on('change', '[data-shipments-ship-date]', function () {
+			clearTimeout(saveTimer);
+			saveTimer = setTimeout(() => saveShipDate($(this)), 1000);
+		});
+		$('#delivery').on('focusout', '[data-shipments-ship-date]', function () {
+			if (saveTimer !== null) {
+				saveShipDate($(this));
+			}
+		});
+
+		async function saveShipDate($date) {
+			clearTimeout(saveTimer);
+			saveTimer = null;
+			const $buttons = $('#main-form, #delivery').find('button[type="submit"], input[type="submit"]').filter(':enabled');
 			$buttons.prop('disabled', true);
 			$date.prop('disabled', true);
-			if ($date.data('datepicker')) {
-				$date.datepicker('disable');
-			}
-			$field.attr('aria-busy', 'true');
-			$spinner.removeClass('invisible');
+			$date.siblings('.shipment-ship-date-spinner').removeClass('invisible');
 
 			try {
 				const response = await Craft.sendActionRequest('POST', 'shipments/shipments/save-ship-date', {
-					data: {id: $field.data('shipments-ship-date'), dateScheduledShip: dateInput},
+					data: {id: $date.data('shipments-ship-date'), dateScheduledShip: $date.val()},
 				});
-				savedDate = $date.val();
-				// Only the saved date changes the baseline; other form edits stay unsaved.
-				const initial = new URLSearchParams($mainForm.data('initialSerializedValue'));
-				initial.set($date[0].name, savedDate);
-				$mainForm.data('initialSerializedValue', $.param(Array.from(initial, ([name, value]) => ({name, value}))));
 				$('#delivery').html(response.data.deliveryHtml);
 				initDeliveryMethod();
 				initCopyDeliveryResponse();
 			} catch (error) {
-				if ($date.data('datepicker')) {
-					$date.datepicker('setDate', savedDate);
-				}
-				$date.val(savedDate);
+				$date.val($date.prop('defaultValue'));
+				$date.prop('disabled', false);
+				$date.siblings('.shipment-ship-date-spinner').addClass('invisible');
 				Craft.cp.displayError(error?.response?.data?.message || Craft.t('shipments', 'shipmentEdit.couldNotSaveShipDate'));
 			} finally {
-				$date.prop('disabled', false);
-				if ($date.data('datepicker')) {
-					$date.datepicker('enable');
-				}
 				$buttons.prop('disabled', false);
-				$field.removeAttr('aria-busy');
-				$spinner.addClass('invisible');
 			}
-		});
+		}
 	}
 
 	function initVoidDeliveryConfirmation() {

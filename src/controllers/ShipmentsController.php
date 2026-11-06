@@ -5,11 +5,12 @@ declare(strict_types=1);
 namespace fostercommerce\shipments\controllers;
 
 use Craft;
+use craft\commerce\elements\Order;
+use craft\elements\Address;
 use craft\helpers\DateTimeHelper;
 use craft\helpers\Json;
 use craft\helpers\MoneyHelper;
 use craft\web\Controller;
-use DateTimeInterface;
 use fostercommerce\shipments\base\ControllerBodyParamsTrait;
 use fostercommerce\shipments\base\DeliveryProviderInterface;
 use fostercommerce\shipments\elements\Shipment;
@@ -83,6 +84,8 @@ class ShipmentsController extends Controller
 			'statusHistory' => $statusHistory,
 			'deliveryTab' => $this->deliveryVariables($shipment, $plugin),
 			'unallocatedPool' => $plugin->shipmentLineItems->remainingPoolFor($order),
+			'isSplitOrder' => $plugin->shipments->countActiveForOrder((int) $order->id) > 1,
+			'deliveryAddress' => $this->addressWithFullName($order->getShippingAddress() ?? $order->getEstimatedShippingAddress()),
 			'title' => Craft::t(Plugin::HANDLE, 'shipmentEdit.titleWithReference', [
 				'reference' => $shipment->reference,
 			]),
@@ -110,26 +113,20 @@ class ShipmentsController extends Controller
 			return $this->asFailure(Craft::t(Plugin::HANDLE, 'shipmentEdit.shipDateReadOnly'));
 		}
 
-		$dateInput = $this->request->getRequiredBodyParam('dateScheduledShip');
-		if (! is_array($dateInput) || ! is_string($dateInput['date'] ?? null)) {
-			return $this->asFailure(Craft::t(Plugin::HANDLE, 'shipmentEdit.invalidShipDate'));
-		}
-
 		$order = $plugin->shipments->loadOrder($shipment->orderId);
 		if ($order === null) {
 			throw new NotFoundHttpException(Craft::t(Plugin::HANDLE, 'error.orderNotFound'));
 		}
 
+		$date = DateTimeHelper::toDateTime($this->bodyString('dateScheduledShip'), assumeSystemTimeZone: true);
+		if ($date === false) {
+			return $this->asFailure(Craft::t(Plugin::HANDLE, 'shipmentEdit.invalidShipDate'));
+		}
+
 		$transaction = Craft::$app->getDb()->beginTransaction();
 		try {
-			$date = DateTimeHelper::toDateTime($dateInput);
-			if ($date === false && $dateInput['date'] !== '') {
-				$transaction->rollBack();
-				return $this->asFailure(Craft::t(Plugin::HANDLE, 'shipmentEdit.invalidShipDate'));
-			}
-
-			$shipment->dateScheduledShip = $date ?: null;
-			$shipment = $plugin->shipments->saveManual($shipment, $order);
+			$shipment->dateScheduledShip = $date;
+			$shipment = $plugin->shipments->saveManual($shipment);
 			$response = $this->asJson([
 				'deliveryHtml' => $this->view->renderTemplate(Plugin::HANDLE . '/_cp/shipment/_delivery', [
 					...$this->deliveryVariables($shipment, $plugin),
@@ -193,13 +190,6 @@ class ShipmentsController extends Controller
 		$shipment->enabled = (bool) $this->request->getBodyParam('enabled', false);
 		$shipment->setFieldValuesFromRequest('fields');
 
-		$dateScheduledShipInput = $this->request->getBodyParam('dateScheduledShip');
-		if ($dateScheduledShipInput !== null) {
-			$shipment->dateScheduledShip = is_string($dateScheduledShipInput) || is_int($dateScheduledShipInput) || is_array($dateScheduledShipInput) || $dateScheduledShipInput instanceof DateTimeInterface
-				? DateTimeHelper::toDateTime($dateScheduledShipInput) ?: null
-				: null;
-		}
-
 		$integrationReferences = $this->parseIntegrationReferences();
 		$statusInput = $this->bodyString('status') ?? '';
 		$target = $statusInput !== '' ? Status::tryFrom($statusInput) : null;
@@ -207,7 +197,7 @@ class ShipmentsController extends Controller
 		$outerTransaction = Craft::$app->getDb()->beginTransaction();
 
 		try {
-			$saved = $plugin->shipments->saveManual($shipment, $order, ! $willTransition);
+			$saved = $plugin->shipments->saveManual($shipment, ! $willTransition);
 			$plugin->integrationReferences->saveReferencesForShipment($saved, $integrationReferences);
 			$outerTransaction->commit();
 		} catch (Throwable $throwable) {
@@ -237,7 +227,7 @@ class ShipmentsController extends Controller
 			}
 		}
 
-		Craft::$app->getSession()->setNotice(Craft::t(Plugin::HANDLE, 'shipmentEdit.saved'));
+		Craft::$app->getSession()->setNotice($this->savedNotice($order, $plugin));
 		return $this->redirectToPostedUrl($saved);
 	}
 
@@ -492,6 +482,44 @@ class ShipmentsController extends Controller
 	}
 
 	/**
+	 * Print the whole full name, since the address format leaves out a middle name.
+	 */
+	private function addressWithFullName(?Address $address): ?Address
+	{
+		if (! $address instanceof Address) {
+			return null;
+		}
+
+		$displayAddress = clone $address;
+		$displayAddress->firstName = $address->fullName;
+		$displayAddress->lastName = null;
+
+		return $displayAddress;
+	}
+
+	private function savedNotice(Order $order, Plugin $plugin): string
+	{
+		$missingQtys = $plugin->trackedOrders->isOrderStatusIgnored($order)
+			? []
+			: $plugin->shipmentLineItems->getMissingCoverageFor($order);
+
+		if ($missingQtys === []) {
+			return Craft::t(Plugin::HANDLE, 'shipmentEdit.saved');
+		}
+
+		$missingItems = [];
+		foreach ($order->getLineItems() as $lineItem) {
+			if (isset($missingQtys[$lineItem->id])) {
+				$missingItems[] = "{$missingQtys[$lineItem->id]} {$lineItem->sku}";
+			}
+		}
+
+		return Craft::t(Plugin::HANDLE, 'shipmentEdit.savedWithUnallocated', [
+			'items' => implode(', ', $missingItems),
+		]);
+	}
+
+	/**
 	 * @return array<string, mixed>
 	 */
 	private function deliveryVariables(Shipment $shipment, Plugin $plugin): array
@@ -516,9 +544,13 @@ class ShipmentsController extends Controller
 				->pluck('handle')
 				->all(),
 			'providerNames' => $plugin->integrations->getAllIntegrations()->pluck('name', 'uid')->all(),
-			'quoteCosts' => collect($quotes)->mapWithKeys(static fn (ShippingQuote $quote): array => [
-				$quote->handle => $quote->carrierCost instanceof Money ? MoneyHelper::toString($quote->carrierCost) : null,
-			])->all(),
+			'quoteCosts' => collect($quotes)->mapWithKeys(static function (ShippingQuote $quote) use ($plugin, $shipment): array {
+				$price = $plugin->shipping->getQuotePrice($shipment, $quote);
+
+				return [
+					$quote->handle => $price instanceof Money ? MoneyHelper::toString($price) : null,
+				];
+			})->all(),
 			'selectedQuote' => $selectedQuote,
 			'staleQuote' => $stale,
 			'shipDateInPast' => $plugin->shipping->isShipDateInPast($shipment),

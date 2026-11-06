@@ -19,7 +19,6 @@ use fostercommerce\shipments\enums\Status;
 use fostercommerce\shipments\enums\TrackedOrderShippable;
 use fostercommerce\shipments\enums\TrackedOrderState;
 use fostercommerce\shipments\enums\TrackedOrderUnderAllocated;
-use fostercommerce\shipments\errors\IncompleteCoverageException;
 use fostercommerce\shipments\events\ResolveShippableUnitsEvent;
 use fostercommerce\shipments\models\ShipmentLineItem;
 use fostercommerce\shipments\Plugin;
@@ -379,25 +378,6 @@ class ShipmentLineItems extends Component
 		}
 
 		return $byShipmentId;
-	}
-
-	/**
-	 * Throws if any non-ignored line item still has unallocated qty on the order.
-	 *
-	 * @throws IncompleteCoverageException
-	 */
-	public function assertFullCoverage(Order $order): void
-	{
-		if ($order->id === null) {
-			return;
-		}
-
-		$remaining = $this->remainingPoolFor($order);
-		$missing = array_filter($remaining, static fn (int $qty): bool => $qty > 0);
-
-		if ($missing !== []) {
-			throw new IncompleteCoverageException($order->id, $missing);
-		}
 	}
 
 	/**

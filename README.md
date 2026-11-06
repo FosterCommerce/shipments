@@ -7,9 +7,9 @@ A Craft CMS plugin that adds first-class **shipments** to Craft Commerce, splitt
 - Splits completed orders into one or more shipments based on configurable rules
   (e.g., backordered items get their own shipment automatically).
 - Tracks each shipment through a single status you control (new, in progress, on hold,
-  fulfilled, shipped, cancelled); your store decides what each one means.
-- Validates full coverage: every line item quantity on an order must be accounted for
-  across its shipments before a save goes through.
+  fulfilled, shipped, canceled); your store decides what each one means.
+- Flags orders with line item quantities that aren't on a shipment, on the Attention
+  page and when a shipment on the order is saved.
 - Sends notification emails when shipments hit specific statuses.
 - Connects to external fulfillment systems through a provider framework with webhook
   support, status-code mapping, and a REST API.
@@ -19,7 +19,7 @@ A Craft CMS plugin that adds first-class **shipments** to Craft Commerce, splitt
 ## Requirements
 
 - Craft CMS `^5.0`
-- Craft Commerce `^5.0`
+- Craft Commerce `^5.7`
 - PHP `^8.2`
 - Shippy `^1.2.23`
 - BoxPacker `^3.0`
@@ -41,17 +41,6 @@ The plugin decides how to split an order into shipments using a configurable gro
 You can write your own rules. See [`docs/dev-guide/custom-rules.md`](./docs/dev-guide/custom-rules.md).
 
 ## Permissions
-
-In addition to `accessPlugin-shipments`:
-
-- `shipments-viewShipments`, see the Shipments index and edit pages.
-- `shipments-editShipments`, create and edit shipments (tracking, carrier, notes).
-- `shipments-transitionShipments`, change a shipment's status.
-- `shipments-deleteShipments`, delete shipments.
-- `shipments-pushShipments`, push shipments to integrations via the per-shipment push button.
-- `shipments-manageIntegrations`, manage integrations and status mappings.
-- `shipments-manageEmails`, manage notification emails and their triggers.
-- `shipments-manageSettings`, edit plugin settings and the shipment field layout.
 
 See [`docs/reference/permissions.md`](./docs/reference/permissions.md) for the full reference.
 

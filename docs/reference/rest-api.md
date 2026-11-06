@@ -34,7 +34,7 @@ All fields optional. `null` or omitted means "don't touch."
 | `trackingUrl`       | string (max 255), URL                  | no       | Public tracking URL. Validated as a URL with `https` default scheme.                                       |
 | `carrier`           | string (max 255)                       | no       | Carrier name (free text, e.g. `UPS`).                                                                      |
 | `service`           | string (max 255)                       | no       | Service level (free text, e.g. `Ground`).                                                                  |
-| `dateScheduledShip` | ISO-8601 string, Unix int, or DateTime | no       | Scheduled ship date. Pre-parsed by the controller before validation.                                      |
+| `dateScheduledShip` | ISO-8601 string, Unix int, or DateTime | no       | Pickup date. Pre-parsed by the controller before validation.                                      |
 | `fulfillmentNotes`  | string                                 | no       | Free-text notes.                                                                                          |
 | `shippingNotes`     | string                                 | no       | Free-text notes.                                                                                          |
 | `status`            | enum string                            | no       | Target `Status`: `new`, `in_progress`, `on_hold`, `fulfilled`, `shipped`, `cancelled`.                    |

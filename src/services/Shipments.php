@@ -21,6 +21,7 @@ use fostercommerce\shipments\errors\OrderNotCompletedException;
 use fostercommerce\shipments\events\CreateShipmentsEvent;
 use fostercommerce\shipments\events\ShipmentLineItemsChangedEvent;
 use fostercommerce\shipments\events\ShipmentStatusChangedEvent;
+use fostercommerce\shipments\models\Delivery;
 use fostercommerce\shipments\models\Integration;
 use fostercommerce\shipments\models\ShipmentLineItem;
 use fostercommerce\shipments\models\ShipmentPlan;
@@ -364,6 +365,14 @@ class Shipments extends Component
 		return $shipments;
 	}
 
+	public function countActiveForOrder(int $orderId): int
+	{
+		/** @var ShipmentQuery $query */
+		$query = Shipment::find();
+
+		return (int) $query->orderId($orderId)->shipmentStatus('not ' . Status::Cancelled->value)->count();
+	}
+
 	/**
 	 * Saves fulfillment fields (tracking, carrier, etc.) on a shipment.
 	 *
@@ -371,15 +380,9 @@ class Shipments extends Component
 	 *
 	 * @throws Throwable
 	 */
-	public function saveManual(Shipment $shipment, Order $order, bool $queueAutoPushes = true): Shipment
+	public function saveManual(Shipment $shipment, bool $queueAutoPushes = true): Shipment
 	{
 		$updated = $this->saveFulfillment($shipment);
-
-		$plugin = Plugin::getInstance();
-
-		if ($plugin->getSettings()->enforceCoverage) {
-			$plugin->shipmentLineItems->assertFullCoverage($order);
-		}
 
 		if ($queueAutoPushes) {
 			$this->queueAutoPushes($updated, false);
@@ -392,8 +395,7 @@ class Shipments extends Component
 	 * Replaces a shipment's line-item allocation in place (omitting a line item drops it).
 	 *
 	 * Gates on {@see ShipmentLineItems::overflowForProposedAllocation} so the order can never be
-	 * over-allocated. Does not assert full coverage: a split leaves the order transiently
-	 * under-allocated until the replacement shipment is created.
+	 * over-allocated.
 	 *
 	 * @param array<int, int> $lineItemQtys lineItemId => qty
 	 * @throws AllocationOverflowException
@@ -621,7 +623,6 @@ class Shipments extends Component
 		$outerTransaction = Craft::$app->getDb()->beginTransaction();
 
 		try {
-			// Skip the coverage check, since a reported parcel can ship before every line item is allocated
 			if ($fulfillmentDirty) {
 				$shipment = $this->saveFulfillment($shipment);
 				$updated = true;
@@ -748,7 +749,7 @@ class Shipments extends Component
 	}
 
 	/**
-	 * Cancels every shipment on the order that hasn't shipped.
+	 * Cancels every shipment on the order that hasn't shipped and has no active carrier delivery.
 	 */
 	public function cancelAllForOrder(Order $order): void
 	{
@@ -764,6 +765,11 @@ class Shipments extends Component
 			}
 
 			if ($status === Status::Cancelled) {
+				continue;
+			}
+
+			// Skip a shipment with an active carrier delivery, since staff must void it first
+			if ($shipment->getDelivery() instanceof Delivery) {
 				continue;
 			}
 

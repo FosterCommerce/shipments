@@ -10,9 +10,8 @@ These tests require a full Craft CMS bootstrap (`craftcms/phpunit` + Codeception
 - Concurrent `applyTransition` calls on the same shipment serialize via the mutex.
 
 **`Shipment::getDateShipped`**
-- Returns null when no matching history row exists.
-- Returns the earliest `dateCreated` for `toCode = shipped`.
-- A re-transition does not change the value; first matching row wins.
+- Returns null when the shipment isn't Shipped or no matching history row exists.
+- Returns the latest `dateCreated` for `toCode = shipped`.
 - Result is instance-cached; second call doesn't re-query.
 
 **`Shipments::createFromStagingPost`**

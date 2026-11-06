@@ -6,7 +6,7 @@ Admins do not add their own codes. Integration-specific codes map into this list
 
 ## The statuses
 
-**Enum:** `fostercommerce\shipments\enums\Status`. **Who sets it:** you (or your 3PL, reporting through an integration), from the shipment edit page, the REST API, or an inbound webhook.
+**Enum:** `fostercommerce\shipments\enums\Status`. **Who sets it:** you (or your 3PL, reporting through an integration), from the shipment edit page, the **Set status** action, a carrier delivery, the REST API, or an inbound webhook.
 
 | Value         | Label       | Typical use                                                        |
 |---------------|-------------|--------------------------------------------------------------------|
@@ -15,7 +15,7 @@ Admins do not add their own codes. Integration-specific codes map into this list
 | `on_hold`     | On hold     | Paused (stock issue, fraud review, address verification).          |
 | `fulfilled`   | Fulfilled   | Warehouse work is done.                                            |
 | `shipped`     | Shipped     | In the carrier's hands. See the behavior below.                    |
-| `cancelled`   | Cancelled   | Won't ship.                                                        |
+| `cancelled`   | Canceled   | Won't ship.                                                        |
 
 A status is a label. The plugin does not attach hidden behavior to most of these values: what a status triggers (an email, a push to an integration) is something you configure, not something baked into the code.
 
@@ -37,7 +37,7 @@ No status requires any field. You can move a shipment to `shipped` with or witho
 
 ## Derived ship date
 
-`Shipment::getDateShipped()` reads from the `shipments_status_history` table at read time, returning the first transition into `shipped`. It is not a stored column; the history table is the source of truth, and the getter is a convenience layer. It is instance-cached. Null when the shipment has never reached `shipped`.
+`Shipment::getDateShipped()` reads from the `shipments_status_history` table at read time, returning the latest transition into `shipped` while the shipment is Shipped, and null otherwise. It is not a stored column. It is instance-cached.
 
 ## Color palette
 

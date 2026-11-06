@@ -19,5 +19,6 @@ First-class shipments for Craft Commerce. Every completed order produces one or 
 - [Twig queries](./dev-guide/twig-queries.md), reading shipments from front-end templates
 - [Custom providers](./dev-guide/custom-providers.md), building an integration
 - [Events](./reference/events.md), every event the plugin fires, payloads and listen examples
+- [Template hooks](./reference/template-hooks.md), adding markup to the **Delivery** tab
 
 **Setup details:** [Installation](./installation.md)

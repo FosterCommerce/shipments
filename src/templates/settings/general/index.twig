@@ -250,16 +250,6 @@
 		<h2>{{ 'settings.validation.heading'|t('shipments') }}</h2>
 		<p>{{ 'settings.validation.intro'|t('shipments') }}</p>
 
-		{{ forms.lightswitchField({
-			label: 'settings.validation.enforceFullCoverage'|t('shipments'),
-			instructions: 'settings.validation.enforceFullCoverageHelp'|t('shipments'),
-			id: 'shipments_enforce_coverage',
-			disabled: readOnly,
-			name: 'settings[enforceCoverage]',
-			on: settings.enforceCoverage,
-			errors: settings.getErrors('enforceCoverage'),
-		}) }}
-
 		{{ forms.checkboxSelectField({
 			label: 'settings.validation.lineItemStatusesToIgnore'|t('shipments'),
 			instructions: 'settings.validation.lineItemStatusesToIgnoreHelp'|t('shipments'),
@@ -338,6 +328,16 @@
 		{% else %}
 			<p class="light">{{ 'settings.tracking.noOrderStatuses'|t('shipments') }}</p>
 		{% endif %}
+
+		{{ forms.lightswitchField({
+			label: 'settings.shipOnDelivery.label'|t('shipments'),
+			instructions: 'settings.shipOnDelivery.help'|t('shipments'),
+			id: 'shipments_ship_on_delivery',
+			disabled: readOnly,
+			name: 'settings[shipOnDelivery]',
+			on: settings.shipOnDelivery,
+			errors: settings.getErrors('shipOnDelivery'),
+		}) }}
 
 		<hr>
 

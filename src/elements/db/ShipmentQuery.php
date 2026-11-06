@@ -35,6 +35,14 @@ class ShipmentQuery extends ElementQuery
 
 	public mixed $integrationId = null;
 
+	public mixed $shipmentStatus = null;
+
+	public function shipmentStatus(mixed $value): static
+	{
+		$this->shipmentStatus = $value;
+		return $this;
+	}
+
 	public function orderId(mixed $value): static
 	{
 		$this->orderId = $value;
@@ -129,6 +137,7 @@ class ShipmentQuery extends ElementQuery
 		$this->applyStringFilter('[[shipments_shipments.trackingNumber]]', $this->trackingNumber);
 		$this->applyStringFilter('[[shipments_shipments.carrier]]', $this->carrier);
 		$this->applyStringFilter('[[shipments_shipments.service]]', $this->service);
+		$this->applyStringFilter('[[shipments_shipments.status]]', $this->shipmentStatus);
 
 		$integrationIdFilter = $this->coerceNumericFilter($this->integrationId);
 		if ($integrationIdFilter !== null) {

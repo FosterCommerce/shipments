@@ -15,6 +15,8 @@ use fostercommerce\shipments\base\ProviderInterface;
 use fostercommerce\shipments\base\ShippingRateProviderInterface;
 use fostercommerce\shipments\elements\Shipment;
 use fostercommerce\shipments\enums\Status;
+use fostercommerce\shipments\events\DefineQuoteFingerprintEvent;
+use fostercommerce\shipments\events\DefineQuotePriceEvent;
 use fostercommerce\shipments\helpers\MoneyValues;
 use fostercommerce\shipments\models\Delivery;
 use fostercommerce\shipments\models\ShippingQuote;
@@ -29,6 +31,42 @@ use yii\base\Component;
 
 class Shipping extends Component
 {
+	/**
+	 * Fired when the Delivery tab lists a quote's price, which defaults to the carrier cost.
+	 * Changes the displayed price only.
+	 *
+	 * ```php
+	 * use fostercommerce\shipments\events\DefineQuotePriceEvent;
+	 * use fostercommerce\shipments\services\Shipping;
+	 * use yii\base\Event;
+	 *
+	 * Event::on(Shipping::class, Shipping::EVENT_DEFINE_QUOTE_PRICE, static function (DefineQuotePriceEvent $event): void {
+	 *     $event->price = $event->quote->carrierCost?->multiply('2');
+	 * });
+	 * ```
+	 *
+	 * @event DefineQuotePriceEvent
+	 */
+	public const EVENT_DEFINE_QUOTE_PRICE = 'defineQuotePrice';
+
+	/**
+	 * Fired when a shipment's inputs are hashed to check a quote is current. Remove data that
+	 * cannot change a rate, so editing it doesn't make the quote stale.
+	 *
+	 * ```php
+	 * use fostercommerce\shipments\events\DefineQuoteFingerprintEvent;
+	 * use fostercommerce\shipments\services\Shipping;
+	 * use yii\base\Event;
+	 *
+	 * Event::on(Shipping::class, Shipping::EVENT_DEFINE_QUOTE_FINGERPRINT, static function (DefineQuoteFingerprintEvent $event): void {
+	 *     unset($event->fingerprintData['fields']['staffNotes']);
+	 * });
+	 * ```
+	 *
+	 * @event DefineQuoteFingerprintEvent
+	 */
+	public const EVENT_DEFINE_QUOTE_FINGERPRINT = 'defineQuoteFingerprint';
+
 	/**
 	 * Calculate quotes for the shipment’s allocated quantities without saving its order.
 	 *
@@ -93,6 +131,21 @@ class Shipping extends Component
 	}
 
 	/**
+	 * Get the price the Delivery tab lists for a quote.
+	 */
+	public function getQuotePrice(Shipment $shipment, ShippingQuote $quote): ?Money
+	{
+		$event = new DefineQuotePriceEvent([
+			'shipment' => $shipment,
+			'quote' => $quote,
+			'price' => $quote->carrierCost,
+		]);
+		$this->trigger(self::EVENT_DEFINE_QUOTE_PRICE, $event);
+
+		return $event->price;
+	}
+
+	/**
 	 * Hash shipment inputs and resolved provider configuration for quote validation.
 	 */
 	public function fingerprint(Shipment $shipment): string
@@ -126,8 +179,14 @@ class Shipping extends Component
 			'postie' => Craft::$app->getPlugins()->isPluginEnabled('postie') ? Craft::$app->getProjectConfig()->get('postie') : null,
 			'deliveryProviders' => collect($providers)->map(static fn (ShippingRateProviderInterface $provider): array => $provider->getShippingConfiguration())->all(),
 		];
+		$event = new DefineQuoteFingerprintEvent([
+			'shipment' => $shipment,
+			'fingerprintData' => $data,
+		]);
+		$this->trigger(self::EVENT_DEFINE_QUOTE_FINGERPRINT, $event);
+
 		// Only the digest is persisted. Provider configuration can contain credentials.
-		return hash('sha256', Json::encode($data));
+		return hash('sha256', Json::encode($event->fingerprintData));
 	}
 
 	/**
@@ -438,11 +497,12 @@ class Shipping extends Component
 			'calculatedAt' => (new DateTimeImmutable())->format(DATE_ATOM),
 		];
 
-		$selected = collect($quotes)
-			->firstWhere('handle', $shipment->shippingMethodHandle);
+		// Select the customer's method first, so a refresh discards a staff pick
+		$selected = $this->getCustomerChosenQuotes($shipment, $quotes)[0] ?? null;
 
 		if (! $selected instanceof ShippingQuote) {
-			$selected = $this->getCustomerChosenQuotes($shipment, $quotes)[0] ?? null;
+			$selected = collect($quotes)
+				->firstWhere('handle', $shipment->shippingMethodHandle);
 		}
 
 		if (! $selected instanceof ShippingQuote) {

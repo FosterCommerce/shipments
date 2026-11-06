@@ -11,6 +11,12 @@ declare(strict_types=1);
  */
 
 return [
+	// Bulk status action
+	'action.setStatusChoose' => 'Choose a status.',
+	'action.setStatus' => 'Set status',
+	'action.statusUpdated' => 'Shipment statuses updated.',
+	'action.statusPartiallyUpdated' => 'Could not update {count} of the selected shipments. Canceled shipments can’t be changed in bulk. See the logs for any others.',
+
 	// common
 	'common.actions' => 'Actions',
 	'common.all' => 'All',
@@ -128,7 +134,6 @@ return [
 	'error.noProviderForType' => 'No integration provider registered for type “{type}”.',
 	'error.noShipmentsRestored' => 'No shipments could be restored. They may over-allocate the order’s line items.',
 	'error.orderIdMustBeNumber' => 'orderId must be a number.',
-	'error.orderIncompleteCoverage' => 'Order {orderId} has line items without full shipment coverage.',
 	'error.orderNotCompleted' => 'Order {orderId} is not completed; shipments can only be created for completed orders.',
 	'error.orderNotFound' => 'Order not found.',
 	'error.providerNotAvailable' => 'The provider “{type}” is not available.',
@@ -156,7 +161,7 @@ return [
 	'gql.queryShipments' => 'Query shipments',
 
 	// history
-	'history.orderCancelled' => 'Cancelled with the order.',
+	'history.orderCancelled' => 'Canceled with the order.',
 	'history.orderReopened' => 'Restored with the order.',
 
 	// index.column
@@ -292,6 +297,10 @@ return [
 	'settings.autoAdvance.targetLabel' => 'Order status to set',
 	'settings.autoAdvance.targetHelp' => 'Leave as “Don’t change” to turn the auto-advance off.',
 
+	// settings.shipOnDelivery
+	'settings.shipOnDelivery.label' => 'Set shipments to Shipped when a carrier delivery is created',
+	'settings.shipOnDelivery.help' => 'Voiding the last active delivery sets a Shipped shipment back to its previous status. Turn off to leave the status unchanged.',
+
 	// settings.general
 	'settings.general.autoCreationHeading' => 'Automatic shipment creation',
 	'settings.general.autoCreationHelp' => 'How shipments get created when a customer completes an order.',
@@ -376,19 +385,17 @@ return [
 	// settings.tracking
 	'settings.tracking.noOrderStatuses' => 'No Commerce order statuses are defined. Configure at least one under Commerce -> Settings -> Order Statuses.',
 	'settings.tracking.orderStatusesToCancelShipments' => 'Order statuses that cancel shipments',
-	'settings.tracking.orderStatusesToCancelShipmentsHelp' => 'When an order moves into one of these Commerce statuses, every shipment on it that hasn’t shipped is cancelled. Moving the order back out restores those shipments to the status each held before; a shipment cancelled any other way stays cancelled.',
+	'settings.tracking.orderStatusesToCancelShipmentsHelp' => 'When an order moves into one of these Commerce statuses, every shipment on it that hasn’t shipped and has no active carrier delivery is canceled. Moving the order back out restores those shipments to the status each held before; a shipment canceled any other way stays canceled.',
 	'settings.tracking.orderStatusesToIgnore' => 'Order statuses to ignore',
 	'settings.tracking.orderStatusesToIgnoreHelp' => 'Orders in these Commerce statuses are automatically marked as not requiring shipping and drop off the Attention page. Existing shipments are left intact, but new shipments can’t be staged as long as the order sits in one of these statuses. Adding a handle here runs a one-time sweep over orders currently in that status on save.',
 
 	// settings.validation
-	'settings.validation.enforceFullCoverage' => 'Enforce full coverage',
-	'settings.validation.enforceFullCoverageHelp' => 'When enabled, manual shipment saves are rejected unless every non-ignored line item quantity on the order is accounted for across all shipments.',
-	'settings.validation.heading' => 'Manual shipment validation',
-	'settings.validation.intro' => 'Rules that apply whenever a shipment is saved from the control panel (and whenever shipments are rebuilt).',
+	'settings.validation.heading' => 'Line items to ignore',
+	'settings.validation.intro' => 'Line items these settings match stay off every shipment and don’t count as unallocated.',
 	'settings.validation.lineItemStatusesToIgnore' => 'Line item statuses to ignore',
-	'settings.validation.lineItemStatusesToIgnoreHelp' => 'Line items with any of these statuses (e.g. refunded, cancelled) are skipped entirely: they won’t appear in any shipment and they won’t count toward the coverage check.',
+	'settings.validation.lineItemStatusesToIgnoreHelp' => 'Line items with any of these statuses (e.g. refunded, canceled) are skipped entirely: they won’t appear in any shipment and they don’t count as unallocated.',
 	'settings.validation.productTypesToIgnore' => 'Product types to ignore',
-	'settings.validation.productTypesToIgnoreHelp' => 'Line items for these product types (e.g. services, downloads) are skipped entirely: they won’t appear in any shipment and they won’t count toward the coverage check. An order containing nothing else gets no shipment at all.',
+	'settings.validation.productTypesToIgnoreHelp' => 'Line items for these product types (e.g. services, downloads) are skipped entirely: they won’t appear in any shipment and they don’t count as unallocated.',
 
 	// shipmentEdit
 	'shipmentEdit.created' => 'Shipment created.',
@@ -406,6 +413,7 @@ return [
 	'shipmentEdit.pushToQueued' => 'Push to “{name}” queued.',
 	'shipmentEdit.rebuilt' => 'Shipments rebuilt.',
 	'shipmentEdit.saved' => 'Shipment saved.',
+	'shipmentEdit.savedWithUnallocated' => 'Shipment saved. Not on a shipment: {items}.',
 	'shipmentEdit.shipmentsCreatedCount' => '{count} shipments created.',
 	'shipmentEdit.shippingNoteHelp' => 'Persistent shipping note. Editable any time.',
 	'shipmentEdit.statusChangeNote' => 'Status change note',
@@ -413,15 +421,14 @@ return [
 	'shipmentEdit.statusLabel' => 'Status',
 	'shipmentEdit.orderAllocation' => 'Order Allocation',
 	'shipmentEdit.statusNoteHelp' => 'Optional note recorded with this status change. Skipped silently if the status didn’t change.',
-	'shipmentEdit.targetShipDate' => 'Ship Date',
-	'shipmentEdit.targetShipDateHelp' => 'Date the merchant plans to ship by. Informational only; nothing transitions automatically when this date passes.',
+	'shipmentEdit.targetShipDate' => 'Pickup Date',
+	'shipmentEdit.targetShipDateHelp' => 'Date used for rates, labels, and bills of lading.',
 	'shipmentEdit.titleWithReference' => 'Shipment {reference}',
-	'shipmentEdit.shipDateRequired' => 'Ship Date is required.',
-	'shipmentEdit.savingShipDate' => 'Saving ship date…',
-	'shipmentEdit.couldNotSaveShipDate' => 'Couldn’t save the ship date.',
-	'shipmentEdit.invalidShipDate' => 'Enter a valid ship date.',
-	'shipmentEdit.shipDateReadOnly' => 'The ship date is read-only for cancelled or deleted shipments.',
-	'shipmentEdit.shipDateActiveDelivery' => 'Void the active delivery before changing the ship date.',
+	'shipmentEdit.savingShipDate' => 'Saving pickup date…',
+	'shipmentEdit.couldNotSaveShipDate' => 'Couldn’t save the pickup date.',
+	'shipmentEdit.invalidShipDate' => 'Enter a valid pickup date.',
+	'shipmentEdit.shipDateReadOnly' => 'The pickup date is read-only for canceled or deleted shipments.',
+	'shipmentEdit.shipDateActiveDelivery' => 'Void the active delivery before changing the pickup date.',
 
 	// shipmentEdit.lineItems
 	'shipmentEdit.lineItems.adjustIntro' => 'Adjust quantities to split or rebalance this shipment. Lowering a quantity returns those units to the order’s unallocated pool, where you can create a new shipment for them from the order’s Shipments tab. Set a quantity to 0 to remove a line item.',
@@ -465,6 +472,8 @@ return [
 	'shipmentEdit.tracking.heading' => 'Tracking',
 	'shipmentEdit.tracking.number' => 'Tracking number',
 	'shipmentEdit.tracking.service' => 'Service',
+	'shipmentEdit.tracking.shippingCharged' => 'Shipping charged',
+	'shipmentEdit.tracking.shippingChargedOrderTotal' => 'Shipping charged (order total)',
 	'shipmentEdit.tracking.shippingMethod' => 'Shipping method',
 	'shipmentEdit.tracking.url' => 'Tracking URL',
 	'shipmentEdit.transitDays' => 'Transit days',
@@ -473,7 +482,7 @@ return [
 
 	// status
 	'status.created' => 'Created',
-	'status.cancelled' => 'Cancelled',
+	'status.cancelled' => 'Canceled',
 	'status.fulfilled' => 'Fulfilled',
 	'status.inProgress' => 'In progress',
 	'status.new' => 'New',
@@ -499,7 +508,7 @@ return [
 	'delivery.errors.shipmentOrderHasNoCurrency' => 'The shipment order has no currency.',
 	'delivery.errors.shipmentContainsAnInvalidLineItemAllocation' => 'The shipment contains an invalid line item allocation.',
 	'delivery.errors.allocateItemsBeforeCalculatingShipmentShipping' => 'Allocate items before calculating shipment shipping.',
-	'delivery.errors.cancelledShipmentCannotCreateADelivery' => 'A cancelled shipment cannot create a delivery.',
+	'delivery.errors.cancelledShipmentCannotCreateADelivery' => 'A canceled shipment cannot create a delivery.',
 	'delivery.errors.disabledShipmentCannotCreateADelivery' => 'A disabled shipment cannot create a delivery.',
 	'delivery.errors.selectAnEnabledDeliveryProviderForThisShippingMethod' => 'The selected quote’s delivery provider is unavailable. Refresh rates and select an available shipping method.',
 	'delivery.errors.carrierResultCouldNotBeCompleted' => 'The carrier result could not be completed. Reconcile the booking or retrieve its saved documents before taking further action.',
@@ -581,7 +590,7 @@ return [
 	'delivery.deliveryDetails' => 'Delivery details',
 	'delivery.weight' => 'Weight',
 	'delivery.refreshRates' => 'Refresh rates',
-	'delivery.shipDateInPast' => 'Ship Date is in the past. Save today’s date or a future date before refreshing rates or creating a delivery.',
+	'delivery.shipDateInPast' => 'Pickup Date is in the past. Choose today or a later date before refreshing rates or creating a delivery.',
 	'delivery.deliveryDetailsAreLockedWhileThisShipmentHasAn' => 'Delivery details are locked while this shipment has an active carrier delivery.',
 	'delivery.shipmentShippingMethod' => 'Shipping method',
 	'delivery.quoteIsStale' => 'The quote is stale. Refresh rates before creating delivery.',
@@ -627,7 +636,7 @@ return [
 	'delivery.recordAsNotCreated' => 'Record as not created',
 	'delivery.noCarrierDeliveryHasBeenCreatedForThisShipment' => 'No carrier delivery has been created for this shipment.',
 	'delivery.noAvailableCarrierProviders' => 'No carrier providers are available. Configure a delivery integration to create deliveries.',
-	'delivery.errors.cancelledShipmentCannotChangeShipping' => 'Shipping rates and methods cannot be changed on a cancelled shipment.',
+	'delivery.errors.cancelledShipmentCannotChangeShipping' => 'Shipping rates and methods cannot be changed on a canceled shipment.',
 	'delivery.packages' => 'Packages',
 	'delivery.print' => 'Print',
 	'delivery.download' => 'Download',
@@ -684,7 +693,7 @@ return [
 
 	// Carrier deliveries
 	'delivery.errors.bookedShipmentCouldNotBeLoaded' => 'The booked shipment could not be loaded.',
-	'delivery.errors.voidBeforeCancellingShipment' => 'Void the active carrier delivery before cancelling this shipment.',
+	'delivery.errors.voidBeforeCancellingShipment' => 'Void the active carrier delivery before canceling this shipment.',
 	'delivery.errors.carrierDeliveryDetailsAreLocked' => 'Carrier delivery details are locked. Void the delivery before changing them.',
 	'delivery.errors.bookedShipmentCannotChangeShippingDetailsOrBe' => 'A booked shipment cannot change shipping details or be disabled. Void its delivery first.',
 	'delivery.errors.carrierDeliveryActionIsInProgress' => 'A carrier delivery action is in progress. Try saving after it finishes.',
