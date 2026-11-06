@@ -55,7 +55,7 @@ class ShipmentExports extends Component
 		}
 
 		if ($exportQuery->statusHandle !== null && $exportQuery->statusHandle !== '') {
-			$query->status($exportQuery->statusHandle);
+			$query->shipmentStatus($exportQuery->statusHandle);
 		}
 
 		if ($exportQuery->storeId !== null) {

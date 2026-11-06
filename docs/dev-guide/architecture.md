@@ -4,7 +4,7 @@ How the pieces fit together. Audience: developers extending or integrating with 
 
 ## Data model
 
-- **`Shipment`**, a Craft element. Owns a grouped allocation of order line-item quantities plus fulfillment fields (tracking, carrier, service, scheduled ship date, notes, free-text fields via a plugin-wide field layout), and a single `status` column. Disabling is admin-driven only (the **Enabled** lightswitch on the shipment edit page); the plugin never disables shipments on its own, and the audit for a manual disable lives in Craft's element revision log.
+- **`Shipment`**, a Craft element. Owns a grouped allocation of order line-item quantities plus fulfillment fields (tracking, carrier, service, pickup date, notes, free-text fields via a plugin-wide field layout), and a single `status` column. Disabling is admin-driven only (the **Enabled** lightswitch on the shipment edit page); the plugin never disables shipments on its own, and the audit for a manual disable lives in Craft's element revision log.
 - **`shipments_shipment_line_items`**, join rows between a shipment and Commerce line items, carrying the per-line-item quantity the shipment covers.
 - **`shipments_shipment_status_history`**, audit log. Every `applyTransition` writes one row with `fromCode`, `toCode`, `userId`, `sourceIntegrationId`, `sourceExternalCode`.
 - **`shipments_integrations`**, named external systems (an ERP, a warehouse platform, etc.). Each integration wraps a `Provider` subclass with settings.
@@ -102,7 +102,6 @@ yii\base\UserException
 ├── AllocationMismatchException         (staging totals vs pool diverge)
 ├── AllocationOverflowException         (re-enable/restore would over-allocate)
 ├── DuplicateShipmentReferenceException (reference collision; retriable once)
-├── IncompleteCoverageException         (saveManual with enforceCoverage=true)
 ├── IntegrationStatusMapException       (map row save failed)
 └── OrderNotCompletedException          (shipment creation on non-completed order)
 
@@ -119,7 +118,7 @@ yii\base\Exception
 
 ## Elements, queries, GraphQL
 
-`Shipment` implements the full Craft element contract: index, sources (grouped by status), sort options, table attributes, searchable attributes, field layouts, eager-loading maps (`order`, `lineItems`, `integrationReferences`), GraphQL interface + type + arguments. `hasTitles() = false`; the title column renders `getUiLabel()` which returns the reference. The element index has no bulk actions; multi-shipment editing happens via Craft's slideout-from-row pattern.
+`Shipment` implements the full Craft element contract: index, sources (grouped by status), sort options, table attributes, searchable attributes, field layouts, eager-loading maps (`order`, `lineItems`, `integrationReferences`), GraphQL interface + type + arguments. `hasTitles() = false`; the title column renders `getUiLabel()` which returns the reference. The element index adds a **Set status** action for users with `shipments-transitionShipments`.
 
 `Shipment::toArray()` overrides the `status` key to return its translated label (e.g. `"Fulfilled"`) instead of the raw enum value. This is what CSV export and any other `toArray()` consumer sees. GraphQL bypasses `toArray()` via field resolvers, so its responses still emit the raw enum value (`"fulfilled"`).
 

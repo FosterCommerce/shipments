@@ -5,8 +5,14 @@
 ## Unreleased
 
 ### Added
-- Added a `productTypesToIgnore` setting, so line items of product types that never ship (services, downloads) are left out of shipments and the coverage check.
-- Added an `orderStatusesToCancelShipments` setting (UI: **Order statuses that cancel shipments**). An order moving into one of these Commerce statuses cancels every shipment on it that hasn't shipped; moving back out restores each of those shipments to the status it held before. A shipment cancelled any other way stays cancelled.
+- Added a `productTypesToIgnore` setting, so line items of product types that never ship (services, downloads) are left out of shipments and don't count as unallocated.
+- Added an `orderStatusesToCancelShipments` setting (UI: **Order statuses that cancel shipments**).
+- Added a “Set status” bulk action to the Shipments index.
+- Added a “Set shipments to Shipped when a carrier delivery is created” setting.
+- Added “Pickup Date” to the shipment's Delivery tab.
+- Added “Shipping charged” to the shipment edit page.
+- Added `Shipping::EVENT_DEFINE_QUOTE_PRICE` and `Shipping::EVENT_DEFINE_QUOTE_FINGERPRINT` events.
+- Added template hooks to the shipment's Delivery tab.
 - Added a `postie-packing` grouping source, available when Verbb Postie is installed. Creates one shipment for each box packed by Postie, or one shipment for the whole order if no packing data is available.
 
 - First-class `Shipment` element with its own status sources, element index, bulk actions, field layouts, and GraphQL type.
@@ -37,8 +43,7 @@
 - Status history records the source integration handle and the external code it sent on every transition, with batched user/integration lookups to avoid N+1s.
 
 ### Fixed
-- Fixed a bug where **Enforce full coverage** rejected tracking and status updates from an integration while the order had unallocated line items.
-- Fixed cancelled shipments counting toward an order's allocated quantities, which blocked a replacement shipment from claiming the same line items.
+- Fixed canceled shipments counting toward an order's allocated quantities, which blocked a replacement shipment from claiming the same line items.
 - Fixed shipment export date windows applying the start bound in the site timezone and the end bound in UTC.
 - Fixed a bug where canceling the “Order requires shipping” confirmation reprompted without end.
 - Fixed concurrent staging saves being able to double-allocate line-item quantities; the pool is now validated under a per-order mutex.

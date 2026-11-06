@@ -38,9 +38,9 @@ Available when [Verbb Postie](https://verbb.io/craft-plugins/postie) is installe
 
 ### Guardrails
 
-- Line items matching **Line item statuses to ignore** are skipped by every rule and left out of the coverage check.
+- Line items matching **Line item statuses to ignore** are skipped by every rule and don't count as unallocated.
 - Line items of a product type in **Product types to ignore** are skipped the same way. Use it for products that never ship, such as services or downloads.
-- **Enforce full coverage** (on by default) blocks saves until every non-ignored line item is fully accounted for across the order's shipments.
+- If units on the order aren't on a shipment, the shipment still saves and the notice lists those units, unless the order's status is in **Order statuses to ignore**. Tracked orders also appear on the [**Attention needed** page](./attention-page.md).
 - Auto-creation runs on every completed order while **Create shipments automatically on order completion** is on. To stop auto-creation for orders in a hold or fraud-review status, add those statuses to **Order statuses to ignore**. Matching orders get no new shipments, and any shipments they already have stay as they are unless the status is also listed under **Order statuses that cancel shipments**.
 
 ## Manual staging

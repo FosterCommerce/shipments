@@ -9,7 +9,7 @@ Exhaustive permission handle list. Granted per user group under **Users -> Group
 | `accessPlugin-shipments`        | Outer gate: see the Shipments nav item at all. Craft built-in; automatic for any plugin with `hasCpSection=true`.             |                           |
 | `shipments-viewShipments`       | See the shipments element index, attention-needed page, and shipment edit page (read).                                        |                           |
 | `shipments-editShipments`       | Create shipments via staging + edit fulfillment fields (tracking, carrier, service, notes), refresh rates and select methods. | `shipments-viewShipments` |
-| `shipments-transitionShipments` | Change a shipment's status.                                                                                                   | `shipments-viewShipments` |
+| `shipments-transitionShipments` | Change a shipment's status, including the **Set status** action.                                                                                                   | `shipments-viewShipments` |
 | `shipments-deleteShipments`     | Soft-delete shipments.                                                                                                        | `shipments-viewShipments` |
 | `shipments-pushShipments`       | Use the **Push to {integration}** button in the sidebar of the shipment edit page.                                            | `shipments-viewShipments` |
 | `shipments-createDelivery`      | Create deliveries, retrieve documents and record carrier reconciliation.                                                      | `shipments-viewShipments` |

@@ -56,6 +56,7 @@
 
 <hr>
 <h2>{{ 'delivery.shipmentShippingMethod'|t('shipments') }}</h2>
+{% hook 'cp.shipments.delivery.shipping-method' %}
 {% if staleQuote and not activeDelivery %}
 	<p class="warning">{{ 'delivery.quoteIsStale'|t('shipments') }}</p>
 {% endif %}
@@ -90,7 +91,8 @@
 						<td>{{ quote.transitDays ?? '' }}</td>
 						<td>
 							{{ quoteCosts[quote.handle] ?? 'delivery.rateUnavailable'|t('shipments') }}
-							{% if quote.previousCarrierCost %}
+							{# Hide the old cost when a listener repriced the quote, since the shown price is then not the carrier's #}
+							{% if quote.previousCarrierCost and quoteCosts[quote.handle] == quote.formattedAmount %}
 								(<span class="warning shipment-previous-cost" tabindex="0" title="{{ 'delivery.carrierAmountChangedFrom'|t('shipments', {amount: quote.formattedPreviousCarrierCost}) }}" aria-label="{{ 'delivery.carrierAmountChangedFrom'|t('shipments', {amount: quote.formattedPreviousCarrierCost}) }}">{{ quote.formattedPreviousCarrierCost }}</span>)
 							{% endif %}
 						</td>
@@ -123,11 +125,34 @@
 	</div>
 {% elseif activeDelivery %}
 	<p class="notice">{{ 'delivery.deliveryDetailsAreLockedWhileThisShipmentHasAn'|t('shipments') }}</p>
+	{% if shipment.dateScheduledShip %}
+		<p><strong>{{ 'shipmentEdit.targetShipDate'|t('shipments') }}:</strong> {{ shipment.dateScheduledShip|date('short') }}</p>
+	{% endif %}
 {% endif %}
 
 <div id="shipment-prepared-details">
 	{% include "shipments/_cp/shipment/_prepared" %}
 </div>
+
+{% if canPrepare %}
+	{% set pickupDateInput %}
+		<input
+			type="date"
+			class="text"
+			id="shipment-pickup-date"
+			value="{{ (shipment.dateScheduledShip ?? now)|date('Y-m-d') }}"
+			required
+			data-shipments-ship-date="{{ shipment.id }}"
+		>
+		<span class="spinner small invisible shipment-ship-date-spinner" role="status" aria-label="{{ 'shipmentEdit.savingShipDate'|t('shipments') }}"></span>
+	{% endset %}
+	{{ forms.field({
+		id: 'shipment-pickup-date',
+		label: 'shipmentEdit.targetShipDate'|t('shipments'),
+		instructions: 'shipmentEdit.targetShipDateHelp'|t('shipments'),
+		required: true,
+	}, pickupDateInput) }}
+{% endif %}
 
 {% if selectedQuote and not activeDelivery and canCreate and shipment.enabled %}
 	{% if integrations|length %}

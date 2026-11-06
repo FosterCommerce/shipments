@@ -22,7 +22,7 @@ Check:
 
 1. Disabled shipments don't count. If you disabled one, its quantity went back to the pool. Re-enable it (Shipment detail page -> sidebar -> Enabled lightswitch) or stage a new shipment for the remaining quantity.
 2. Trashed shipments don't count either. Restore from Craft's trash, or stage a fresh one.
-3. If the math looks wrong, check **Shipments -> Settings -> General -> Line item statuses to ignore** and **Product types to ignore**. Line items matching either are left out of the coverage check.
+3. If the math looks wrong, check **Shipments -> Settings -> General -> Line item statuses to ignore** and **Product types to ignore**. Line items matching either don't count as unallocated.
 
 ## Save button stuck disabled on the staging form
 
@@ -100,15 +100,15 @@ Check:
 
 ## Order dropped off the Attention page after a status change
 
-The order's status moved into one listed under **Shipments -> Settings -> General -> Order statuses to ignore**. The plugin reads those statuses as "this order doesn't need shipping," so it stops showing the order on the Attention page. That alone does not touch the order's shipments. If the same status is also listed under **Order statuses that cancel shipments**, the shipments are cancelled as well; see [all my shipments went to Cancelled at once](#all-my-shipments-went-to-cancelled-at-once).
+The order's status moved into one listed under **Shipments -> Settings -> General -> Order statuses to ignore**. The plugin reads those statuses as "this order doesn't need shipping," so it stops showing the order on the Attention page. That alone does not touch the order's shipments. If the same status is also listed under **Order statuses that cancel shipments**, the shipments are canceled as well; see [all my shipments went to Canceled at once](#all-my-shipments-went-to-canceled-at-once).
 
 To bring the order back, either change its status to one that isn't on the ignore list, or remove the status from the setting, then turn **Order requires shipping** back on.
 
-## All my shipments went to Cancelled at once
+## All my shipments went to Canceled at once
 
-The order's status moved into one listed under **Shipments -> Settings -> General -> Order statuses that cancel shipments**. Every shipment on the order that hadn't reached `shipped` was cancelled, and each one's **Status history** tab records the order as the cause.
+The order's status moved into one listed under **Shipments -> Settings -> General -> Order statuses that cancel shipments**. The plugin canceled every shipment on the order that wasn't `shipped` and had no active carrier delivery, and each one's **Status history** tab records the order as the cause.
 
-To undo it, move the order to a status that isn't on that list. Each shipment the cascade cancelled goes back to the status it held before. Shipments that were already cancelled stay cancelled: the plugin only restores the ones it cancelled itself.
+To undo it, move the order to a status that isn't on that list. Each shipment the cascade canceled goes back to the status it held before. Shipments that were already canceled stay canceled: the plugin only restores the ones it canceled itself.
 
 If a shipment doesn't come back, check its **Status history**. A status change written after the cancellation, by an admin or by an integration, takes that shipment out of scope for the restore.
 

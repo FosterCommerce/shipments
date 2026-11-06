@@ -5,7 +5,7 @@ A Craft CMS plugin that adds first-class **shipments** to Craft Commerce, splitt
 ## Requirements
 
 - Craft CMS `^5.0`
-- Craft Commerce `^5.0`
+- Craft Commerce `^5.7`
 - PHP `^8.2`
 - Shippy `^1.2.23`
 - BoxPacker `^3.0`
@@ -25,11 +25,11 @@ composer require fostercommerce/shipments
 
 - **Create shipments automatically on order completion**: runs the rules engine every time an order completes. Off by default; turn on when you're ready for shipments to appear without clicking anything.
 - **Grouping source**: how to split one order into shipments. Choices: one shipment per order, by Commerce inventory state, by Commerce line-item status, or by Commerce shipping category.
-- **Enforce full coverage**: blocks shipment saves until every line item quantity is accounted for. Leave on unless your store ships partial orders and never reconciles.
-- **Line item statuses to ignore**: line items in these statuses are skipped (refunded, cancelled, and so on). Default: empty.
+- **Line item statuses to ignore**: line items in these statuses are skipped (refunded, canceled, and so on). Default: empty.
 - **Product types to ignore**: line items of these Commerce product types are skipped (services, downloads, and so on). An order with nothing else on it gets no shipment. Default: empty.
 - **Order statuses to ignore**: orders in these Commerce statuses are marked as not requiring shipping and drop off the Attention page. Any shipments they already have stay in place, unless the same status is also listed under **Order statuses that cancel shipments**. You can't add new shipments to an order while it's in one of these statuses. Adding a status here runs a one-time pass over orders already in that status. Default: empty.
-- **Order statuses that cancel shipments**: an order moving into one of these Commerce statuses cancels every shipment on it that hasn't shipped yet. Moving the order back out restores each of those shipments to the status it held before. A shipment cancelled any other way stays cancelled. Default: empty.
+- **Order statuses that cancel shipments**: an order moving into one of these Commerce statuses cancels every shipment on it that hasn't shipped and has no active carrier delivery. Moving the order back out restores each of those shipments to the status it held before. A shipment canceled any other way stays canceled. Default: empty.
+- **Set shipments to Shipped when a carrier delivery is created**: creating a label or bill of lading sets the shipment to Shipped. Default: on.
 - **Inventory grouping modes** (Grouping source = Craft Commerce inventory state): per-bucket choice between **ship together** (one shipment for the whole bucket) and **one shipment per line item**. Configured separately for in-stock items and backordered items. Default: ship together for both buckets.
 - **Quantity split mode** (Grouping source = Craft Commerce inventory state): how to handle line items that are partly in stock. `split` lets the line item appear in both buckets with partial quantities; `atomic` keeps the whole line item in the backorder bucket if any of it is. Default: `split`.
 - **Line item status groups** (Grouping source = Commerce line-item status): admin-defined groups, each with a mode (ship together or one per line item) and a list of Commerce line-item status handles. Line items whose status isn't in any group fall through to the single-shipment fallback. Default: empty.
@@ -56,7 +56,7 @@ Disabling an integration stops outbound pushes and rejects inbound webhooks. Exi
 
 ## Using shipments
 
-On a completed order, a **Shipments** tab shows the shipments (once any exist) and a form for creating new ones from unallocated line items. Each shipment has its own edit page: tracking number, carrier, service, ship date, notes, integration references, and a status-history log.
+On a completed order, a **Shipments** tab shows the shipments (once any exist) and a form for creating new ones from unallocated line items. Each shipment has its own edit page: tracking number, carrier, service, notes, integration references, a status-history log, and, when a delivery provider is enabled, a pickup date.
 
 Shipments soft-delete. Removing a shipment from an order returns its line items to the unallocated pool.
 

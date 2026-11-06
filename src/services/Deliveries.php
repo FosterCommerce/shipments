@@ -30,6 +30,7 @@ use fostercommerce\shipments\models\ShippingQuote;
 use fostercommerce\shipments\Plugin;
 use fostercommerce\shipments\records\Delivery as DeliveryRecord;
 use fostercommerce\shipments\records\Shipment as ShipmentRecord;
+use fostercommerce\shipments\records\ShipmentStatusHistory;
 use Money\Money;
 use RuntimeException;
 use Throwable;
@@ -502,7 +503,8 @@ class Deliveries extends Component
 			throw new RuntimeException(Craft::t('shipments', 'delivery.errors.unableToSaveShipmentTracking'));
 		}
 
-		if ($firstSuccess) {
+		// Skip a Shipped shipment, since a second history row would resend the Shipped email
+		if ($firstSuccess && Plugin::getInstance()->getSettings()->shipOnDelivery && $shipment->getStatusEnum() !== Status::Shipped) {
 			Plugin::getInstance()->shipments->applyTransition(
 				$shipment,
 				Status::Shipped,
@@ -635,6 +637,50 @@ class Deliveries extends Component
 		} catch (Throwable $throwable) {
 			$transaction->rollBack();
 			throw $throwable;
+		}
+
+		$this->revertShippedStatus($delivery);
+	}
+
+	/**
+	 * Set the shipment back to its status before Shipped once its last active delivery is voided.
+	 */
+	private function revertShippedStatus(Delivery $delivery): void
+	{
+		$plugin = Plugin::getInstance();
+		$shipment = $this->shipment($delivery->shipmentId);
+
+		if (! $plugin->getSettings()->shipOnDelivery
+			|| $shipment->getStatusEnum() !== Status::Shipped
+			|| $this->getLatestForShipment($delivery->shipmentId) instanceof Delivery) {
+			return;
+		}
+
+		$lastTransition = ShipmentStatusHistory::find()
+			->where([
+				'shipmentId' => $delivery->shipmentId,
+				'toCode' => Status::Shipped->value,
+			])
+			->andWhere(['not', [
+				'fromCode' => Status::Shipped->value,
+			]])
+			->orderBy([
+				'id' => SORT_DESC,
+			])
+			->one();
+		// Fall back to Fulfilled, since a shipment created as Shipped has no prior status
+		$previousStatus = $lastTransition instanceof ShipmentStatusHistory ? Status::tryFrom((string) $lastTransition->fromCode) : null;
+
+		// Log a failed revert, since the void is already committed and cannot be retried
+		try {
+			$plugin->shipments->applyTransition(
+				$shipment,
+				$previousStatus ?? Status::Fulfilled,
+				Craft::$app->getUser()->getIdentity(),
+				queueAutoPushes: false,
+			);
+		} catch (Throwable $throwable) {
+			DeliveryDiagnostics::log($throwable, 'revertShipped', $delivery->operationId);
 		}
 	}
 

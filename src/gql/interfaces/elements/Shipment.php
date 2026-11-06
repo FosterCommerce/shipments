@@ -82,12 +82,12 @@ class Shipment extends Element
 			'dateShipped' => [
 				'name' => 'dateShipped',
 				'type' => Type::string(),
-				'description' => 'First time the shipment reached shipped; derived from the status-history table.',
+				'description' => 'Latest time the shipment was set to shipped, or null unless it is shipped now. Derived from the status-history table.',
 			],
 			'dateScheduledShip' => [
 				'name' => 'dateScheduledShip',
 				'type' => Type::string(),
-				'description' => 'Target date the merchant plans to ship by. Informational only.',
+				'description' => 'Pickup date used for rates, labels, and bills of lading.',
 			],
 			'trackingNumber' => [
 				'name' => 'trackingNumber',

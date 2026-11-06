@@ -43,28 +43,9 @@
 			name: 'enabled',
 			on: shipment.enabled,
 		}) }}
-		{% set canEditShipDate = currentUser.can(constant('fostercommerce\\shipments\\Plugin::PERMISSION_EDIT')) and shipment.status != 'cancelled' and not shipment.trashed and not deliveryTab.activeDelivery %}
-		{% set shipDateInput %}
-			{{ forms.date({
-				id: 'dateScheduledShip',
-				name: 'dateScheduledShip',
-				value: shipment.dateScheduledShip,
-				disabled: not canEditShipDate,
-			}) }}
-			<span class="spinner small invisible shipment-ship-date-spinner" role="status" aria-label="{{ 'shipmentEdit.savingShipDate'|t('shipments') }}"></span>
-		{% endset %}
-		{{ forms.field({
-			id: 'dateScheduledShip',
-			label: 'shipmentEdit.targetShipDate'|t('shipments'),
-			labelAttributes: {for: 'dateScheduledShip-date'},
-			fieldAttributes: {data: {'shipments-ship-date': shipment.id}},
-			inputContainerAttributes: {class: 'input shipment-ship-date-input'},
-			errors: shipment.getErrors('dateScheduledShip'),
-		}, shipDateInput) }}
 		<div class="field">
 			<div class="heading">{{ 'delivery.deliveryAddress'|t('shipments') }}</div>
 			<div class="input">
-			{% set deliveryAddress = order.shippingAddress ?? order.estimatedShippingAddress %}
 			{% if deliveryAddress %}
 				{{ deliveryAddress|address }}
 			{% else %}
@@ -99,6 +80,10 @@
 			<div class="data">
 				<h5 class="heading">{{ 'shipmentEdit.tracking.shippingMethod'|t('shipments') }}</h5>
 				<div class="value">{{ orderShippingMethodName }}</div>
+			</div>
+			<div class="data">
+				<h5 class="heading">{{ (isSplitOrder ? 'shipmentEdit.tracking.shippingChargedOrderTotal' : 'shipmentEdit.tracking.shippingCharged')|t('shipments') }}</h5>
+				<div class="value">{{ order.totalShippingCost|currency(order.currency) }}</div>
 			</div>
 		{% endif %}
 		{% if shipment.dateShipped %}

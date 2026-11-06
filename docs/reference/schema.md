@@ -15,7 +15,7 @@ Supplementary table for the `Shipment` element. Keyed to `craft_elements.id`; th
 | `reference`            | varchar      | UNIQUE. Format `{orderRef}-sNNN`.                                           |
 | `number`               | int NOT NULL | Per-order sequence integer. UNIQUE with `orderId`.                          |
 | `status`               | varchar(32)  | `Status` value. Default `new`. Indexed.                                     |
-| `dateScheduledShip`    | datetime     | Merchant-intended ship date.                                                |
+| `dateScheduledShip`    | datetime     | Pickup date used for rates, labels, and bills of lading.                     |
 | `trackingNumber`       | varchar      |                                                                             |
 | `trackingUrl`          | varchar      |                                                                             |
 | `carrier`              | varchar      | Indexed.                                                                    |

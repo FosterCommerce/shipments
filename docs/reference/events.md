@@ -227,7 +227,7 @@ Event::on(
 | Property      | Type                  | Notes                                              |
 |---------------|-----------------------|----------------------------------------------------|
 | `integration` | `ProviderInterface`   | The provider about to run.                         |
-| `shipment`    | `Shipment`            | The shipment being cancelled.                      |
+| `shipment`    | `Shipment`            | The shipment being canceled.                      |
 | `order`       | `Order`               | The Commerce order the shipment belongs to.        |
 | `isValid`     | `bool`                | Set to `false` to skip the cancel. Default `true`. |
 
@@ -259,7 +259,7 @@ Set your site's log level to `info` and all status transitions log their source 
 
 ## `Deliveries::EVENT_AFTER_CREATE`
 
-**Fires:** in `Deliveries::publishSafely()` after a successful booking has saved its references and carrier documents and transitioned the shipment to Shipped.
+**Fires:** in `Deliveries::publishSafely()` after a successful booking saves its references and carrier documents. When `shipOnDelivery` is on, the shipment is Shipped by this point.
 
 **Payload:** `fostercommerce\shipments\events\DeliveryEvent`
 
@@ -300,10 +300,63 @@ class DeliveryLog extends Module
 
 **Common use:** log completed carrier bookings or enqueue integration follow-up work.
 
-**Publication:** emitted once when the delivery first succeeds with tracking and documents saved. Refreshing or restoring documents does not emit it again. Configured emails use the Shipped status transition, which commits with delivery completion before this event fires.
+**Publication:** emitted once when the delivery first succeeds with tracking and documents saved. Refreshing or restoring documents does not emit it again. When `shipOnDelivery` is on, configured emails use the Shipped status transition, which commits before this event fires. With `shipOnDelivery` off, creating a delivery sends no status email.
 
 ## `Deliveries::EVENT_AFTER_CANCEL`
 
 Fires after the carrier confirms cancellation and the delivery is saved as `voided`. Uses the same `DeliveryEvent` payload as creation. Failed or uncertain cancellation requests do not emit it. This event does not send configured emails.
 
-This event is emitted on confirmed cancellation and cannot be manually republished. Cancelling a delivery does not imply a refund or change the shipment's fulfillment status.
+This event is emitted on confirmed cancellation and cannot be manually republished. Canceling a delivery does not imply a refund.
+
+With `shipOnDelivery` on (the default), voiding a shipment's last active delivery sets a Shipped shipment back to its status before Shipped. Any email bound to that status sends. The order's status doesn't change. With the setting off, the shipment's status doesn't change.
+
+## `Shipping::EVENT_DEFINE_QUOTE_PRICE`
+
+**Fires:** in `Shipping::getQuotePrice()`, when the **Delivery** tab lists a quote's price.
+
+**Payload:** `DefineQuotePriceEvent`
+
+| Property | Type | Notes |
+|----------|------|-------|
+| `shipment` | `Shipment` | |
+| `quote` | `ShippingQuote` | |
+| `price` | `?Money` | Defaults to the quote's carrier cost. |
+
+**Listen:**
+
+```php
+Event::on(
+    Shipping::class,
+    Shipping::EVENT_DEFINE_QUOTE_PRICE,
+    static function (DefineQuotePriceEvent $event): void {
+        $event->price = $event->quote->carrierCost?->multiply('2');
+    },
+);
+```
+
+**Common use:** show the customer's price. The changed-cost check still uses the carrier cost. A price that differs from the quote's amount hides the previous carrier cost.
+
+## `Shipping::EVENT_DEFINE_QUOTE_FINGERPRINT`
+
+**Fires:** in `Shipping::fingerprint()`, before the plugin hashes a shipment's inputs to check that a quote is current.
+
+**Payload:** `DefineQuoteFingerprintEvent`
+
+| Property | Type | Notes |
+|----------|------|-------|
+| `shipment` | `Shipment` | |
+| `fingerprintData` | `array<string, mixed>` | `fields` holds the order's custom field values. |
+
+**Listen:**
+
+```php
+Event::on(
+    Shipping::class,
+    Shipping::EVENT_DEFINE_QUOTE_FINGERPRINT,
+    static function (DefineQuoteFingerprintEvent $event): void {
+        unset($event->fingerprintData['fields']['orderNotes']);
+    },
+);
+```
+
+**Common use:** remove data that can't change a rate, which keeps edits to that data from marking the quote stale.

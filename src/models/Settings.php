@@ -30,13 +30,8 @@ class Settings extends Model
 	public string $deliveryDocumentVolumeUid = '';
 
 	/**
-	 * When true, shipment saves reject unless every non-ignored line item qty is accounted for.
-	 */
-	public bool $enforceCoverage = true;
-
-	/**
 	 * Commerce line-item status handles that the plugin skips entirely: they're excluded
-	 * from the rules engine and don't count toward the coverage check.
+	 * from the rules engine and don't count as unallocated.
 	 *
 	 * @var list<string>
 	 */
@@ -61,7 +56,7 @@ class Settings extends Model
 
 	/**
 	 * Commerce product type handles whose variants never ship (e.g. services, downloads).
-	 * Their line items are excluded from the rules engine and don't count toward coverage.
+	 * Their line items are excluded from the rules engine and don't count as unallocated.
 	 *
 	 * @var list<string>
 	 */
@@ -104,6 +99,12 @@ class Settings extends Model
 	 * once per order, later manual status changes are left alone.
 	 */
 	public ?string $autoAdvanceOrderStatusHandle = null;
+
+	/**
+	 * Whether creating a carrier delivery sets the shipment to Shipped, and voiding the last active
+	 * delivery sets the shipment back to its previous status.
+	 */
+	public bool $shipOnDelivery = true;
 
 	public function validateAutoAdvanceOrderStatusHandle(string $attribute): void
 	{
@@ -297,7 +298,7 @@ class Settings extends Model
 	{
 		return [
 			[['deliveryDocumentVolumeUid'], 'string'],
-			[['autoCreateOnComplete', 'enforceCoverage'], 'boolean'],
+			[['autoCreateOnComplete', 'shipOnDelivery'], 'boolean'],
 			[['lineItemStatusesToIgnore'],
 				'each',
 				'rule' => ['string']],
@@ -320,13 +321,13 @@ class Settings extends Model
 			[['shippingCategoryGroups'], 'validateShippingCategoryGroups'],
 			[[
 				'autoCreateOnComplete',
-				'enforceCoverage',
 				'lineItemStatusesToIgnore',
 				'orderStatusesToIgnore',
 				'productTypesToIgnore',
 				'qtySplitMode',
 				'groupingSource',
 				'autoAdvanceOrderStatusHandle',
+				'shipOnDelivery',
 				'inventoryGroupingModes',
 				'lineItemStatusGroups',
 				'shippingCategoryGroups',

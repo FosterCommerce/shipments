@@ -20,6 +20,7 @@ use craft\helpers\UrlHelper;
 use craft\models\FieldLayout;
 use DateTime;
 use fostercommerce\shipments\db\Table;
+use fostercommerce\shipments\elements\actions\SetShipmentStatus;
 use fostercommerce\shipments\elements\db\ShipmentQuery;
 use fostercommerce\shipments\elements\exporters\Fulfillment as FulfillmentExporter;
 use fostercommerce\shipments\enums\Status;
@@ -240,11 +241,15 @@ class Shipment extends Element
 	}
 
 	/**
-	 * First time the shipment reached `shipped`, derived from `shipments_status_history`.
-	 * Null when no such transition has ever happened.
+	 * Latest time the shipment was set to `shipped`, derived from `shipments_status_history`.
+	 * Null unless the shipment is shipped now.
 	 */
 	public function getDateShipped(): ?DateTime
 	{
+		if ($this->getStatusEnum() !== Status::Shipped) {
+			return null;
+		}
+
 		if (! $this->_dateShippedLoaded) {
 			$this->_dateShipped = $this->loadHistoryDate(Status::Shipped->value);
 			$this->_dateShippedLoaded = true;
@@ -671,14 +676,29 @@ class Shipment extends Element
 			$sources[] = [
 				'key' => 'status:' . $case->value,
 				'label' => $case->label(),
+				// Filter on shipmentStatus, since Shipment leaves hasStatuses() off
 				'criteria' => [
-					'status' => $case->value,
+					'shipmentStatus' => $case->value,
 				],
 				'defaultSort' => ['dateCreated', 'desc'],
 			];
 		}
 
 		return $sources;
+	}
+
+	/**
+	 * @return array<array-key, mixed>
+	 */
+	protected static function defineActions(string $source): array
+	{
+		$actions = parent::defineActions($source);
+
+		if (Craft::$app->getUser()->checkPermission(Plugin::PERMISSION_TRANSITION)) {
+			$actions[] = SetShipmentStatus::class;
+		}
+
+		return $actions;
 	}
 
 	/**
@@ -1015,8 +1035,8 @@ class Shipment extends Element
 				'[[history.toCode]]' => $toCode,
 			])
 			->orderBy([
-				'[[history.dateCreated]]' => SORT_ASC,
-				'[[history.id]]' => SORT_ASC,
+				'[[history.dateCreated]]' => SORT_DESC,
+				'[[history.id]]' => SORT_DESC,
 			])
 			->limit(1)
 			->scalar();

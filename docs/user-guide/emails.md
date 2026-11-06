@@ -61,7 +61,7 @@ The email renders in the order's language by default, or in a specific site lang
 **Internal alerts:**
 
 - "Shipment on hold", custom recipient `warehouse-lead@your-store.example`, bound to `on_hold`.
-- "Shipment cancelled", custom recipient `cs@your-store.example`, bound to `cancelled`.
+- "Shipment canceled", custom recipient `cs@your-store.example`, bound to `cancelled`.
 
 **A "please ship this" email for 3PLs:**
 
