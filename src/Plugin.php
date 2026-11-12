@@ -9,11 +9,13 @@ use craft\base\Element;
 use craft\base\Model;
 use craft\commerce\elements\Order;
 use craft\commerce\events\OrderStatusEvent;
+use craft\commerce\models\LineItem;
 use craft\commerce\Plugin as Commerce;
 use craft\commerce\services\OrderHistories;
 use craft\console\Application as ConsoleApplication;
 use craft\db\Query;
 use craft\events\DefineEagerLoadingMapEvent;
+use craft\events\ModelEvent;
 use craft\events\RebuildConfigEvent;
 use craft\events\RegisterComponentTypesEvent;
 use craft\events\RegisterGqlQueriesEvent;
@@ -31,6 +33,7 @@ use craft\services\UserPermissions;
 use craft\web\UrlManager;
 use craft\web\View;
 use fostercommerce\shipments\db\Table;
+use fostercommerce\shipments\elements\db\ShipmentQuery;
 use fostercommerce\shipments\elements\Shipment;
 use fostercommerce\shipments\enums\Status;
 use fostercommerce\shipments\events\RegisterShipmentRulesEvent;
@@ -173,6 +176,12 @@ class Plugin extends \craft\base\Plugin
 			Order::class,
 			Order::EVENT_AFTER_SAVE,
 			$this->recomputeUnderAllocationOnOrderSave(...),
+		);
+
+		Event::on(
+			Order::class,
+			Order::EVENT_BEFORE_SAVE,
+			$this->refuseOrderChangesInFulfillment(...),
 		);
 
 		Event::on(
@@ -409,6 +418,56 @@ class Plugin extends \craft\base\Plugin
 		}
 
 		$this->trackedOrders->recomputeUnderAllocation($order);
+	}
+
+	/**
+	 * Staff may have picked, packed or shipped a locking shipment's units.
+	 */
+	private function refuseOrderChangesInFulfillment(ModelEvent $event): void
+	{
+		/** @var Order $order */
+		$order = $event->sender;
+		$settings = $this->getSettings();
+		if ($event->isNew || ! $order->isCompleted || ! $settings->lockOrdersInFulfillment) {
+			return;
+		}
+
+		/** @var ShipmentQuery $shipmentQuery */
+		$shipmentQuery = Shipment::find();
+		/** @var Shipment|null $lockingShipment */
+		$lockingShipment = $shipmentQuery
+			->orderId($order->id)
+			->status(null)
+			->shipmentStatus($settings->shipmentStatusesToLockOrders)
+			->one();
+		if ($lockingShipment === null) {
+			return;
+		}
+
+		/** @var Order $savedOrder */
+		$savedOrder = Order::find()->id($order->id)->status(null)->one();
+		if ($this->lockedValues($savedOrder) === $this->lockedValues($order)) {
+			return;
+		}
+
+		$order->addError('lineItems', Craft::t(self::HANDLE, 'order.changeLockedInFulfillment', [
+			'status' => $lockingShipment->getStatusEnum()->label(),
+		]));
+		$event->isValid = false;
+	}
+
+	/**
+	 * @return array{float, list<array{int|null, int|null, int, float, string}>}
+	 */
+	private function lockedValues(Order $order): array
+	{
+		$lineItems = collect($order->getLineItems())
+			->map(fn (LineItem $lineItem): array => [$lineItem->id, $lineItem->purchasableId, $lineItem->qty, $lineItem->getSalePrice(), $lineItem->getOptionsSignature()])
+			->sortBy(fn (array $line): int => $line[0] ?? PHP_INT_MAX)
+			->values()
+			->all();
+
+		return [$order->getTotalPrice(), $lineItems];
 	}
 
 	/**

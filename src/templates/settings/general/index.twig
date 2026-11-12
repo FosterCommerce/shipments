@@ -308,6 +308,31 @@
 			<p class="light">{{ 'settings.tracking.noOrderStatuses'|t('shipments') }}</p>
 		{% endif %}
 
+		<h2>{{ 'settings.tracking.lockOrdersInFulfillment'|t('shipments') }}</h2>
+		<p>{{ 'settings.tracking.lockOrdersInFulfillmentHelp'|t('shipments') }}</p>
+
+		{{ forms.lightswitchField({
+			label: 'settings.tracking.lockOrdersInFulfillment'|t('shipments'),
+			id: 'shipments_lock_orders_in_fulfillment',
+			disabled: readOnly,
+			name: 'settings[lockOrdersInFulfillment]',
+			on: settings.lockOrdersInFulfillment,
+			errors: settings.getErrors('lockOrdersInFulfillment'),
+			toggle: '.shipments-lock-statuses',
+		}) }}
+
+		<div class="shipments-lock-statuses{% if not settings.lockOrdersInFulfillment %} hidden{% endif %}">
+			{{ forms.checkboxSelectField({
+				label: 'settings.tracking.shipmentStatusesToLockOrders'|t('shipments'),
+				id: 'shipments_shipment_statuses_to_lock_orders',
+				disabled: readOnly,
+				name: 'settings[shipmentStatusesToLockOrders]',
+				values: settings.shipmentStatusesToLockOrders,
+				options: lockingStatusOptions,
+				errors: settings.getErrors('shipmentStatusesToLockOrders'),
+			}) }}
+		</div>
+
 		<hr>
 
 		<h2>{{ 'settings.autoAdvance.heading'|t('shipments') }}</h2>

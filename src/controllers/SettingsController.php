@@ -8,6 +8,8 @@ use Craft;
 use craft\commerce\models\ShippingCategory;
 use craft\commerce\Plugin as Commerce;
 use craft\web\Controller;
+use fostercommerce\shipments\enums\Status;
+use fostercommerce\shipments\models\Settings;
 use fostercommerce\shipments\Plugin;
 use fostercommerce\shipments\rules\LineItemStatusRule;
 use fostercommerce\shipments\rules\ShippingCategoryRule;
@@ -225,6 +227,10 @@ class SettingsController extends Controller
 			'orderStatusOptions' => $orderStatusOptions,
 			'productTypeOptions' => $productTypeOptions,
 			'shippingCategoryOptions' => $shippingCategoryOptions,
+			'lockingStatusOptions' => array_map(static fn (string $statusValue): array => [
+				'value' => $statusValue,
+				'label' => Status::from($statusValue)->label(),
+			], Settings::ORDER_LOCKING_STATUSES),
 		]);
 	}
 }

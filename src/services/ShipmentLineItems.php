@@ -38,9 +38,9 @@ class ShipmentLineItems extends Component
 	private const ATTENTION_COUNT_CACHE_TTL = 300;
 
 	/**
-	 * @var array<int, array<int, int>>
+	 * @var array<string, array<int, int>>
 	 */
-	private array $shippableUnitsByOrderId = [];
+	private array $shippableUnitsByOrderQuantities = [];
 
 	/**
 	 * Returns the shippable unit count per line item, keyed by Commerce line item id.
@@ -51,11 +51,6 @@ class ShipmentLineItems extends Component
 	 */
 	public function shippableUnitsFor(Order $order): array
 	{
-		$orderId = $order->id;
-		if ($orderId !== null && isset($this->shippableUnitsByOrderId[$orderId])) {
-			return $this->shippableUnitsByOrderId[$orderId];
-		}
-
 		$shippableUnits = [];
 		foreach ($order->getLineItems() as $lineItem) {
 			$lineItemId = $lineItem->id;
@@ -66,14 +61,20 @@ class ShipmentLineItems extends Component
 			$shippableUnits[$lineItemId] = (int) $lineItem->qty;
 		}
 
+		// Key on the quantities too, since a queue worker sees order edits
+		$cacheKey = $order->id . ':' . Json::encode($shippableUnits);
+		if ($order->id !== null && isset($this->shippableUnitsByOrderQuantities[$cacheKey])) {
+			return $this->shippableUnitsByOrderQuantities[$cacheKey];
+		}
+
 		$event = new ResolveShippableUnitsEvent();
 		$event->order = $order;
 		$event->shippableUnits = $shippableUnits;
 		$this->trigger(self::EVENT_RESOLVE_SHIPPABLE_UNITS, $event);
 
-		if ($orderId !== null) {
-			// memoize per request; the resolve event can be expensive for integrators
-			$this->shippableUnitsByOrderId[$orderId] = $event->shippableUnits;
+		if ($order->id !== null) {
+			// memoize; the resolve event can be expensive for integrators
+			$this->shippableUnitsByOrderQuantities[$cacheKey] = $event->shippableUnits;
 		}
 
 		return $event->shippableUnits;
