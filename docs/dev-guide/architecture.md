@@ -22,7 +22,7 @@ One fixed-vocabulary status stored as a string code:
 |----------|------------------------------------|--------------------------------------------------------------------|
 | `Status` | Merchant / 3PL, or an integration  | `new`, `in_progress`, `on_hold`, `fulfilled`, `shipped`, `cancelled` |
 
-The vocabulary is fixed; integration-specific external codes map in via `IntegrationStatusMaps`. A status carries no built-in behavior except `shipped`: reaching it advances the shipment's Commerce order (see below). See [status vocabulary](../user-guide/status-vocabulary.md) for the meaning of each case.
+The vocabulary is fixed; integration-specific external codes map in via `IntegrationStatusMaps`. Reaching `shipped` advances the shipment's Commerce order (see below). While `lockOrdersInFulfillment` is on, an `Order::EVENT_BEFORE_SAVE` handler (`Plugin::refuseOrderChangesInFulfillment()`) blocks a change to a completed order's line items or total if a shipment on it has a status in `shipmentStatusesToLockOrders`. The handler adds an error on `lineItems`, and `saveElement()` returns false. See [status vocabulary](../user-guide/status-vocabulary.md) for the meaning of each case.
 
 ## Write paths, all route through one service
 

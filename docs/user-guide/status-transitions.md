@@ -49,7 +49,13 @@ No field is ever required to reach a status. A shipment can become `shipped` wit
 
 ## What `shipped` does to the order
 
-Reaching `shipped` advances the shipment's Commerce order to the order status configured under **Shipments -> Settings**. One-way: moving back out of `shipped` does not move the order back. No other status touches the order. See the [status vocabulary](./status-vocabulary.md#the-statuses-with-built-in-behavior).
+Reaching `shipped` advances the shipment's Commerce order to the order status configured under **Shipments -> Settings**. One-way: moving back out of `shipped` does not move the order back. See the [status vocabulary](./status-vocabulary.md#the-statuses-with-built-in-behavior).
+
+## What a locking status does to the order
+
+While a shipment on a completed order has a locking status, the order's line items and total can't change. Choose the locking statuses under **Shipments -> Settings -> General -> Shipment statuses that lock orders**. To turn the lock off, turn off **Lock orders in fulfillment**. The save fails if it adds, removes or swaps a line item, or changes a line item's quantity, price or options. It also fails if it changes the order total. The error names the shipment's status: **The order’s line items and total can’t change while a shipment on it is Fulfilled.** Other fields, such as notes and the order status, still save.
+
+`new` and `cancelled` never lock an order. See [Configure](../installation.md#configure) for the default.
 
 ## What the order's status does to shipments
 

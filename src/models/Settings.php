@@ -7,6 +7,7 @@ namespace fostercommerce\shipments\models;
 use Craft;
 use craft\base\Model;
 use craft\commerce\Plugin as Commerce;
+use fostercommerce\shipments\enums\Status;
 use fostercommerce\shipments\Plugin;
 
 class Settings extends Model
@@ -24,6 +25,16 @@ class Settings extends Model
 	public const INVENTORY_BUCKET_IN_STOCK = 'inStock';
 
 	public const INVENTORY_BUCKET_BACKORDER = 'backorder';
+
+	/**
+	 * Excludes New, which stays editable, and Cancelled, which covers no units.
+	 */
+	public const ORDER_LOCKING_STATUSES = [
+		Status::InProgress->value,
+		Status::OnHold->value,
+		Status::Fulfilled->value,
+		Status::Shipped->value,
+	];
 
 	public bool $autoCreateOnComplete = false;
 
@@ -105,6 +116,18 @@ class Settings extends Model
 	 * delivery sets the shipment back to its previous status.
 	 */
 	public bool $shipOnDelivery = true;
+
+	/**
+	 * A switch rather than an empty status list, since project config drops empty arrays.
+	 */
+	public bool $lockOrdersInFulfillment = true;
+
+	/**
+	 * Shipment statuses that lock a completed order's line items and total.
+	 *
+	 * @var list<string>
+	 */
+	public array $shipmentStatusesToLockOrders = self::ORDER_LOCKING_STATUSES;
 
 	public function validateAutoAdvanceOrderStatusHandle(string $attribute): void
 	{
@@ -298,7 +321,7 @@ class Settings extends Model
 	{
 		return [
 			[['deliveryDocumentVolumeUid'], 'string'],
-			[['autoCreateOnComplete', 'shipOnDelivery'], 'boolean'],
+			[['autoCreateOnComplete', 'shipOnDelivery', 'lockOrdersInFulfillment'], 'boolean'],
 			[['lineItemStatusesToIgnore'],
 				'each',
 				'rule' => ['string']],
@@ -311,6 +334,16 @@ class Settings extends Model
 			[['productTypesToIgnore'],
 				'each',
 				'rule' => ['string']],
+			[['shipmentStatusesToLockOrders'],
+				'required',
+				'when' => static fn (self $settings): bool => $settings->lockOrdersInFulfillment,
+				'message' => Craft::t(Plugin::HANDLE, 'error.lockStatusRequired')],
+			[['shipmentStatusesToLockOrders'],
+				'each',
+				'rule' => [
+					'in',
+					'range' => self::ORDER_LOCKING_STATUSES,
+				]],
 			[['qtySplitMode'],
 				'in',
 				'range' => [self::QTY_SPLIT_MODE_SPLIT, self::QTY_SPLIT_MODE_ATOMIC]],

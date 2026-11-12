@@ -5,6 +5,7 @@
 ## Unreleased
 
 ### Added
+- Added `lockOrdersInFulfillment` and `shipmentStatusesToLockOrders` settings (UI: “Lock orders in fulfillment”, “Shipment statuses that lock orders”), which lock a completed order's line items and total while a shipment on it has a listed status.
 - Added a `productTypesToIgnore` setting, so line items of product types that never ship (services, downloads) are left out of shipments and don't count as unallocated.
 - Added an `orderStatusesToCancelShipments` setting (UI: **Order statuses that cancel shipments**).
 - Added a “Set status” bulk action to the Shipments index.
@@ -16,7 +17,7 @@
 - Added a `postie-packing` grouping source, available when Verbb Postie is installed. Creates one shipment for each box packed by Postie, or one shipment for the whole order if no packing data is available.
 
 - First-class `Shipment` element with its own status sources, element index, bulk actions, field layouts, and GraphQL type.
-- Single fixed-vocabulary `Status` enum (`new`, `in_progress`, `on_hold`, `fulfilled`, `shipped`, `cancelled`), with a per-integration mapping table translating external codes into it. Statuses carry no built-in behavior except `shipped`, which advances the order.
+- Single fixed-vocabulary `Status` enum (`new`, `in_progress`, `on_hold`, `fulfilled`, `shipped`, `cancelled`), with a per-integration mapping table translating external codes into it. `shipped` advances the order.
 - `Shipments::applyTransition()` as the single canonical status-write path; CP edits, bulk actions, REST API, and webhooks all route through it.
 - Order auto-advance: reaching `shipped` advances the shipment's Commerce order to the handle configured in `autoAdvanceOrderStatusHandle`, via `AdvanceOrderStatusJob`.
 - Granular permissions: `shipments-viewShipments`, `shipments-editShipments`, `shipments-transitionShipments`, `shipments-deleteShipments`, `shipments-pushShipments`, `shipments-manageIntegrations`, `shipments-manageEmails`, `shipments-manageSettings`.

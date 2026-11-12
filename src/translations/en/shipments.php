@@ -129,6 +129,7 @@ return [
 	'error.invalidShipmentId' => 'Invalid shipment id.',
 	'error.inventoryGroupingModesKeyedArray' => 'Inventory grouping modes must be a keyed array.',
 	'error.lineItemStatusGroupsList' => 'Line item status groups must be a list of groups.',
+	'error.lockStatusRequired' => 'Pick at least one status, or turn off Lock orders in fulfillment.',
 	'error.missingIntegration' => 'Missing integration',
 	'error.noCustomerEmail' => 'No customer email on order “{order}”.',
 	'error.noProviderForType' => 'No integration provider registered for type “{type}”.',
@@ -193,6 +194,9 @@ return [
 	'nav.shipmentLowercase' => 'shipment',
 	'nav.shipments' => 'Shipments',
 	'nav.shipmentsLowercase' => 'shipments',
+
+	// order
+	'order.changeLockedInFulfillment' => 'The order’s line items and total can’t change while a shipment on it is {status}.',
 
 	// orderTab
 	'orderTab.allocationHeading' => 'Order allocation',
@@ -384,6 +388,9 @@ return [
 
 	// settings.tracking
 	'settings.tracking.noOrderStatuses' => 'No Commerce order statuses are defined. Configure at least one under Commerce -> Settings -> Order Statuses.',
+	'settings.tracking.lockOrdersInFulfillment' => 'Lock orders in fulfillment',
+	'settings.tracking.lockOrdersInFulfillmentHelp' => 'While a shipment on a completed order has one of the statuses below, the order’s line items and total can’t change.',
+	'settings.tracking.shipmentStatusesToLockOrders' => 'Shipment statuses that lock orders',
 	'settings.tracking.orderStatusesToCancelShipments' => 'Order statuses that cancel shipments',
 	'settings.tracking.orderStatusesToCancelShipmentsHelp' => 'When an order moves into one of these Commerce statuses, every shipment on it that hasn’t shipped and has no active carrier delivery is canceled. Moving the order back out restores those shipments to the status each held before; a shipment canceled any other way stays canceled.',
 	'settings.tracking.orderStatusesToIgnore' => 'Order statuses to ignore',
