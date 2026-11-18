@@ -68,7 +68,7 @@ class SetShipmentStatus extends ElementAction
 })();
 JS, [static::class, $options, Craft::t(Plugin::HANDLE, 'action.setStatus'), Craft::t('app', 'Apply'),
 			Craft::t(Plugin::HANDLE, 'action.setStatusChoose'),
-			Craft::t(Plugin::HANDLE, 'shipmentEdit.suppressEmails'),
+			Craft::t(Plugin::HANDLE, 'action.suppressEmails'),
 		]);
 
 		return null;

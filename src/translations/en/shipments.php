@@ -14,6 +14,7 @@ return [
 	// Bulk status action
 	'action.setStatusChoose' => 'Choose a status.',
 	'action.setStatus' => 'Set status',
+	'action.suppressEmails' => 'Suppress emails',
 	'action.statusUpdated' => 'Shipment statuses updated.',
 	'action.statusPartiallyUpdated' => 'Could not update {count} of the selected shipments. Canceled shipments can’t be changed in bulk. See the logs for any others.',
 
