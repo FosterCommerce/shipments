@@ -121,7 +121,7 @@ class TransitionEmails extends Component
 	 */
 	public function onShipmentStatusChanged(ShipmentStatusChangedEvent $event): void
 	{
-		if ($event->shipment->id === null || $event->history->id === null) {
+		if ($event->suppressEmails || $event->shipment->id === null || $event->history->id === null) {
 			return;
 		}
 

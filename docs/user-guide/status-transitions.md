@@ -84,6 +84,8 @@ Every status change is recorded. Open the **Status history** tab on the shipment
 
 Admins attach any email to any status-change trigger under **Shipments -> Settings -> Emails -> {email} -> Transition triggers**. Multiple emails can share a trigger; every match queues up. See the [emails guide](./emails.md).
 
+To change a status without emailing the customer, tick **Suppress emails** on the shipment edit page or in the **Set status** bulk action. This also skips Commerce's order status email if the order moves to Shipped.
+
 ## Canceled vs disabled vs deleted
 
 - **`cancelled` status**: the shipment exists and is visible, but won't ship. Its quantity returns to the pool, so another shipment can claim the same line items.

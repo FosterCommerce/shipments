@@ -217,7 +217,13 @@ class ShipmentsController extends Controller
 			$this->requirePermission(Plugin::PERMISSION_TRANSITION);
 
 			try {
-				$transitioned = $plugin->shipments->applyTransition($saved, $target, $user, $statusMessage);
+				$transitioned = $plugin->shipments->applyTransition(
+					$saved,
+					$target,
+					$user,
+					$statusMessage,
+					suppressEmails: (bool) $this->request->getBodyParam('suppressEmails', false),
+				);
 				if ($transitioned instanceof Shipment) {
 					$saved = $transitioned;
 				}

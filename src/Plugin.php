@@ -516,6 +516,7 @@ class Plugin extends \craft\base\Plugin
 		// Queue so the order save runs after the shipment write commits, in its own transaction.
 		Craft::$app->getQueue()->push(new AdvanceOrderStatusJob([
 			'orderId' => $orderId,
+			'suppressEmails' => $event->suppressEmails,
 		]));
 	}
 

@@ -151,6 +151,13 @@
 			options: statusSelectOptions,
 		}) }}
 
+		{{ forms.checkboxField({
+			label: 'shipmentEdit.suppressEmails'|t('shipments'),
+			instructions: 'shipmentEdit.suppressEmailsHelp'|t('shipments'),
+			id: 'suppressEmails',
+			name: 'suppressEmails',
+		}) }}
+
 		{{ forms.textareaField({
 			label: 'shipmentEdit.statusChangeNote'|t('shipments'),
 			instructions: 'shipmentEdit.statusNoteHelp'|t('shipments'),

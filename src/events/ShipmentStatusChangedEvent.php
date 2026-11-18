@@ -32,4 +32,6 @@ class ShipmentStatusChangedEvent extends Event
 	public ?Integration $sourceIntegration = null;
 
 	public ?string $sourceExternalCode = null;
+
+	public bool $suppressEmails = false;
 }

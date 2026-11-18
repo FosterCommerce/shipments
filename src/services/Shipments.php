@@ -665,6 +665,7 @@ class Shipments extends Component
 		?Integration $source = null,
 		?string $externalCode = null,
 		bool $queueAutoPushes = true,
+		bool $suppressEmails = false,
 	): ?Shipment {
 		if ($shipment->id === null) {
 			return null;
@@ -729,6 +730,7 @@ class Shipments extends Component
 				$event->message = $message;
 				$event->sourceIntegration = $source;
 				$event->sourceExternalCode = $externalCode;
+				$event->suppressEmails = $suppressEmails;
 				$this->trigger(self::EVENT_SHIPMENT_STATUS_CHANGED, $event);
 
 				$transaction->commit();
