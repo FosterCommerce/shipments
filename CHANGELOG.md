@@ -9,6 +9,7 @@
 - Added a `productTypesToIgnore` setting, so line items of product types that never ship (services, downloads) are left out of shipments and don't count as unallocated.
 - Added an `orderStatusesToCancelShipments` setting (UI: **Order statuses that cancel shipments**).
 - Added a “Set status” bulk action to the Shipments index.
+- Added a “Suppress emails” option when changing a shipment's status, on the shipment edit page and the “Set status” bulk action.
 - Added a “Set shipments to Shipped when a carrier delivery is created” setting.
 - Added “Pickup Date” to the shipment's Delivery tab.
 - Added “Shipping charged” to the shipment edit page.

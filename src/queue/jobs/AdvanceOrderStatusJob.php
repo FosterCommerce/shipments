@@ -17,6 +17,8 @@ class AdvanceOrderStatusJob extends BaseJob
 {
 	public ?int $orderId = null;
 
+	public bool $suppressEmails = false;
+
 	public function execute($queue): void
 	{
 		if ($this->orderId === null) {
@@ -30,6 +32,7 @@ class AdvanceOrderStatusJob extends BaseJob
 			return;
 		}
 
+		$order->suppressEmails = $this->suppressEmails;
 		$plugin->trackedOrders->advanceOrderStatusIfAllShipped($order);
 	}
 

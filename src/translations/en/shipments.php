@@ -14,6 +14,7 @@ return [
 	// Bulk status action
 	'action.setStatusChoose' => 'Choose a status.',
 	'action.setStatus' => 'Set status',
+	'action.suppressEmails' => 'Suppress emails',
 	'action.statusUpdated' => 'Shipment statuses updated.',
 	'action.statusPartiallyUpdated' => 'Could not update {count} of the selected shipments. Canceled shipments can’t be changed in bulk. See the logs for any others.',
 
@@ -427,6 +428,8 @@ return [
 	'shipmentEdit.statusHelp' => 'Shipment lifecycle. Transitions fire the status-changed event and queue attached emails.',
 	'shipmentEdit.statusLabel' => 'Status',
 	'shipmentEdit.orderAllocation' => 'Order Allocation',
+	'shipmentEdit.suppressEmails' => 'Suppress emails',
+	'shipmentEdit.suppressEmailsHelp' => 'Change the status without emailing the customer.',
 	'shipmentEdit.statusNoteHelp' => 'Optional note recorded with this status change. Skipped silently if the status didn’t change.',
 	'shipmentEdit.targetShipDate' => 'Pickup Date',
 	'shipmentEdit.targetShipDateHelp' => 'Date used for rates, labels, and bills of lading.',

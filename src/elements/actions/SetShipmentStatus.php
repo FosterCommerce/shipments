@@ -19,6 +19,8 @@ class SetShipmentStatus extends ElementAction
 {
 	public ?string $status = null;
 
+	public bool $suppressEmails = false;
+
 	public function getTriggerLabel(): string
 	{
 		return Craft::t(Plugin::HANDLE, 'action.setStatus');
@@ -37,13 +39,14 @@ class SetShipmentStatus extends ElementAction
 			], Status::cases()),
 		];
 
-		Craft::$app->getView()->registerJsWithVars(static fn (string $type, string $options, string $heading, string $apply, string $chooseStatus): string => <<<JS
+		Craft::$app->getView()->registerJsWithVars(static fn (string $type, string $options, string $heading, string $apply, string $chooseStatus, string $suppressEmails): string => <<<JS
 (() => {
 	new Craft.ElementActionTrigger({
 		type: {$type},
 		activate: () => {
 			const field = Craft.ui.createSelectField({label: {$heading}, name: 'status', options: {$options}});
-			const body = $('<div class="body"/>').append(field);
+			const suppressField = Craft.ui.createCheckboxField({label: {$suppressEmails}, name: 'suppressEmails', fieldClass: []});
+			const body = $('<div class="body"/>').append(field, suppressField);
 			const form = $('<form class="modal fitted" method="post" accept-charset="UTF-8"/>').append(body);
 			const buttons = $('<div class="buttons right"/>').appendTo(body);
 			$('<button type="submit" class="btn submit"/>').text({$apply}).appendTo(buttons);
@@ -57,13 +60,15 @@ class SetShipmentStatus extends ElementAction
 				}
 
 				modal.hide();
-				Craft.elementIndex.submitAction({$type}, {status});
+				const suppressEmails = suppressField.find('input[type=checkbox]').is(':checked') ? 1 : 0;
+				Craft.elementIndex.submitAction({$type}, {status, suppressEmails});
 			});
 		},
 	});
 })();
 JS, [static::class, $options, Craft::t(Plugin::HANDLE, 'action.setStatus'), Craft::t('app', 'Apply'),
 			Craft::t(Plugin::HANDLE, 'action.setStatusChoose'),
+			Craft::t(Plugin::HANDLE, 'action.suppressEmails'),
 		]);
 
 		return null;
@@ -90,7 +95,7 @@ JS, [static::class, $options, Craft::t(Plugin::HANDLE, 'action.setStatus'), Craf
 			}
 
 			try {
-				$plugin->shipments->applyTransition($shipment, $status, $user);
+				$plugin->shipments->applyTransition($shipment, $status, $user, suppressEmails: $this->suppressEmails);
 			} catch (Throwable $throwable) {
 				$failed++;
 				Craft::error("Could not set shipment {$shipment->id} to {$status->value}: " . $throwable->getMessage(), Plugin::HANDLE);
@@ -116,6 +121,7 @@ JS, [static::class, $options, Craft::t(Plugin::HANDLE, 'action.setStatus'), Craf
 		$rules[] = [['status'],
 			'in',
 			'range' => array_column(Status::cases(), 'value')];
+		$rules[] = [['suppressEmails'], 'boolean'];
 
 		return $rules;
 	}

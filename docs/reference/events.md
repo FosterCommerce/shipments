@@ -78,6 +78,7 @@ Event::on(
 | `message`             | `?string`       | Optional note on the history row.                           |
 | `sourceIntegration`   | `?Integration`  | Which integration drove the change (null for CP actions).   |
 | `sourceExternalCode`  | `?string`       | The raw external code from the integration.                 |
+| `suppressEmails`      | `bool`          | True when the admin chose not to email the customer.        |
 
 **Common use:** queue a `PushShipmentJob` when specific transitions happen.
 
